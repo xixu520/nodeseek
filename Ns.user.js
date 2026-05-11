@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.11.14
+// @version      2026.05.11.15
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -1771,6 +1771,96 @@
             border-radius: 8px !important;
         }
 
+        #ns-filter-dialog.ns-filter-dialog {
+            background: rgba(248, 255, 253, .98) !important;
+            border: 1px solid rgba(20, 184, 166, .2) !important;
+            border-radius: 14px !important;
+        }
+
+        .ns-filter-dialog-header {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 12px !important;
+            margin-bottom: 16px !important;
+        }
+
+        .ns-filter-dialog-header strong {
+            color: #0f172a !important;
+            font-size: 18px !important;
+            line-height: 1.3 !important;
+        }
+
+        #ns-filter-dialog .ns-filter-dialog-close {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            min-height: 34px !important;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 9px !important;
+            background: #e5e7eb !important;
+            color: #111827 !important;
+            box-shadow: 3px 3px 0 rgba(17, 24, 39, .45) !important;
+            font-size: 24px !important;
+            font-weight: 700 !important;
+            line-height: 1 !important;
+        }
+
+        .ns-filter-field {
+            display: block !important;
+            margin-bottom: 18px !important;
+        }
+
+        .ns-filter-field-label {
+            margin-bottom: 8px !important;
+            color: #525252 !important;
+            font-size: 16px !important;
+            font-weight: 750 !important;
+            line-height: 1.35 !important;
+        }
+
+        #ns-filter-dialog .ns-filter-color-input {
+            width: 88px !important;
+            height: 44px !important;
+            padding: 7px !important;
+            border-radius: 11px !important;
+            background: #f8fffd !important;
+        }
+
+        .ns-filter-check-row {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            margin: 4px 0 18px !important;
+            color: #404040 !important;
+            font-size: 16px !important;
+            font-weight: 750 !important;
+        }
+
+        .ns-filter-check-row input {
+            width: 20px !important;
+            height: 20px !important;
+        }
+
+        .ns-filter-actions {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+            gap: 16px !important;
+        }
+
+        #ns-filter-dialog .ns-filter-actions button {
+            width: 100% !important;
+            min-height: 42px !important;
+            border-radius: 10px !important;
+            font-size: 15px !important;
+            font-weight: 800 !important;
+        }
+
+        #ns-filter-dialog .ns-filter-save {
+            background: #000000 !important;
+        }
+
         @media (max-width: 767px) {
             #nodeseek-plugin-main-container {
                 right: 12px !important;
@@ -1849,6 +1939,19 @@
                 min-height: 34px !important;
                 padding: 7px 16px !important;
                 font-size: 15px !important;
+            }
+
+            .ns-filter-dialog-header strong {
+                font-size: 17px !important;
+            }
+
+            .ns-filter-field-label,
+            .ns-filter-check-row {
+                font-size: 15px !important;
+            }
+
+            .ns-filter-actions {
+                gap: 10px !important;
             }
 
             #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
@@ -6194,26 +6297,34 @@
             let applyTimer = null;
             let lastStats = { hidden: 0, highlighted: 0 };
 
+            const TOKEN_COLORS = ['#22c55e', '#14b8a6', '#38bdf8', '#8b5cf6', '#f97316', '#ec4899', '#64748b'];
+            const PLUGIN_SELECTOR = '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #favorites-dialog, #friends-dialog';
+            const TITLE_SELECTORS = [
+                'a.post-title',
+                '.post-title a',
+                '.topic-title',
+                '.topic-title a',
+                '.article-title',
+                '.article-title a',
+                '.thread-title',
+                '.thread-title a',
+                '.content-title',
+                '.content-title a',
+                'h1',
+                'h2 a[href*="/post-"]',
+                'h3 a[href*="/post-"]',
+                'a[href*="/post-"][class*="title"]',
+                'a[href*="/topic/"][class*="title"]',
+                'a[href*="/article/"][class*="title"]'
+            ];
+
             function isMobileDevice() {
                 return window.innerWidth <= 767;
             }
 
-            function readJson(key, fallback) {
-                try {
-                    const raw = localStorage.getItem(key);
-                    return raw ? JSON.parse(raw) : fallback;
-                } catch (e) {
-                    return fallback;
-                }
-            }
-
-            function writeJson(key, value) {
-                localStorage.setItem(key, JSON.stringify(value));
-            }
-
             function parseLines(value) {
                 return String(value || '')
-                    .split(/\n|,/)
+                    .split(/\n|,|，/)
                     .map(item => item.trim())
                     .filter(Boolean);
             }
@@ -6231,39 +6342,70 @@
                 return result;
             }
 
+            function readWords(key) {
+                const raw = localStorage.getItem(key);
+                if (!raw) return [];
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) return uniqueWords(parsed);
+                    if (typeof parsed === 'string') return uniqueWords(parseLines(parsed));
+                } catch (e) { }
+                return uniqueWords(parseLines(raw));
+            }
+
+            function readBool(key, fallback) {
+                const raw = localStorage.getItem(key);
+                if (raw === null) return fallback;
+                try {
+                    return !!JSON.parse(raw);
+                } catch (e) {
+                    return raw === 'true';
+                }
+            }
+
+            function writeJson(key, value) {
+                localStorage.setItem(key, JSON.stringify(value));
+            }
+
             function getSettings() {
-                const blockKeywords = uniqueWords([
-                    ...readJson('ns-filter-custom-keywords', []),
-                    ...readJson('ns-filter-keywords', [])
+                const displayKeywords = uniqueWords([
+                    ...readWords('ns-filter-custom-keywords'),
+                    ...readWords('ns-filter-keywords')
                 ]);
                 const highlightKeywords = uniqueWords([
-                    ...readJson('ns-filter-highlight-keywords', []),
-                    ...readJson('ns-filter-highlight-post-keywords', [])
+                    ...readWords('ns-filter-highlight-keywords'),
+                    ...readWords('ns-filter-highlight-post-keywords')
                 ]);
                 return {
                     customKeywords: [],
-                    displayKeywords: blockKeywords,
-                    highlightKeywords: highlightKeywords,
+                    displayKeywords,
+                    highlightKeywords,
                     highlightPostKeywords: highlightKeywords,
-                    highlightAuthorEnabled: readJson('ns-filter-highlight-author-enabled', false),
-                    highlightColor: localStorage.getItem('ns-filter-highlight-color') || '#facc15',
-                    whitelistUsers: readJson('ns-filter-whitelist-users', [])
+                    highlightAuthorEnabled: readBool('ns-filter-highlight-author-enabled', false),
+                    highlightColor: localStorage.getItem('ns-filter-highlight-color') || '#38bdf8',
+                    whitelistUsers: readWords('ns-filter-whitelist-users')
                 };
             }
 
             function saveSettings(settings) {
-                writeJson('ns-filter-custom-keywords', settings.customKeywords || []);
-                writeJson('ns-filter-keywords', settings.displayKeywords || []);
-                writeJson('ns-filter-highlight-keywords', settings.highlightKeywords || []);
-                writeJson('ns-filter-highlight-post-keywords', settings.highlightPostKeywords || []);
+                const displayKeywords = uniqueWords(settings.displayKeywords || []);
+                const highlightKeywords = uniqueWords(settings.highlightKeywords || []);
+                writeJson('ns-filter-custom-keywords', []);
+                writeJson('ns-filter-keywords', displayKeywords);
+                writeJson('ns-filter-highlight-keywords', highlightKeywords);
+                writeJson('ns-filter-highlight-post-keywords', highlightKeywords);
                 writeJson('ns-filter-highlight-author-enabled', !!settings.highlightAuthorEnabled);
-                localStorage.setItem('ns-filter-highlight-color', settings.highlightColor || '#facc15');
-                writeJson('ns-filter-whitelist-users', settings.whitelistUsers || []);
+                localStorage.setItem('ns-filter-highlight-color', settings.highlightColor || '#38bdf8');
+                writeJson('ns-filter-whitelist-users', uniqueWords(settings.whitelistUsers || []));
             }
 
             function textHas(text, words) {
                 const source = String(text || '').toLowerCase();
                 return (words || []).some(word => source.includes(String(word).toLowerCase()));
+            }
+
+            function isPluginNode(node) {
+                return !!node.closest?.(PLUGIN_SELECTOR);
             }
 
             function getAuthorName(node) {
@@ -6272,80 +6414,80 @@
             }
 
             function getContainer(node) {
-                return node.closest?.('.nsk-content, article, .card, .post, .topic, .reply, li, tr') || node;
-            }
-
-            function isPluginNode(node) {
-                return !!node.closest?.('#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #favorites-dialog, #friends-dialog');
-            }
-
-            function isPostCandidate(node) {
-                if (!node) return false;
-                if (node.matches?.('article, .nsk-content, .card, .post, .topic')) return true;
-                if (node.querySelector?.('a[href*="/post"], a[href*="/topic"], a[href*="/discussion"]')) return true;
-                return false;
+                return node.closest?.('article, .nsk-content, .card, .post, .topic, .reply, li, tr') || node;
             }
 
             function getContentCandidates() {
-                const nodes = Array.from(document.querySelectorAll('article, .nsk-content, .card, .post, .topic, .reply, li, tr, a[href*="/post"], a[href*="/topic"], a[href*="/discussion"]'));
+                const nodes = Array.from(document.querySelectorAll('article, .nsk-content, .card, .post, .topic, .reply, li, tr, a[href*="/post"], a[href*="/topic"], a[href*="/article"]'));
                 const result = [];
                 const seen = new Set();
                 nodes.forEach(node => {
                     const container = getContainer(node);
-                    if (!container || seen.has(container)) return;
-                    if (isPluginNode(container)) return;
+                    if (!container || seen.has(container) || isPluginNode(container)) return;
                     seen.add(container);
                     result.push(container);
                 });
                 return result;
             }
 
-            function resetCandidate(node) {
-                node.style.display = node.getAttribute('data-ns-filter-old-display') || '';
-                node.style.backgroundColor = node.getAttribute('data-ns-filter-old-bg') || '';
-                node.style.outline = node.getAttribute('data-ns-filter-old-outline') || '';
-                node.classList.remove('ns-filter-highlighted');
-                node.style.removeProperty('--ns-filter-highlight-color');
-                node.removeAttribute('data-ns-filter-hit');
+            function getTitleElements() {
+                const titles = [];
+                const seen = new Set();
+                TITLE_SELECTORS.forEach(selector => {
+                    document.querySelectorAll(selector).forEach(node => {
+                        if (!node || seen.has(node) || isPluginNode(node)) return;
+                        const text = (node.textContent || '').trim();
+                        if (!text || text === 'NodeSeek') return;
+                        seen.add(node);
+                        titles.push(node);
+                    });
+                });
+                return titles;
+            }
+
+            function resetFilters() {
+                document.querySelectorAll('[data-ns-filter-hit]').forEach(node => {
+                    node.style.display = node.getAttribute('data-ns-filter-old-display') || '';
+                    node.removeAttribute('data-ns-filter-hit');
+                });
+                document.querySelectorAll('.ns-filter-highlighted').forEach(node => {
+                    node.classList.remove('ns-filter-highlighted');
+                    node.style.removeProperty('--ns-filter-highlight-color');
+                });
             }
 
             function applyFilters() {
                 const settings = getSettings();
                 const hideWords = uniqueWords(settings.displayKeywords);
                 const highlightWords = uniqueWords(settings.highlightKeywords);
-                const whitelist = new Set((settings.whitelistUsers || []).map(item => String(item).trim()).filter(Boolean));
+                const whitelist = new Set(uniqueWords(settings.whitelistUsers).map(name => name.toLowerCase()));
                 let hidden = 0;
                 let highlighted = 0;
-                const candidates = getContentCandidates();
 
-                candidates.forEach(node => {
-                    resetCandidate(node);
-                });
+                resetFilters();
 
-                candidates.forEach(node => {
-                    const text = node.textContent || '';
-                    const author = getAuthorName(node);
+                getContentCandidates().forEach(node => {
+                    const author = getAuthorName(node).toLowerCase();
                     if (author && whitelist.has(author)) return;
-
-                    if (isPostCandidate(node) && textHas(text, hideWords)) {
-                        if (!node.hasAttribute('data-ns-filter-old-display')) node.setAttribute('data-ns-filter-old-display', node.style.display || '');
+                    if (textHas(node.textContent || '', hideWords)) {
+                        if (!node.hasAttribute('data-ns-filter-old-display')) {
+                            node.setAttribute('data-ns-filter-old-display', node.style.display || '');
+                        }
                         node.style.display = 'none';
                         node.setAttribute('data-ns-filter-hit', 'hidden');
                         hidden += 1;
                     }
                 });
 
-                candidates.forEach(node => {
-                    if (node.getAttribute('data-ns-filter-hit') === 'hidden') return;
-                    const text = node.textContent || '';
-                    const author = getAuthorName(node);
+                getTitleElements().forEach(node => {
+                    const container = getContainer(node);
+                    if (container?.getAttribute('data-ns-filter-hit') === 'hidden') return;
+                    const author = container ? getAuthorName(container).toLowerCase() : '';
                     if (author && whitelist.has(author)) return;
                     const authorMatched = settings.highlightAuthorEnabled && author && textHas(author, highlightWords);
-                    if (textHas(text, highlightWords) || authorMatched) {
-                        if (!node.hasAttribute('data-ns-filter-old-outline')) node.setAttribute('data-ns-filter-old-outline', node.style.outline || '');
-                        node.style.setProperty('--ns-filter-highlight-color', settings.highlightColor || '#facc15');
+                    if (textHas(node.textContent || '', highlightWords) || authorMatched) {
+                        node.style.setProperty('--ns-filter-highlight-color', settings.highlightColor || '#38bdf8');
                         node.classList.add('ns-filter-highlighted');
-                        node.setAttribute('data-ns-filter-hit', 'highlighted');
                         highlighted += 1;
                     }
                 });
@@ -6437,20 +6579,19 @@
                 box.appendChild(actions);
             }
 
+            function colorForWord(word, index) {
+                const text = String(word || '');
+                let hash = index;
+                for (let i = 0; i < text.length; i++) {
+                    hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+                }
+                return TOKEN_COLORS[Math.abs(hash) % TOKEN_COLORS.length];
+            }
+
             function createTagInput(values, tone) {
                 let items = uniqueWords(values || []);
-                const palette = [
-                    { bg: '#22c55e', fg: '#ffffff' },
-                    { bg: '#14b8a6', fg: '#ffffff' },
-                    { bg: '#38bdf8', fg: '#ffffff' },
-                    { bg: '#8b5cf6', fg: '#ffffff' },
-                    { bg: '#f97316', fg: '#ffffff' },
-                    { bg: '#ec4899', fg: '#ffffff' },
-                    { bg: '#64748b', fg: '#ffffff' }
-                ];
                 const wrap = document.createElement('div');
                 wrap.className = 'ns-filter-token-field ns-filter-token-field-' + tone;
-                wrap.setAttribute('role', 'group');
 
                 const list = document.createElement('div');
                 list.className = 'ns-filter-token-list';
@@ -6459,24 +6600,16 @@
                 input.type = 'text';
                 input.className = 'ns-filter-token-input';
                 input.placeholder = '输入后按回车';
-
-                function colorForWord(word, index) {
-                    const text = String(word || '');
-                    let hash = tone.length + index;
-                    for (let i = 0; i < text.length; i++) {
-                        hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
-                    }
-                    return palette[Math.abs(hash) % palette.length];
-                }
+                input.autocomplete = 'off';
+                input.spellcheck = false;
 
                 function render() {
                     list.innerHTML = '';
                     items.forEach((word, index) => {
                         const chip = document.createElement('span');
                         chip.className = 'ns-filter-chip ns-filter-chip-' + tone;
-                        const chipColor = colorForWord(word, index);
-                        chip.style.setProperty('--ns-chip-bg', chipColor.bg);
-                        chip.style.setProperty('--ns-chip-fg', chipColor.fg);
+                        chip.style.setProperty('--ns-chip-bg', colorForWord(word, index));
+                        chip.style.setProperty('--ns-chip-fg', '#ffffff');
                         chip.title = word;
 
                         const text = document.createElement('span');
@@ -6507,6 +6640,7 @@
                     items = next;
                     input.value = '';
                     render();
+                    input.focus();
                 }
 
                 input.addEventListener('keydown', function (event) {
@@ -6520,23 +6654,20 @@
                         render();
                     }
                 });
-                input.addEventListener('mousedown', function (event) {
-                    event.stopPropagation();
-                });
-                input.addEventListener('click', function (event) {
-                    event.stopPropagation();
+                input.addEventListener('pointerdown', event => event.stopPropagation());
+                input.addEventListener('mousedown', event => event.stopPropagation());
+                input.addEventListener('click', event => event.stopPropagation());
+                input.addEventListener('paste', function () {
+                    setTimeout(function () {
+                        if (/\n|,|，/.test(input.value)) addFromText(input.value);
+                    }, 0);
                 });
                 input.addEventListener('blur', function () {
                     if (input.value.trim()) addFromText(input.value);
                 });
-                input.addEventListener('paste', function () {
-                    setTimeout(function () {
-                        if (/\n|,/.test(input.value)) addFromText(input.value);
-                    }, 0);
-                });
 
                 wrap.onclick = function (event) {
-                    if (event.target && event.target.closest && event.target.closest('.ns-filter-chip-close')) return;
+                    if (event.target?.closest?.('.ns-filter-chip-close')) return;
                     input.focus();
                 };
                 wrap.getValues = function () {
@@ -6548,6 +6679,7 @@
                     input.value = '';
                     render();
                 };
+                wrap.appendChild(list);
                 render();
                 return wrap;
             }
@@ -6562,47 +6694,41 @@
                 const settings = getSettings();
                 const dialog = document.createElement('div');
                 dialog.id = 'ns-filter-dialog';
+                dialog.className = 'ns-filter-dialog';
                 dialog.style.position = 'fixed';
-                dialog.style.top = '80px';
-                dialog.style.right = '16px';
+                dialog.style.top = isMobileDevice() ? '12px' : '80px';
+                dialog.style.right = isMobileDevice() ? '10px' : '16px';
+                dialog.style.left = isMobileDevice() ? '10px' : 'auto';
                 dialog.style.zIndex = '10000';
-                dialog.style.background = '#fff';
-                dialog.style.border = '1px solid #ccc';
-                dialog.style.borderRadius = '8px';
-                dialog.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
-                dialog.style.padding = '14px';
-                dialog.style.width = isMobileDevice() ? '92%' : '420px';
+                dialog.style.padding = isMobileDevice() ? '14px' : '16px';
+                dialog.style.width = isMobileDevice() ? 'auto' : '460px';
+                dialog.style.maxWidth = 'calc(100vw - 20px)';
                 dialog.style.maxHeight = '82vh';
                 dialog.style.overflow = 'auto';
                 dialog.style.boxSizing = 'border-box';
 
                 const header = document.createElement('div');
-                header.style.display = 'flex';
-                header.style.justifyContent = 'space-between';
-                header.style.alignItems = 'center';
-                header.style.marginBottom = '10px';
+                header.className = 'ns-filter-dialog-header';
                 const title = document.createElement('strong');
                 title.textContent = '关键词过滤';
                 const closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
+                closeBtn.className = 'ns-filter-dialog-close';
                 closeBtn.textContent = '×';
                 closeBtn.onclick = function () { dialog.remove(); };
                 header.appendChild(title);
                 header.appendChild(closeBtn);
                 dialog.appendChild(header);
 
-                function field(labelText, input) {
+                function field(labelText, control) {
+                    const block = document.createElement('div');
+                    block.className = 'ns-filter-field';
                     const label = document.createElement('div');
-                    label.style.display = 'block';
-                    label.style.marginBottom = '10px';
-                    const span = document.createElement('span');
-                    span.textContent = labelText;
-                    span.style.display = 'block';
-                    span.style.fontSize = '12px';
-                    span.style.color = '#555';
-                    span.style.marginBottom = '4px';
-                    label.appendChild(span);
-                    label.appendChild(input);
-                    return label;
+                    label.className = 'ns-filter-field-label';
+                    label.textContent = labelText;
+                    block.appendChild(label);
+                    block.appendChild(control);
+                    return block;
                 }
 
                 const hideInput = createTagInput(settings.displayKeywords, 'hide');
@@ -6610,7 +6736,8 @@
                 const whitelistInput = createTagInput(settings.whitelistUsers, 'allow');
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
-                colorInput.value = settings.highlightColor || '#facc15';
+                colorInput.className = 'ns-filter-color-input';
+                colorInput.value = settings.highlightColor || '#38bdf8';
                 const authorInput = document.createElement('input');
                 authorInput.type = 'checkbox';
                 authorInput.checked = !!settings.highlightAuthorEnabled;
@@ -6621,10 +6748,7 @@
                 dialog.appendChild(field('高亮颜色', colorInput));
 
                 const authorLabel = document.createElement('label');
-                authorLabel.style.display = 'flex';
-                authorLabel.style.alignItems = 'center';
-                authorLabel.style.gap = '6px';
-                authorLabel.style.marginBottom = '10px';
+                authorLabel.className = 'ns-filter-check-row';
                 authorLabel.appendChild(authorInput);
                 const authorText = document.createElement('span');
                 authorText.textContent = '匹配作者名';
@@ -6632,22 +6756,20 @@
                 dialog.appendChild(authorLabel);
 
                 const row = document.createElement('div');
-                row.style.display = 'flex';
-                row.style.gap = '8px';
+                row.className = 'ns-filter-actions';
                 const saveBtn = document.createElement('button');
+                saveBtn.type = 'button';
                 saveBtn.textContent = '保存';
-                saveBtn.className = 'blacklist-btn';
-                saveBtn.style.flex = '1';
+                saveBtn.className = 'blacklist-btn ns-filter-save';
                 const clearBtn = document.createElement('button');
+                clearBtn.type = 'button';
                 clearBtn.textContent = '清空';
-                clearBtn.className = 'blacklist-btn red';
-                clearBtn.style.flex = '1';
+                clearBtn.className = 'blacklist-btn red ns-filter-clear';
 
                 saveBtn.onclick = function () {
                     const blockKeywords = hideInput.getValues();
                     const highlightKeywords = highlightInput.getValues();
                     saveSettings({
-                        customKeywords: [],
                         displayKeywords: blockKeywords,
                         highlightKeywords: highlightKeywords,
                         highlightPostKeywords: highlightKeywords,
@@ -6663,19 +6785,18 @@
                 clearBtn.onclick = function () {
                     if (!confirm('确定要清空关键词过滤设置？')) return;
                     saveSettings({
-                        customKeywords: [],
                         displayKeywords: [],
                         highlightKeywords: [],
                         highlightPostKeywords: [],
                         highlightAuthorEnabled: false,
-                        highlightColor: '#facc15',
+                        highlightColor: '#38bdf8',
                         whitelistUsers: []
                     });
                     hideInput.setValues([]);
                     highlightInput.setValues([]);
                     whitelistInput.setValues([]);
                     authorInput.checked = false;
-                    colorInput.value = '#facc15';
+                    colorInput.value = '#38bdf8';
                     applyFilters();
                     addLog('关键词过滤：已清空');
                 };
@@ -6684,7 +6805,6 @@
                 row.appendChild(clearBtn);
                 dialog.appendChild(row);
                 document.body.appendChild(dialog);
-                if (typeof makeDraggable === 'function') makeDraggable(dialog, { width: 50, height: 50 });
             }
 
             return {

@@ -866,6 +866,96 @@
             border-radius: 8px !important;
         }
 
+        #ns-filter-dialog.ns-filter-dialog {
+            background: rgba(248, 255, 253, .98) !important;
+            border: 1px solid rgba(20, 184, 166, .2) !important;
+            border-radius: 14px !important;
+        }
+
+        .ns-filter-dialog-header {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 12px !important;
+            margin-bottom: 16px !important;
+        }
+
+        .ns-filter-dialog-header strong {
+            color: #0f172a !important;
+            font-size: 18px !important;
+            line-height: 1.3 !important;
+        }
+
+        #ns-filter-dialog .ns-filter-dialog-close {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            min-height: 34px !important;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 9px !important;
+            background: #e5e7eb !important;
+            color: #111827 !important;
+            box-shadow: 3px 3px 0 rgba(17, 24, 39, .45) !important;
+            font-size: 24px !important;
+            font-weight: 700 !important;
+            line-height: 1 !important;
+        }
+
+        .ns-filter-field {
+            display: block !important;
+            margin-bottom: 18px !important;
+        }
+
+        .ns-filter-field-label {
+            margin-bottom: 8px !important;
+            color: #525252 !important;
+            font-size: 16px !important;
+            font-weight: 750 !important;
+            line-height: 1.35 !important;
+        }
+
+        #ns-filter-dialog .ns-filter-color-input {
+            width: 88px !important;
+            height: 44px !important;
+            padding: 7px !important;
+            border-radius: 11px !important;
+            background: #f8fffd !important;
+        }
+
+        .ns-filter-check-row {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            margin: 4px 0 18px !important;
+            color: #404040 !important;
+            font-size: 16px !important;
+            font-weight: 750 !important;
+        }
+
+        .ns-filter-check-row input {
+            width: 20px !important;
+            height: 20px !important;
+        }
+
+        .ns-filter-actions {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+            gap: 16px !important;
+        }
+
+        #ns-filter-dialog .ns-filter-actions button {
+            width: 100% !important;
+            min-height: 42px !important;
+            border-radius: 10px !important;
+            font-size: 15px !important;
+            font-weight: 800 !important;
+        }
+
+        #ns-filter-dialog .ns-filter-save {
+            background: #000000 !important;
+        }
+
         @media (max-width: 767px) {
             #nodeseek-plugin-main-container {
                 right: 12px !important;
@@ -944,6 +1034,19 @@
                 min-height: 34px !important;
                 padding: 7px 16px !important;
                 font-size: 15px !important;
+            }
+
+            .ns-filter-dialog-header strong {
+                font-size: 17px !important;
+            }
+
+            .ns-filter-field-label,
+            .ns-filter-check-row {
+                font-size: 15px !important;
+            }
+
+            .ns-filter-actions {
+                gap: 10px !important;
             }
 
             #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
