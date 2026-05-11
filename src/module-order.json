@@ -1,0 +1,14 @@
+[
+  "src/core/bootstrap.js",
+  "src/core/styles.js",
+  "src/modules/blacklist-users.js",
+  "src/core/backup-webdav.js",
+  "src/modules/nodeimage.js",
+  "src/core/panel.js",
+  "src/modules/blacklist-viewer.js",
+  "src/modules/filter.js",
+  "src/modules/quick-reply.js",
+  "src/core/adapters.js",
+  "src/modules/data-modules.js",
+  "src/core/startup.js"
+]

@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         NS综合插件
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.11.5
-// @description  NodeSeek 论坛单文件综合插件，内置黑名单、好友、收藏、历史、快捷回复、图床、笔记、统计和 WebDAV 同步
+// @version      2026.05.11.6
+// @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.js
 // @downloadURL  https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.js
@@ -1410,6 +1410,58 @@
             --ns-ui-shadow: 0 16px 42px rgba(0, 0, 0, 0.48);
         }
 
+        .ns-tw, .ns-tw * {
+            box-sizing: border-box !important;
+            letter-spacing: 0 !important;
+        }
+
+        .ns-tw {
+            font-family: var(--ns-ui-font) !important;
+            color: var(--ns-ui-text) !important;
+        }
+
+        .ns-tw-panel {
+            background: var(--ns-ui-bg) !important;
+            border: 1px solid var(--ns-ui-line) !important;
+            border-radius: 8px !important;
+            box-shadow: var(--ns-ui-shadow) !important;
+            backdrop-filter: blur(14px) saturate(140%) !important;
+            -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
+        }
+
+        .ns-tw-row {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 8px !important;
+            width: 100% !important;
+        }
+
+        .ns-tw-stack {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+            width: 100% !important;
+        }
+
+        .ns-tw-btn {
+            min-height: 24px !important;
+            padding: 4px 7px !important;
+            border: 0 !important;
+            border-radius: 7px !important;
+            color: #fff !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            line-height: 1.2 !important;
+            white-space: nowrap !important;
+            cursor: pointer !important;
+            transition: transform .12s ease, filter .12s ease, box-shadow .12s ease !important;
+        }
+
+        .ns-tw-btn:hover {
+            filter: brightness(1.06) !important;
+            transform: translateY(-1px) !important;
+        }
+
         #nodeseek-plugin-main-container {
             font-family: var(--ns-ui-font) !important;
         }
@@ -1460,7 +1512,7 @@
         }
 
         #settings-btn, #webdav-config-btn { background: #475569 !important; }
-        #blacklist-export-btn, #blacklist-import-btn, #quick-edit-btn, #favorites-view-btn, #favorite-add-btn, #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
+        #blacklist-export-btn, #blacklist-import-btn, #favorites-view-btn, #favorite-add-btn, #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
         #webdav-sync-btn, #ns-nodeimage-btn { background: var(--ns-ui-teal) !important; }
         #blacklist-view-btn, #friends-view-btn { background: var(--ns-ui-green) !important; }
         #quick-reply-btn { background: var(--ns-ui-purple) !important; }
@@ -2628,6 +2680,7 @@
     setInterval(ensurePluginControlPanel, 2000);
 
     // ====== 导出/导入黑名单功能 ======
+
     function exportBlacklist() {
         // 同时导出所有用户数据：黑名单、好友、收藏、操作日志、浏览历史、热点统计等
         const blacklist = getBlacklist();
@@ -5463,6 +5516,7 @@
         // 创建主容器
         const mainContainer = document.createElement('div');
         mainContainer.id = 'nodeseek-plugin-main-container';
+        mainContainer.className = 'ns-tw';
         mainContainer.style.position = 'fixed';
         mainContainer.style.top = '30px';
         mainContainer.style.right = '4px';
@@ -5473,6 +5527,7 @@
         // 创建按钮容器
         const container = document.createElement('div');
         container.id = 'nodeseek-plugin-buttons-container'; // 给容器一个ID，方便需要时获取
+        container.className = 'ns-tw ns-tw-panel ns-tw-stack';
         container.style.display = 'flex';
         container.style.flexDirection = 'column';
         container.style.gap = '10px';
@@ -5519,7 +5574,7 @@
         // 日志按钮
         const logBtn = document.createElement('button');
         logBtn.id = 'sign-log-btn';
-        logBtn.className = 'blacklist-btn';
+        logBtn.className = 'blacklist-btn ns-tw-btn';
         logBtn.textContent = '日志';
         logBtn.style.background = '#795548';
         logBtn.onclick = showLogs;
@@ -5563,21 +5618,21 @@
 
         const exportBtn = document.createElement('button');
         exportBtn.id = 'blacklist-export-btn';
-        exportBtn.className = 'blacklist-btn';
+        exportBtn.className = 'blacklist-btn ns-tw-btn';
         exportBtn.textContent = '导出';
         exportBtn.onclick = exportBlacklist;
         exportBtn.style.width = '50%'; // 设置为50%宽度，与导入按钮共享一行
 
         const importBtn = document.createElement('button');
         importBtn.id = 'blacklist-import-btn';
-        importBtn.className = 'blacklist-btn';
+        importBtn.className = 'blacklist-btn ns-tw-btn';
         importBtn.textContent = '导入';
         importBtn.onclick = importBlacklist;
         importBtn.style.width = '50%'; // 设置为50%宽度，与导出按钮共享一行
 
         const webdavSyncBtn = document.createElement('button');
         webdavSyncBtn.id = 'webdav-sync-btn';
-        webdavSyncBtn.className = 'blacklist-btn';
+        webdavSyncBtn.className = 'blacklist-btn ns-tw-btn';
         webdavSyncBtn.textContent = '同步';
         webdavSyncBtn.style.width = '50%';
         webdavSyncBtn.style.background = '#0d9488';
@@ -5587,7 +5642,7 @@
 
         const webdavConfigBtn = document.createElement('button');
         webdavConfigBtn.id = 'webdav-config-btn';
-        webdavConfigBtn.className = 'blacklist-btn';
+        webdavConfigBtn.className = 'blacklist-btn ns-tw-btn';
         webdavConfigBtn.textContent = '同步设置';
         webdavConfigBtn.style.width = '50%';
         webdavConfigBtn.style.background = '#607D8B';
@@ -5595,6 +5650,7 @@
 
         // 创建一个水平排列的容器，用于导出和导入按钮
         const dataContainer = document.createElement('div');
+        dataContainer.className = 'ns-tw-row';
         dataContainer.style.display = 'flex';
         dataContainer.style.flexDirection = 'row';
         dataContainer.style.gap = '10px';
@@ -5605,6 +5661,7 @@
         dataContainer.appendChild(importBtn); // 导入
 
         const webdavContainer = document.createElement('div');
+        webdavContainer.className = 'ns-tw-row';
         webdavContainer.style.display = 'flex';
         webdavContainer.style.flexDirection = 'row';
         webdavContainer.style.gap = '10px';
@@ -5615,7 +5672,7 @@
         // 新增：查看黑名单按钮
         const viewBtn = document.createElement('button');
         viewBtn.id = 'blacklist-view-btn';
-        viewBtn.className = 'blacklist-btn';
+        viewBtn.className = 'blacklist-btn ns-tw-btn';
         viewBtn.textContent = '查看黑名单';
         viewBtn.style.background = '#2ea44f';
         viewBtn.onclick = showBlacklistDialog;
@@ -5623,266 +5680,10 @@
         // 新增：查看好友按钮
         const viewFriendsBtn = document.createElement('button');
         viewFriendsBtn.id = 'friends-view-btn';
-        viewFriendsBtn.className = 'blacklist-btn';
+        viewFriendsBtn.className = 'blacklist-btn ns-tw-btn';
         viewFriendsBtn.style.background = '#2ea44f';
         viewFriendsBtn.textContent = '查看好友';
         viewFriendsBtn.onclick = showFriendsDialog;
-
-        // 新增：快捷编辑按钮
-        const quickEditBtn = document.createElement('button');
-        quickEditBtn.id = 'quick-edit-btn';
-        quickEditBtn.className = 'blacklist-btn';
-        quickEditBtn.style.background = '#2196F3'; // 蓝色背景
-        quickEditBtn.textContent = '快捷编辑';
-        quickEditBtn.title = "编辑#0帖子"; // 添加鼠标悬停提示文本
-        // 添加功能：点击时自动点击#0楼层的编辑按钮
-        quickEditBtn.onclick = function () {
-            function textOf(node) {
-                return (node && node.textContent ? node.textContent : '').trim().replace(/\s+/g, ' ');
-            }
-
-            function isOutsidePlugin(node) {
-                return node && !(typeof isNsPluginElement === 'function' && isNsPluginElement(node));
-            }
-
-            function isElementVisible(node) {
-                if (!node || !isOutsidePlugin(node)) return false;
-                const style = window.getComputedStyle(node);
-                if (style.display === 'none' || style.visibility === 'hidden' || style.pointerEvents === 'none') return false;
-                const rect = node.getBoundingClientRect();
-                return rect.width > 0 && rect.height > 0;
-            }
-
-            function getCurrentPostId() {
-                const match = location.pathname.match(/post-(\d+)/i);
-                return match ? match[1] : '';
-            }
-
-            function isFloorZero(node) {
-                const text = textOf(node);
-                const aria = node.getAttribute && (node.getAttribute('title') || node.getAttribute('aria-label') || '');
-                const value = text || aria;
-                return value === '#0' || value === '0楼' || value === '楼主' || value === '楼主帖';
-            }
-
-            function findZeroFloorMarker() {
-                const selectors = [
-                    '[data-floor="0"]',
-                    '[data-floor-id="0"]',
-                    '[data-index="0"]',
-                    '[data-reply-index="0"]',
-                    '[id$="-0"]',
-                    '.floor',
-                    '[class*="floor"]',
-                    '.post-floor',
-                    '.floor-number',
-                    '.post-number',
-                    '.floor-link-wrapper',
-                    '.nsk-content-meta-info *',
-                    'a[href$="#0"]',
-                    'a[href*="#0"]'
-                ];
-                const nodes = [];
-                selectors.forEach(selector => {
-                    try {
-                        document.querySelectorAll(selector).forEach(node => nodes.push(node));
-                    } catch (e) { }
-                });
-                return nodes.filter(isOutsidePlugin).find(isFloorZero) || Array.from(document.querySelectorAll('a, span, div, button')).filter(isOutsidePlugin).find(isFloorZero);
-            }
-
-            function findPostContainerById() {
-                const postId = getCurrentPostId();
-                if (!postId) return null;
-                const selectors = [
-                    `[data-post-id="${postId}"]`,
-                    `[data-topic-id="${postId}"]`,
-                    `[data-thread-id="${postId}"]`,
-                    `#post-${postId}`,
-                    `[id="post-${postId}"]`,
-                    `article[id*="${postId}"]`,
-                    `.post[id*="${postId}"]`
-                ];
-                for (const selector of selectors) {
-                    try {
-                        const node = document.querySelector(selector);
-                        if (node && isOutsidePlugin(node)) return node;
-                    } catch (e) { }
-                }
-                return null;
-            }
-
-            function findFirstPostContainer() {
-                const selectors = [
-                    '[role="article"]',
-                    'article',
-                    '.post-main',
-                    '.post-item',
-                    '.post-card',
-                    '.topic-main',
-                    '.topic-card',
-                    '.thread-card',
-                    '.nsk-content',
-                    '.post',
-                    '.topic'
-                ];
-                for (const selector of selectors) {
-                    const node = Array.from(document.querySelectorAll(selector)).find(item => {
-                        if (!isElementVisible(item)) return false;
-                        return item.querySelector('a.author-name, .nsk-content-meta-info, button, a[href*="edit"], [role="button"]');
-                    });
-                    if (node) return node;
-                }
-                return null;
-            }
-
-            function findPostContainer(marker) {
-                const byId = findPostContainerById();
-                if (byId) return byId;
-                if (!marker) return findFirstPostContainer();
-                const containerSelectors = [
-                    '[data-post-id]',
-                    '[data-topic-id]',
-                    '[data-thread-id]',
-                    '[id^="post-"]',
-                    '[role="article"]',
-                    '.nsk-content',
-                    '.post-main',
-                    '.post-item',
-                    '.post-card',
-                    '.topic-main',
-                    '.topic-card',
-                    '.thread-card',
-                    'article',
-                    '.post',
-                    '.topic',
-                    '.reply',
-                    '.card',
-                    'li'
-                ];
-                for (const selector of containerSelectors) {
-                    const found = marker.closest(selector);
-                    if (found && isOutsidePlugin(found)) return found;
-                }
-                let current = marker;
-                for (let i = 0; i < 8 && current; i++) {
-                    if (current.querySelector && current.querySelector('a.author-name, .menu-item, button, a[href*="edit"]') && isOutsidePlugin(current)) return current;
-                    current = current.parentElement;
-                }
-                return marker.parentElement;
-            }
-
-            function findEditControl(scope) {
-                const menuRoots = Array.from(document.querySelectorAll('[role="menu"], .dropdown-menu, .el-dropdown-menu, .v-popper__popper, .popover, .menu, [class*="dropdown"], [class*="popover"]'))
-                    .filter(isElementVisible);
-                const roots = [scope].concat(menuRoots, [document]).filter(Boolean);
-                const selectors = [
-                    '[data-action="edit"]',
-                    '[data-command="edit"]',
-                    '[data-menu-action="edit"]',
-                    'a[href*="edit"]',
-                    'a[href*="/edit"]',
-                    'button[title*="编辑"]',
-                    'a[title*="编辑"]',
-                    '[role="menuitem"]',
-                    '[role="button"]',
-                    '.el-dropdown-menu__item',
-                    '.menu-item',
-                    '.dropdown-item',
-                    'button',
-                    'a'
-                ];
-                for (const root of roots) {
-                    for (const selector of selectors) {
-                        const list = Array.from(root.querySelectorAll(selector));
-                        const hit = list.find(node => {
-                            if (!isElementVisible(node)) return false;
-                            const text = textOf(node.querySelector('span') || node);
-                            const title = node.getAttribute && (node.getAttribute('title') || node.getAttribute('aria-label') || '');
-                            const action = node.getAttribute && (node.getAttribute('data-action') || node.getAttribute('data-command') || node.getAttribute('data-menu-action') || '');
-                            const href = node.getAttribute && (node.getAttribute('href') || '');
-                            const label = text + title;
-                            if (/快捷编辑|编辑时间/.test(label)) return false;
-                            return text === '编辑' || title.includes('编辑') || /edit/i.test(action) || /\/edit|edit/i.test(href);
-                        });
-                        if (hit) return hit;
-                    }
-                }
-                return null;
-            }
-
-            function openActionMenu(scope) {
-                if (!scope) return false;
-                const selectors = [
-                    '[aria-haspopup="menu"]',
-                    '[aria-haspopup="true"]',
-                    '[aria-label*="更多"]',
-                    '[title*="更多"]',
-                    '[aria-label*="菜单"]',
-                    '[title*="菜单"]',
-                    '[data-action*="more"]',
-                    '[data-command*="more"]',
-                    '[class*="more"]',
-                    '[class*="menu"]',
-                    '[class*="dropdown"]',
-                    '.more',
-                    '.more-btn',
-                    '.dropdown-toggle',
-                    '.menu-trigger',
-                    '[role="button"]',
-                    'button'
-                ];
-                for (const selector of selectors) {
-                    const list = Array.from(scope.querySelectorAll(selector));
-                    const trigger = list.find(node => {
-                        if (!isElementVisible(node)) return false;
-                        const text = textOf(node);
-                        const title = node.getAttribute && (node.getAttribute('title') || node.getAttribute('aria-label') || '');
-                        const name = (node.className || '') + ' ' + (node.getAttribute && (node.getAttribute('data-action') || node.getAttribute('data-command') || ''));
-                        return /更多|菜单|操作|•••|⋯|…|\.{3}|more|menu|dropdown/i.test(text + title + name) || (node.querySelector('svg') && !/编辑|回复|收藏/.test(text + title));
-                    });
-                    if (trigger) {
-                        trigger.click();
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            function clickEditControl() {
-                const marker = findZeroFloorMarker();
-                const scope = findPostContainer(marker);
-                if (!scope) {
-                    addLog('快捷编辑：当前页面没有找到#0楼层');
-                    return;
-                }
-
-                const direct = findEditControl(scope);
-                if (direct) {
-                    addLog('快捷编辑：点击#0楼层编辑');
-                    direct.click();
-                    return;
-                }
-
-                if (openActionMenu(scope)) {
-                    setTimeout(function () {
-                        const opened = findEditControl(scope) || findEditControl(document);
-                        if (opened) {
-                            addLog('快捷编辑：打开菜单并点击编辑');
-                            opened.click();
-                        } else {
-                            addLog('快捷编辑：已打开菜单，但未找到编辑项');
-                        }
-                    }, 180);
-                    return;
-                }
-
-                addLog('快捷编辑：未找到#0楼层编辑入口');
-            }
-
-            clickEditControl();
-        };
-
         // 调整按钮宽度使其统一
         const btnWidth = '100px';
 
@@ -5897,13 +5698,10 @@
         // viewFriendsBtn.style.width = btnWidth;
         viewFriendsBtn.style.minWidth = btnWidth;
 
-        // quickEditBtn.style.width = btnWidth; // 设置快捷编辑按钮宽度
-        quickEditBtn.style.minWidth = btnWidth;
-
         // 新增：查看按钮
         const viewFavoritesBtn = document.createElement('button');
         viewFavoritesBtn.id = 'favorites-view-btn';
-        viewFavoritesBtn.className = 'blacklist-btn';
+        viewFavoritesBtn.className = 'blacklist-btn ns-tw-btn';
         viewFavoritesBtn.style.background = '#1890ff'; // 蓝色背景
         viewFavoritesBtn.textContent = '查看';
         viewFavoritesBtn.style.width = '50%'; // 设置为50%宽度，与收藏按钮共享一行
@@ -5912,7 +5710,7 @@
         // 新增：关键词过滤按钮
         const filterBtn = document.createElement('button');
         filterBtn.id = 'keyword-filter-btn';
-        filterBtn.className = 'blacklist-btn';
+        filterBtn.className = 'blacklist-btn ns-tw-btn';
         filterBtn.style.background = '#4CAF50';
         filterBtn.textContent = '关键词过滤';
         filterBtn.style.width = '100%';
@@ -5928,7 +5726,7 @@
         // 新增：收藏当前页面按钮
         const addFavoriteBtn = document.createElement('button');
         addFavoriteBtn.id = 'favorite-add-btn';
-        addFavoriteBtn.className = 'blacklist-btn';
+        addFavoriteBtn.className = 'blacklist-btn ns-tw-btn';
         addFavoriteBtn.style.background = '#1890ff'; // 蓝色背景
         addFavoriteBtn.textContent = '收藏';
         addFavoriteBtn.style.width = '50%'; // 设置为50%宽度，与查看按钮共享一行
@@ -5954,6 +5752,7 @@
 
         // 创建一个水平排列的容器，用于收藏相关按钮
         const favoriteContainer = document.createElement('div');
+        favoriteContainer.className = 'ns-tw-row';
         favoriteContainer.style.display = 'flex';
         favoriteContainer.style.flexDirection = 'row';
         favoriteContainer.style.gap = '10px';
@@ -5965,6 +5764,7 @@
 
         // 新增：关键词过滤按钮单独一行
         const filterBtnContainer = document.createElement('div');
+        filterBtnContainer.className = 'ns-tw-row';
         filterBtnContainer.style.display = 'flex';
         filterBtnContainer.style.flexDirection = 'row';
         filterBtnContainer.style.gap = '10px';
@@ -5974,7 +5774,7 @@
         // 新增：设置按钮
         const settingsBtn = document.createElement('button');
         settingsBtn.id = 'settings-btn';
-        settingsBtn.className = 'blacklist-btn';
+        settingsBtn.className = 'blacklist-btn ns-tw-btn';
         settingsBtn.style.background = '#607D8B'; // 蓝灰色背景
         settingsBtn.textContent = '设置';
         settingsBtn.style.width = '100%';
@@ -5983,6 +5783,7 @@
 
         // 新增：设置按钮单独一行
         const settingsContainer = document.createElement('div');
+        settingsContainer.className = 'ns-tw-row';
         settingsContainer.style.display = 'flex';
         settingsContainer.style.flexDirection = 'row';
         settingsContainer.style.gap = '10px';
@@ -5992,7 +5793,7 @@
         // 新增：快捷回复按钮
         const quickReplyBtn = document.createElement('button');
         quickReplyBtn.id = 'quick-reply-btn';
-        quickReplyBtn.className = 'blacklist-btn';
+        quickReplyBtn.className = 'blacklist-btn ns-tw-btn';
         quickReplyBtn.style.background = '#9C27B0'; // 紫色背景
         quickReplyBtn.textContent = '快捷回复';
         quickReplyBtn.style.width = '100%';
@@ -6007,6 +5808,7 @@
 
         // 新增：快捷回复按钮单独一行
         const quickReplyContainer = document.createElement('div');
+        quickReplyContainer.className = 'ns-tw-row';
         quickReplyContainer.style.display = 'flex';
         quickReplyContainer.style.flexDirection = 'row';
         quickReplyContainer.style.gap = '10px';
@@ -6016,7 +5818,7 @@
         // 新增：NS 图床（NodeImage API，window.NodeSeekNodeImage）
         const nodeImageBtn = document.createElement('button');
         nodeImageBtn.id = 'ns-nodeimage-btn';
-        nodeImageBtn.className = 'blacklist-btn';
+        nodeImageBtn.className = 'blacklist-btn ns-tw-btn';
         nodeImageBtn.style.background = '#0d9488';
         nodeImageBtn.textContent = 'NS图床';
         nodeImageBtn.style.width = '100%';
@@ -6025,6 +5827,7 @@
             openNodeImagePanel();
         };
         const nodeImageBtnContainer = document.createElement('div');
+        nodeImageBtnContainer.className = 'ns-tw-row';
         nodeImageBtnContainer.style.display = 'flex';
         nodeImageBtnContainer.style.flexDirection = 'row';
         nodeImageBtnContainer.style.gap = '10px';
@@ -6072,7 +5875,6 @@
         container.appendChild(logBtn);        // 日志
         container.appendChild(viewBtn);       // 查看黑名单
         container.appendChild(viewFriendsBtn); // 查看好友
-        container.appendChild(quickEditBtn);  // 快捷编辑
         container.appendChild(favoriteContainer); // 收藏相关按钮行
         container.appendChild(filterBtnContainer); // 关键词过滤按钮行
         container.appendChild(quickReplyContainer); // 快捷回复按钮行
@@ -6281,6 +6083,7 @@
     }
 
     // 内置关键词过滤功能
+
     if (!window.NodeSeekFilter) {
         window.NodeSeekFilter = (function () {
             let observer = null;

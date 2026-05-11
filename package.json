@@ -1,0 +1,9 @@
+{
+  "name": "nodeseek-userscript",
+  "version": "2026.05.11.6",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.js",
+    "check": "node scripts/build.js && node --check Ns.js"
+  }
+}
