@@ -247,14 +247,82 @@
                 box.appendChild(actions);
             }
 
-            function createTextArea(value) {
-                const textarea = document.createElement('textarea');
-                textarea.value = (value || []).join('\n');
-                textarea.style.width = '100%';
-                textarea.style.minHeight = '70px';
-                textarea.style.boxSizing = 'border-box';
-                textarea.style.resize = 'vertical';
-                return textarea;
+            function createTagInput(values, tone) {
+                let items = uniqueWords(values || []);
+                const wrap = document.createElement('div');
+                wrap.className = 'ns-filter-token-field ns-filter-token-field-' + tone;
+
+                const list = document.createElement('div');
+                list.className = 'ns-filter-token-list';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'ns-filter-token-input';
+                input.placeholder = '输入后按回车';
+
+                function render() {
+                    list.innerHTML = '';
+                    items.forEach((word, index) => {
+                        const chip = document.createElement('span');
+                        chip.className = 'ns-filter-chip ns-filter-chip-' + tone;
+                        chip.textContent = word;
+                        chip.title = word;
+
+                        const close = document.createElement('button');
+                        close.type = 'button';
+                        close.className = 'ns-filter-chip-close';
+                        close.textContent = '×';
+                        close.title = '删除';
+                        close.onclick = function (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            items.splice(index, 1);
+                            render();
+                            input.focus();
+                        };
+                        chip.appendChild(close);
+                        list.appendChild(chip);
+                    });
+                    list.appendChild(input);
+                }
+
+                function addFromText(text) {
+                    const next = uniqueWords(items.concat(parseLines(text)));
+                    items = next;
+                    input.value = '';
+                    render();
+                }
+
+                input.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter' || event.key === ',') {
+                        event.preventDefault();
+                        addFromText(input.value);
+                    } else if (event.key === 'Backspace' && !input.value && items.length) {
+                        items.pop();
+                        render();
+                    }
+                });
+                input.addEventListener('blur', function () {
+                    if (input.value.trim()) addFromText(input.value);
+                });
+                input.addEventListener('paste', function () {
+                    setTimeout(function () {
+                        if (/\n|,/.test(input.value)) addFromText(input.value);
+                    }, 0);
+                });
+
+                wrap.onclick = function () { input.focus(); };
+                wrap.getValues = function () {
+                    if (input.value.trim()) addFromText(input.value);
+                    return uniqueWords(items);
+                };
+                wrap.setValues = function (nextValues) {
+                    items = uniqueWords(nextValues || []);
+                    input.value = '';
+                    render();
+                };
+                render();
+                return wrap;
             }
 
             function createFilterUI() {
@@ -310,9 +378,9 @@
                     return label;
                 }
 
-                const hideInput = createTextArea(settings.displayKeywords);
-                const highlightInput = createTextArea(settings.highlightKeywords);
-                const whitelistInput = createTextArea(settings.whitelistUsers);
+                const hideInput = createTagInput(settings.displayKeywords, 'hide');
+                const highlightInput = createTagInput(settings.highlightKeywords, 'highlight');
+                const whitelistInput = createTagInput(settings.whitelistUsers, 'allow');
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
                 colorInput.value = settings.highlightColor || '#facc15';
@@ -349,8 +417,8 @@
                 clearBtn.style.flex = '1';
 
                 saveBtn.onclick = function () {
-                    const blockKeywords = uniqueWords(parseLines(hideInput.value));
-                    const highlightKeywords = uniqueWords(parseLines(highlightInput.value));
+                    const blockKeywords = hideInput.getValues();
+                    const highlightKeywords = highlightInput.getValues();
                     saveSettings({
                         customKeywords: [],
                         displayKeywords: blockKeywords,
@@ -358,7 +426,7 @@
                         highlightPostKeywords: highlightKeywords,
                         highlightAuthorEnabled: authorInput.checked,
                         highlightColor: colorInput.value,
-                        whitelistUsers: parseLines(whitelistInput.value)
+                        whitelistUsers: whitelistInput.getValues()
                     });
                     applyFilters();
                     addLog('关键词过滤：已保存');
@@ -376,9 +444,9 @@
                         highlightColor: '#facc15',
                         whitelistUsers: []
                     });
-                    hideInput.value = '';
-                    highlightInput.value = '';
-                    whitelistInput.value = '';
+                    hideInput.setValues([]);
+                    highlightInput.setValues([]);
+                    whitelistInput.setValues([]);
                     authorInput.checked = false;
                     colorInput.value = '#facc15';
                     applyFilters();

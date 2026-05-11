@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.11.11
+// @version      2026.05.11.12
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -919,16 +919,16 @@
         box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ns-filter-highlight-color, #facc15) 24%, transparent) !important;
     }
     :root {
-        --ns-panel-bg: rgba(255, 255, 255, 0.95);
-        --ns-panel-border: rgba(0, 0, 0, 0.08);
-        --ns-panel-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        --ns-panel-surface-bg: #fff;
-        --ns-panel-surface-border: #eee;
+        --ns-panel-bg: rgba(248, 255, 253, 0.96);
+        --ns-panel-border: rgba(20, 184, 166, 0.18);
+        --ns-panel-shadow: 0 10px 28px rgba(15, 118, 110, 0.12);
+        --ns-panel-surface-bg: #f8fffd;
+        --ns-panel-surface-border: rgba(20, 184, 166, 0.16);
         --ns-panel-surface-text: #111;
-        --ns-panel-collapse-bg: #f0f0f0;
-        --ns-panel-collapse-border: #ccc;
-        --ns-panel-collapse-color: #666;
-        --ns-panel-collapse-hover-bg: #e0e0e0;
+        --ns-panel-collapse-bg: #f0fdfa;
+        --ns-panel-collapse-border: rgba(20, 184, 166, 0.28);
+        --ns-panel-collapse-color: #0f766e;
+        --ns-panel-collapse-hover-bg: #ccfbf1;
     }
     #nodeseek-plugin-buttons-container {
         background: var(--ns-panel-bg) !important;
@@ -985,16 +985,16 @@
         --ns-panel-collapse-hover-bg: rgba(58, 58, 60, 0.95);
     }
     html[data-ns-theme="light"] {
-        --ns-panel-bg: rgba(255, 255, 255, 0.95);
-        --ns-panel-border: rgba(0, 0, 0, 0.08);
-        --ns-panel-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        --ns-panel-surface-bg: #fff;
-        --ns-panel-surface-border: #eee;
+        --ns-panel-bg: rgba(248, 255, 253, 0.96);
+        --ns-panel-border: rgba(20, 184, 166, 0.18);
+        --ns-panel-shadow: 0 10px 28px rgba(15, 118, 110, 0.12);
+        --ns-panel-surface-bg: #f8fffd;
+        --ns-panel-surface-border: rgba(20, 184, 166, 0.16);
         --ns-panel-surface-text: #111;
-        --ns-panel-collapse-bg: #f0f0f0;
-        --ns-panel-collapse-border: #ccc;
-        --ns-panel-collapse-color: #666;
-        --ns-panel-collapse-hover-bg: #e0e0e0;
+        --ns-panel-collapse-bg: #f0fdfa;
+        --ns-panel-collapse-border: rgba(20, 184, 166, 0.28);
+        --ns-panel-collapse-color: #0f766e;
+        --ns-panel-collapse-hover-bg: #ccfbf1;
     }
     .blacklist-btn {
         margin-left: 7px;
@@ -1011,10 +1011,10 @@
     /* 新增：折叠按钮样式 */
     .collapse-btn {
         position: absolute;
-        left: -21.6px;
+        left: -34px;
         top: 10px;
-        width: 21.6px;
-        height: 21.6px;
+        width: 34px;
+        height: 34px;
         background: #f0f0f0;
         border: 1px solid #ccc;
         border-right: none;
@@ -1025,11 +1025,11 @@
         align-items: center;
         color: #666;
         font-weight: bold;
-        font-size: 12.6px;
+        font-size: 14px;
         z-index: 9998;
         transition: transform 0.3s ease;
     }
-    .theme-toggle-btn { top: 36px; }
+    .theme-toggle-btn { top: 50px; }
     .collapse-btn:hover { background: #e0e0e0; }
     .nodeseek-plugin-container-collapsed {
         width: 0 !important;
@@ -1052,7 +1052,7 @@
     #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
         position: static !important;
         width: 34px !important;
-        height: 42px !important;
+        height: 34px !important;
         border-radius: 8px 0 0 8px !important;
         border: 1px solid var(--ns-panel-collapse-border) !important;
         border-right: none !important;
@@ -1379,21 +1379,21 @@
         modernStyle.id = 'ns-modern-ui-style';
         modernStyle.textContent = `
         :root {
-            --ns-ui-bg: rgba(255, 255, 255, 0.96);
-            --ns-ui-bg-solid: #ffffff;
+            --ns-ui-bg: rgba(248, 255, 253, 0.96);
+            --ns-ui-bg-solid: #fbfffe;
             --ns-ui-text: #1f2937;
-            --ns-ui-muted: #6b7280;
-            --ns-ui-line: rgba(15, 23, 42, 0.12);
-            --ns-ui-soft: #f5f7fb;
-            --ns-ui-hover: #eef2f7;
-            --ns-ui-primary: #2563eb;
-            --ns-ui-green: #15803d;
-            --ns-ui-teal: #0f766e;
-            --ns-ui-red: #dc2626;
-            --ns-ui-purple: #7c3aed;
-            --ns-ui-brown: #7c4a2d;
-            --ns-ui-radius: 7px;
-            --ns-ui-shadow: 0 10px 26px rgba(15, 23, 42, 0.16);
+            --ns-ui-muted: #64748b;
+            --ns-ui-line: rgba(20, 184, 166, 0.18);
+            --ns-ui-soft: #effaf7;
+            --ns-ui-hover: #dff7f0;
+            --ns-ui-primary: #38bdf8;
+            --ns-ui-green: #22c55e;
+            --ns-ui-teal: #14b8a6;
+            --ns-ui-red: #fb7185;
+            --ns-ui-purple: #a78bfa;
+            --ns-ui-brown: #f59e0b;
+            --ns-ui-radius: 8px;
+            --ns-ui-shadow: 0 12px 30px rgba(15, 118, 110, 0.14);
             --ns-ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
@@ -1466,8 +1466,8 @@
 
         #nodeseek-plugin-buttons-container {
             width: 112px !important;
-            padding: 7px !important;
-            gap: 5px !important;
+            padding: 8px !important;
+            gap: 6px !important;
             border-radius: var(--ns-ui-radius) !important;
             background: var(--ns-ui-bg) !important;
             border: 1px solid var(--ns-ui-line) !important;
@@ -1484,11 +1484,11 @@
         #nodeseek-plugin-buttons-container > button,
         .blacklist-btn {
             min-height: 24px !important;
-            padding: 4px 7px !important;
+            padding: 5px 8px !important;
             margin-left: 0 !important;
             border: 0 !important;
-            border-radius: 7px !important;
-            box-shadow: inset 0 -1px 0 rgba(0,0,0,0.12), 0 1px 2px rgba(15,23,42,0.08) !important;
+            border-radius: 8px !important;
+            box-shadow: 0 1px 2px rgba(15,118,110,0.08) !important;
             color: #fff !important;
             font-family: var(--ns-ui-font) !important;
             font-size: 11px !important;
@@ -1507,7 +1507,7 @@
             box-shadow: inset 0 -1px 0 rgba(0,0,0,0.12), 0 4px 10px rgba(15,23,42,0.12) !important;
         }
 
-        #settings-btn { background: #475569 !important; }
+        #settings-btn { background: #64748b !important; }
         #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
         #webdav-sync-btn, #ns-nodeimage-btn { background: var(--ns-ui-teal) !important; }
         #blacklist-view-btn, #friends-view-btn { background: var(--ns-ui-green) !important; }
@@ -1522,6 +1522,15 @@
             border: 1px solid var(--ns-ui-line) !important;
             color: var(--ns-ui-text) !important;
             box-shadow: 0 5px 14px rgba(15,23,42,0.12) !important;
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            min-height: 34px !important;
+            max-width: 34px !important;
+            max-height: 34px !important;
+            padding: 0 !important;
+            line-height: 1 !important;
+            box-sizing: border-box !important;
         }
 
         #ns-highlight-stats-container {
@@ -1579,6 +1588,134 @@
         #quick-reply-dialog textarea:focus {
             border-color: rgba(37, 99, 235, .65) !important;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, .12) !important;
+        }
+
+        .ns-filter-token-field {
+            width: 100% !important;
+            min-height: 42px !important;
+            padding: 6px !important;
+            border: 1px solid var(--ns-ui-line) !important;
+            border-radius: 9px !important;
+            background: var(--ns-ui-bg-solid) !important;
+            box-sizing: border-box !important;
+            cursor: text !important;
+            transition: border-color .14s ease, box-shadow .14s ease, background .14s ease !important;
+        }
+
+        .ns-filter-token-field:focus-within {
+            border-color: rgba(20, 184, 166, .72) !important;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, .14) !important;
+            background: #ffffff !important;
+        }
+
+        html[data-theme="dark"] .ns-filter-token-field:focus-within,
+        html.dark .ns-filter-token-field:focus-within,
+        body.dark .ns-filter-token-field:focus-within,
+        body.theme-dark .ns-filter-token-field:focus-within,
+        html[data-ns-theme="dark"] .ns-filter-token-field:focus-within {
+            background: var(--ns-ui-bg-solid) !important;
+        }
+
+        .ns-filter-token-list {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            gap: 6px !important;
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+
+        #ns-filter-dialog .ns-filter-token-input,
+        .ns-filter-token-input {
+            flex: 1 1 100px !important;
+            min-width: 72px !important;
+            max-width: 100% !important;
+            height: 26px !important;
+            padding: 2px 4px !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            color: var(--ns-ui-text) !important;
+            font-size: 12px !important;
+            line-height: 1.4 !important;
+            outline: none !important;
+        }
+
+        #ns-filter-dialog .ns-filter-token-input:focus,
+        .ns-filter-token-input:focus {
+            border: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .ns-filter-chip {
+            position: relative !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            max-width: 100% !important;
+            min-height: 26px !important;
+            padding: 5px 20px 5px 9px !important;
+            border: 1px solid transparent !important;
+            border-radius: 8px !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            line-height: 1.2 !important;
+            word-break: break-word !important;
+            color: var(--ns-ui-text) !important;
+            box-sizing: border-box !important;
+        }
+
+        .ns-filter-chip-hide {
+            background: rgba(251, 113, 133, .13) !important;
+            border-color: rgba(251, 113, 133, .32) !important;
+            color: #be123c !important;
+        }
+
+        .ns-filter-chip-highlight {
+            background: rgba(56, 189, 248, .14) !important;
+            border-color: rgba(56, 189, 248, .34) !important;
+            color: #0369a1 !important;
+        }
+
+        .ns-filter-chip-allow {
+            background: rgba(34, 197, 94, .13) !important;
+            border-color: rgba(34, 197, 94, .32) !important;
+            color: #15803d !important;
+        }
+
+        html[data-theme="dark"] .ns-filter-chip,
+        html.dark .ns-filter-chip,
+        body.dark .ns-filter-chip,
+        body.theme-dark .ns-filter-chip,
+        html[data-ns-theme="dark"] .ns-filter-chip {
+            color: rgba(255, 255, 255, .86) !important;
+        }
+
+        #ns-filter-dialog .ns-filter-chip-close,
+        .ns-filter-chip-close {
+            position: absolute !important;
+            right: -5px !important;
+            top: -6px !important;
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            min-height: 16px !important;
+            padding: 0 !important;
+            border: 1px solid rgba(15, 23, 42, .08) !important;
+            border-radius: 999px !important;
+            background: #ffffff !important;
+            color: #475569 !important;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, .14) !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            line-height: 14px !important;
+            text-align: center !important;
+            cursor: pointer !important;
+        }
+
+        #ns-filter-dialog .ns-filter-chip-close:hover,
+        .ns-filter-chip-close:hover {
+            background: #f8fafc !important;
+            color: #0f172a !important;
         }
 
         #blacklist-dialog table, #friends-dialog table, #favorites-dialog table, #browse-history-dialog table {
@@ -1643,24 +1780,51 @@
                 grid-column: 1 / -1 !important;
             }
 
-        #collapse-btn, #theme-toggle-btn {
-            left: -42px !important;
-            width: 36px !important;
-            height: 36px !important;
-            border-radius: 9px !important;
-        }
+            #collapse-btn, #theme-toggle-btn {
+                left: -40px !important;
+                width: 34px !important;
+                height: 34px !important;
+                min-width: 34px !important;
+                min-height: 34px !important;
+                max-width: 34px !important;
+                max-height: 34px !important;
+                border-radius: 9px !important;
+            }
 
-        #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
-            right: 0 !important;
-            bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
-            top: auto !important;
-        }
+            #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
+                right: 0 !important;
+                bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+                top: auto !important;
+            }
 
-        #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
-            width: 38px !important;
-            height: 44px !important;
-            border-radius: 10px 0 0 10px !important;
-        }
+            #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
+                width: 34px !important;
+                height: 34px !important;
+                min-width: 34px !important;
+                min-height: 34px !important;
+                max-width: 34px !important;
+                max-height: 34px !important;
+                border-radius: 10px 0 0 10px !important;
+            }
+
+            .ns-filter-token-field {
+                min-height: 40px !important;
+                padding: 6px !important;
+            }
+
+            .ns-filter-token-input {
+                flex-basis: 80px !important;
+                height: 28px !important;
+                font-size: 12px !important;
+            }
+
+            .ns-filter-chip {
+                max-width: calc(100vw - 66px) !important;
+                min-height: 28px !important;
+                padding-top: 6px !important;
+                padding-bottom: 6px !important;
+                font-size: 12px !important;
+            }
 
             #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
             #settings-dialog, #webdav-sync-dialog, #jump-list-dialog, #ns-nodeimage-safari-dialog,
@@ -6248,14 +6412,82 @@
                 box.appendChild(actions);
             }
 
-            function createTextArea(value) {
-                const textarea = document.createElement('textarea');
-                textarea.value = (value || []).join('\n');
-                textarea.style.width = '100%';
-                textarea.style.minHeight = '70px';
-                textarea.style.boxSizing = 'border-box';
-                textarea.style.resize = 'vertical';
-                return textarea;
+            function createTagInput(values, tone) {
+                let items = uniqueWords(values || []);
+                const wrap = document.createElement('div');
+                wrap.className = 'ns-filter-token-field ns-filter-token-field-' + tone;
+
+                const list = document.createElement('div');
+                list.className = 'ns-filter-token-list';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'ns-filter-token-input';
+                input.placeholder = '输入后按回车';
+
+                function render() {
+                    list.innerHTML = '';
+                    items.forEach((word, index) => {
+                        const chip = document.createElement('span');
+                        chip.className = 'ns-filter-chip ns-filter-chip-' + tone;
+                        chip.textContent = word;
+                        chip.title = word;
+
+                        const close = document.createElement('button');
+                        close.type = 'button';
+                        close.className = 'ns-filter-chip-close';
+                        close.textContent = '×';
+                        close.title = '删除';
+                        close.onclick = function (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            items.splice(index, 1);
+                            render();
+                            input.focus();
+                        };
+                        chip.appendChild(close);
+                        list.appendChild(chip);
+                    });
+                    list.appendChild(input);
+                }
+
+                function addFromText(text) {
+                    const next = uniqueWords(items.concat(parseLines(text)));
+                    items = next;
+                    input.value = '';
+                    render();
+                }
+
+                input.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter' || event.key === ',') {
+                        event.preventDefault();
+                        addFromText(input.value);
+                    } else if (event.key === 'Backspace' && !input.value && items.length) {
+                        items.pop();
+                        render();
+                    }
+                });
+                input.addEventListener('blur', function () {
+                    if (input.value.trim()) addFromText(input.value);
+                });
+                input.addEventListener('paste', function () {
+                    setTimeout(function () {
+                        if (/\n|,/.test(input.value)) addFromText(input.value);
+                    }, 0);
+                });
+
+                wrap.onclick = function () { input.focus(); };
+                wrap.getValues = function () {
+                    if (input.value.trim()) addFromText(input.value);
+                    return uniqueWords(items);
+                };
+                wrap.setValues = function (nextValues) {
+                    items = uniqueWords(nextValues || []);
+                    input.value = '';
+                    render();
+                };
+                render();
+                return wrap;
             }
 
             function createFilterUI() {
@@ -6311,9 +6543,9 @@
                     return label;
                 }
 
-                const hideInput = createTextArea(settings.displayKeywords);
-                const highlightInput = createTextArea(settings.highlightKeywords);
-                const whitelistInput = createTextArea(settings.whitelistUsers);
+                const hideInput = createTagInput(settings.displayKeywords, 'hide');
+                const highlightInput = createTagInput(settings.highlightKeywords, 'highlight');
+                const whitelistInput = createTagInput(settings.whitelistUsers, 'allow');
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
                 colorInput.value = settings.highlightColor || '#facc15';
@@ -6350,8 +6582,8 @@
                 clearBtn.style.flex = '1';
 
                 saveBtn.onclick = function () {
-                    const blockKeywords = uniqueWords(parseLines(hideInput.value));
-                    const highlightKeywords = uniqueWords(parseLines(highlightInput.value));
+                    const blockKeywords = hideInput.getValues();
+                    const highlightKeywords = highlightInput.getValues();
                     saveSettings({
                         customKeywords: [],
                         displayKeywords: blockKeywords,
@@ -6359,7 +6591,7 @@
                         highlightPostKeywords: highlightKeywords,
                         highlightAuthorEnabled: authorInput.checked,
                         highlightColor: colorInput.value,
-                        whitelistUsers: parseLines(whitelistInput.value)
+                        whitelistUsers: whitelistInput.getValues()
                     });
                     applyFilters();
                     addLog('关键词过滤：已保存');
@@ -6377,9 +6609,9 @@
                         highlightColor: '#facc15',
                         whitelistUsers: []
                     });
-                    hideInput.value = '';
-                    highlightInput.value = '';
-                    whitelistInput.value = '';
+                    hideInput.setValues([]);
+                    highlightInput.setValues([]);
+                    whitelistInput.setValues([]);
                     authorInput.checked = false;
                     colorInput.value = '#facc15';
                     applyFilters();
