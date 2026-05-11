@@ -310,69 +310,115 @@
     try { applyPanelThemeMode(getPanelThemeMode()); } catch (e) { }
 
     // 新增：用户数据缓存管理
+    const userDataPendingRequests = new Map();
+    const USER_DATA_REQUEST_TIMEOUT = 8000;
+
     function getUserDataCache() {
-        const cache = JSON.parse(localStorage.getItem(USER_DATA_CACHE_KEY) || '{}');
-        // 清理过期缓存（1小时过期）
-        const now = Date.now();
-        const expireTime = 1 * 60 * 60 * 1000; // 1小时
-        Object.keys(cache).forEach(userId => {
-            if (cache[userId].timestamp && (now - cache[userId].timestamp) > expireTime) {
-                delete cache[userId];
-            }
-        });
-        localStorage.setItem(USER_DATA_CACHE_KEY, JSON.stringify(cache));
-        return cache;
+        try {
+            const cache = JSON.parse(localStorage.getItem(USER_DATA_CACHE_KEY) || '{}');
+            if (!cache || typeof cache !== 'object') return {};
+            // 清理过期缓存（1小时过期）
+            const now = Date.now();
+            const expireTime = 1 * 60 * 60 * 1000; // 1小时
+            Object.keys(cache).forEach(userId => {
+                if (cache[userId].timestamp && (now - cache[userId].timestamp) > expireTime) {
+                    delete cache[userId];
+                }
+            });
+            localStorage.setItem(USER_DATA_CACHE_KEY, JSON.stringify(cache));
+            return cache;
+        } catch (error) {
+            console.warn('读取用户数据缓存失败，已重置:', error);
+            localStorage.removeItem(USER_DATA_CACHE_KEY);
+            return {};
+        }
     }
 
     function setUserDataCache(userId, data) {
-        const cache = getUserDataCache();
-        cache[userId] = {
-            ...data,
-            timestamp: Date.now()
-        };
-        localStorage.setItem(USER_DATA_CACHE_KEY, JSON.stringify(cache));
+        try {
+            const cache = getUserDataCache();
+            cache[userId] = {
+                ...data,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(USER_DATA_CACHE_KEY, JSON.stringify(cache));
+        } catch (error) {
+            console.warn('写入用户数据缓存失败:', error);
+        }
+    }
+
+    async function fetchWithTimeout(url, options, timeoutMs) {
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timer = setTimeout(function () {
+            if (controller) controller.abort();
+        }, timeoutMs);
+
+        try {
+            return await fetch(url, {
+                ...(options || {}),
+                signal: controller ? controller.signal : undefined
+            });
+        } finally {
+            clearTimeout(timer);
+        }
     }
 
     // 新增：抓取用户数据
     async function fetchUserData(userId) {
-        try {
-            // 先检查缓存
-            const cache = getUserDataCache();
-            if (cache[userId] && cache[userId].timestamp) {
-                return cache[userId];
-            }
+        const normalizedUserId = String(userId || '').trim();
+        if (!normalizedUserId) return null;
 
-            // 从API获取数据
-            const response = await fetch(`https://www.nodeseek.com/api/account/getInfo/${userId}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            if (data.success && data.detail) {
-                const userInfo = {
-                    member_id: data.detail.member_id,
-                    member_name: data.detail.member_name,
-                    rank: data.detail.rank,
-                    coin: data.detail.coin,
-                    stardust: data.detail.stardust,
-                    created_at: data.detail.created_at,
-                    nPost: data.detail.nPost,
-                    nComment: data.detail.nComment,
-                    follows: data.detail.follows,
-                    fans: data.detail.fans,
-                    created_at_str: data.detail.created_at_str
-                };
-
-                // 缓存数据
-                setUserDataCache(userId, userInfo);
-                return userInfo;
-            }
-            return null;
-        } catch (error) {
-            console.error('获取用户数据失败:', error);
-            return null;
+        // 先检查缓存
+        const cache = getUserDataCache();
+        if (cache[normalizedUserId] && cache[normalizedUserId].timestamp) {
+            return cache[normalizedUserId];
         }
+
+        if (userDataPendingRequests.has(normalizedUserId)) {
+            return userDataPendingRequests.get(normalizedUserId);
+        }
+
+        const request = (async function () {
+            try {
+                // 从API获取数据
+                const response = await fetchWithTimeout(`/api/account/getInfo/${normalizedUserId}`, {
+                    credentials: 'include'
+                }, USER_DATA_REQUEST_TIMEOUT);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.success && data.detail) {
+                    const userInfo = {
+                        member_id: data.detail.member_id,
+                        member_name: data.detail.member_name,
+                        rank: data.detail.rank,
+                        coin: data.detail.coin,
+                        stardust: data.detail.stardust,
+                        created_at: data.detail.created_at,
+                        nPost: data.detail.nPost,
+                        nComment: data.detail.nComment,
+                        follows: data.detail.follows,
+                        fans: data.detail.fans,
+                        created_at_str: data.detail.created_at_str
+                    };
+
+                    // 缓存数据
+                    setUserDataCache(normalizedUserId, userInfo);
+                    return userInfo;
+                }
+                return null;
+            } catch (error) {
+                console.warn('获取用户数据失败:', error);
+                return null;
+            } finally {
+                userDataPendingRequests.delete(normalizedUserId);
+            }
+        })();
+
+        userDataPendingRequests.set(normalizedUserId, request);
+        return request;
     }
 
     // 新增：计算加入天数

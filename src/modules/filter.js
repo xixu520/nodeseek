@@ -3,7 +3,7 @@
             let observer = null;
             let applyTimer = null;
             let lastStats = { hidden: 0, highlighted: 0 };
-            let profileFilterRunId = 0;
+            let profileFilterSignature = '';
 
             const TOKEN_COLORS = ['#22c55e', '#14b8a6', '#38bdf8', '#8b5cf6', '#f97316', '#ec4899', '#64748b'];
             const PLUGIN_SELECTOR = '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #favorites-dialog, #friends-dialog';
@@ -220,6 +220,15 @@
                 return levelMatched || daysMatched;
             }
 
+            function getProfileFilterSignature(settings, whitelist) {
+                return JSON.stringify({
+                    enabled: !!settings.profileFilterEnabled,
+                    levels: uniqueWords(settings.blockLevels || []).sort(),
+                    days: Number.isFinite(settings.maxJoinDays) ? Math.floor(settings.maxJoinDays) : null,
+                    whitelist: Array.from(whitelist || []).sort()
+                });
+            }
+
             function resetFilters() {
                 document.querySelectorAll('[data-ns-filter-hit]').forEach(node => {
                     node.style.display = node.getAttribute('data-ns-filter-old-display') || '';
@@ -233,10 +242,11 @@
 
             function applyFilters() {
                 const settings = getSettings();
-                const runId = ++profileFilterRunId;
                 const hideWords = uniqueWords(settings.displayKeywords);
                 const highlightWords = uniqueWords(settings.highlightKeywords);
                 const whitelist = new Set(uniqueWords(settings.whitelistUsers).map(name => name.toLowerCase()));
+                const currentProfileFilterSignature = getProfileFilterSignature(settings, whitelist);
+                profileFilterSignature = currentProfileFilterSignature;
                 let hidden = 0;
                 let highlighted = 0;
 
@@ -264,7 +274,7 @@
                         const userId = getUserIdFromLink(authorLink);
                         if (!userId) return;
                         fetchUserData(userId).then(userData => {
-                            if (runId !== profileFilterRunId) return;
+                            if (currentProfileFilterSignature !== profileFilterSignature) return;
                             if (!userData || node.getAttribute('data-ns-filter-hit') === 'hidden') return;
                             if (!isProfileMatched(userData, settings)) return;
                             if (!node.hasAttribute('data-ns-filter-old-display')) {
