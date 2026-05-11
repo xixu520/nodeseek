@@ -3,9 +3,11 @@
             let observer = null;
             let applyTimer = null;
             let lastStats = { hidden: 0, highlighted: 0 };
+            let profileFilterRunId = 0;
 
             const TOKEN_COLORS = ['#22c55e', '#14b8a6', '#38bdf8', '#8b5cf6', '#f97316', '#ec4899', '#64748b'];
             const PLUGIN_SELECTOR = '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #favorites-dialog, #friends-dialog';
+            const LEVEL_OPTIONS = ['0', '1', '2', '3', '4', '5', '6'];
             const TITLE_SELECTORS = [
                 'a.post-title',
                 '.post-title a',
@@ -70,6 +72,19 @@
                 }
             }
 
+            function readNumber(key, fallback) {
+                const raw = localStorage.getItem(key);
+                if (raw === null) return fallback;
+                if (raw === '') return null;
+                const value = Number(raw);
+                return Number.isFinite(value) && value >= 0 ? value : fallback;
+            }
+
+            function readWordsWithDefault(key, fallback) {
+                if (localStorage.getItem(key) === null) return fallback;
+                return readWords(key);
+            }
+
             function writeJson(key, value) {
                 localStorage.setItem(key, JSON.stringify(value));
             }
@@ -90,7 +105,11 @@
                     highlightPostKeywords: highlightKeywords,
                     highlightAuthorEnabled: readBool('ns-filter-highlight-author-enabled', false),
                     highlightColor: localStorage.getItem('ns-filter-highlight-color') || '#38bdf8',
-                    whitelistUsers: readWords('ns-filter-whitelist-users')
+                    whitelistUsers: readWords('ns-filter-whitelist-users'),
+                    profileFilterEnabled: readBool('ns-filter-profile-filter-enabled', true),
+                    blockLevels: uniqueWords(readWordsWithDefault('ns-filter-block-levels', ['0', '1']))
+                        .filter(level => LEVEL_OPTIONS.includes(level)),
+                    maxJoinDays: readNumber('ns-filter-max-join-days', 30)
                 };
             }
 
@@ -104,6 +123,13 @@
                 writeJson('ns-filter-highlight-author-enabled', !!settings.highlightAuthorEnabled);
                 localStorage.setItem('ns-filter-highlight-color', settings.highlightColor || '#38bdf8');
                 writeJson('ns-filter-whitelist-users', uniqueWords(settings.whitelistUsers || []));
+                writeJson('ns-filter-profile-filter-enabled', !!settings.profileFilterEnabled);
+                writeJson('ns-filter-block-levels', uniqueWords(settings.blockLevels || []).filter(level => LEVEL_OPTIONS.includes(level)));
+                if (Number.isFinite(settings.maxJoinDays) && settings.maxJoinDays >= 0) {
+                    localStorage.setItem('ns-filter-max-join-days', String(Math.floor(settings.maxJoinDays)));
+                } else {
+                    localStorage.setItem('ns-filter-max-join-days', '');
+                }
             }
 
             function textHas(text, words) {
@@ -152,6 +178,48 @@
                 return titles;
             }
 
+            function getPostListCandidates() {
+                return Array.from(document.querySelectorAll('li.post-list-item, .post-list-item'))
+                    .filter(node => node instanceof HTMLElement && !isPluginNode(node));
+            }
+
+            function getAuthorLinkFromPost(node) {
+                return node.querySelector?.('.info-author a[href^="/space/"], a.author-name[href*="/space/"], a[href^="/space/"]') || null;
+            }
+
+            function getUserIdFromLink(link) {
+                if (!link || !link.href) return '';
+                const match = link.href.match(/\/space\/(\d+)/) || link.href.match(/[?&]to=(\d+)/) || link.href.match(/\/user\/(\d+)/);
+                return match ? match[1] : '';
+            }
+
+            function getJoinDaysFromCreatedAt(value) {
+                if (!value) return null;
+                let joinDate = null;
+                if (typeof value === 'number') {
+                    joinDate = new Date(value < 10000000000 ? value * 1000 : value);
+                } else {
+                    const text = String(value).trim();
+                    if (/^\d+$/.test(text)) {
+                        const num = parseInt(text, 10);
+                        joinDate = new Date(num < 10000000000 ? num * 1000 : num);
+                    } else {
+                        joinDate = new Date(text.replace(' ', 'T'));
+                    }
+                }
+                if (!joinDate || Number.isNaN(joinDate.getTime())) return null;
+                return Math.max(0, Math.floor((Date.now() - joinDate.getTime()) / 86400000));
+            }
+
+            function isProfileMatched(userData, settings) {
+                if (!userData) return false;
+                const rank = String(parseInt(userData.rank, 10));
+                const joinDays = getJoinDaysFromCreatedAt(userData.created_at || userData.created_at_str);
+                const levelMatched = rank !== 'NaN' && (settings.blockLevels || []).includes(rank);
+                const daysMatched = Number.isFinite(settings.maxJoinDays) && joinDays !== null && joinDays <= settings.maxJoinDays;
+                return levelMatched || daysMatched;
+            }
+
             function resetFilters() {
                 document.querySelectorAll('[data-ns-filter-hit]').forEach(node => {
                     node.style.display = node.getAttribute('data-ns-filter-old-display') || '';
@@ -165,6 +233,7 @@
 
             function applyFilters() {
                 const settings = getSettings();
+                const runId = ++profileFilterRunId;
                 const hideWords = uniqueWords(settings.displayKeywords);
                 const highlightWords = uniqueWords(settings.highlightKeywords);
                 const whitelist = new Set(uniqueWords(settings.whitelistUsers).map(name => name.toLowerCase()));
@@ -185,6 +254,29 @@
                         hidden += 1;
                     }
                 });
+
+                if (settings.profileFilterEnabled && typeof fetchUserData === 'function') {
+                    getPostListCandidates().forEach(node => {
+                        if (node.getAttribute('data-ns-filter-hit') === 'hidden') return;
+                        const authorLink = getAuthorLinkFromPost(node);
+                        const author = authorLink ? authorLink.textContent.trim().toLowerCase() : '';
+                        if (author && whitelist.has(author)) return;
+                        const userId = getUserIdFromLink(authorLink);
+                        if (!userId) return;
+                        fetchUserData(userId).then(userData => {
+                            if (runId !== profileFilterRunId) return;
+                            if (!userData || node.getAttribute('data-ns-filter-hit') === 'hidden') return;
+                            if (!isProfileMatched(userData, settings)) return;
+                            if (!node.hasAttribute('data-ns-filter-old-display')) {
+                                node.setAttribute('data-ns-filter-old-display', node.style.display || '');
+                            }
+                            node.style.display = 'none';
+                            node.setAttribute('data-ns-filter-hit', 'hidden');
+                            lastStats.hidden += 1;
+                            renderHighlightStatsToContainer();
+                        }).catch(function () { });
+                    });
+                }
 
                 getTitleElements().forEach(node => {
                     const container = getContainer(node);
@@ -391,6 +483,40 @@
                 return wrap;
             }
 
+            function createLevelSelector(values) {
+                let selected = new Set((values || []).map(String).filter(level => LEVEL_OPTIONS.includes(level)));
+                const wrap = document.createElement('div');
+                wrap.className = 'ns-filter-level-options';
+
+                function render() {
+                    wrap.innerHTML = '';
+                    LEVEL_OPTIONS.forEach(level => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'ns-filter-level-chip' + (selected.has(level) ? ' ns-filter-level-chip-active' : '');
+                        btn.textContent = level;
+                        btn.onclick = function (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            if (selected.has(level)) selected.delete(level);
+                            else selected.add(level);
+                            render();
+                        };
+                        wrap.appendChild(btn);
+                    });
+                }
+
+                wrap.getValues = function () {
+                    return Array.from(selected).sort((a, b) => Number(a) - Number(b));
+                };
+                wrap.setValues = function (values) {
+                    selected = new Set((values || []).map(String).filter(level => LEVEL_OPTIONS.includes(level)));
+                    render();
+                };
+                render();
+                return wrap;
+            }
+
             function createFilterUI() {
                 const existing = document.getElementById('ns-filter-dialog');
                 if (existing) {
@@ -441,6 +567,14 @@
                 const hideInput = createTagInput(settings.displayKeywords, 'hide');
                 const highlightInput = createTagInput(settings.highlightKeywords, 'highlight');
                 const whitelistInput = createTagInput(settings.whitelistUsers, 'allow');
+                const levelInput = createLevelSelector(settings.blockLevels);
+                const daysInput = document.createElement('input');
+                daysInput.type = 'number';
+                daysInput.min = '0';
+                daysInput.step = '1';
+                daysInput.className = 'ns-filter-days-input';
+                daysInput.value = Number.isFinite(settings.maxJoinDays) ? String(settings.maxJoinDays) : '';
+                daysInput.placeholder = '30';
                 const colorInput = document.createElement('input');
                 colorInput.type = 'color';
                 colorInput.className = 'ns-filter-color-input';
@@ -448,11 +582,24 @@
                 const authorInput = document.createElement('input');
                 authorInput.type = 'checkbox';
                 authorInput.checked = !!settings.highlightAuthorEnabled;
+                const profileFilterInput = document.createElement('input');
+                profileFilterInput.type = 'checkbox';
+                profileFilterInput.checked = !!settings.profileFilterEnabled;
 
                 dialog.appendChild(field('屏蔽关键词', hideInput));
+                dialog.appendChild(field('屏蔽等级', levelInput));
+                dialog.appendChild(field('加入天数 <=', daysInput));
                 dialog.appendChild(field('高亮关键词', highlightInput));
                 dialog.appendChild(field('白名单用户名', whitelistInput));
                 dialog.appendChild(field('高亮颜色', colorInput));
+
+                const profileFilterLabel = document.createElement('label');
+                profileFilterLabel.className = 'ns-filter-check-row';
+                profileFilterLabel.appendChild(profileFilterInput);
+                const profileFilterText = document.createElement('span');
+                profileFilterText.textContent = '启用等级和加入天数屏蔽';
+                profileFilterLabel.appendChild(profileFilterText);
+                dialog.appendChild(profileFilterLabel);
 
                 const authorLabel = document.createElement('label');
                 authorLabel.className = 'ns-filter-check-row';
@@ -482,7 +629,10 @@
                         highlightPostKeywords: highlightKeywords,
                         highlightAuthorEnabled: authorInput.checked,
                         highlightColor: colorInput.value,
-                        whitelistUsers: whitelistInput.getValues()
+                        whitelistUsers: whitelistInput.getValues(),
+                        profileFilterEnabled: profileFilterInput.checked,
+                        blockLevels: levelInput.getValues(),
+                        maxJoinDays: daysInput.value.trim() === '' ? null : Number(daysInput.value)
                     });
                     applyFilters();
                     addLog('关键词过滤：已保存');
@@ -497,11 +647,17 @@
                         highlightPostKeywords: [],
                         highlightAuthorEnabled: false,
                         highlightColor: '#38bdf8',
-                        whitelistUsers: []
+                        whitelistUsers: [],
+                        profileFilterEnabled: true,
+                        blockLevels: ['0', '1'],
+                        maxJoinDays: 30
                     });
                     hideInput.setValues([]);
                     highlightInput.setValues([]);
                     whitelistInput.setValues([]);
+                    levelInput.setValues(['0', '1']);
+                    daysInput.value = '30';
+                    profileFilterInput.checked = true;
                     authorInput.checked = false;
                     colorInput.value = '#38bdf8';
                     applyFilters();

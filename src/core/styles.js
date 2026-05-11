@@ -1099,6 +1099,38 @@
             height: 16px !important;
         }
 
+        .ns-filter-level-options {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+        }
+
+        #ns-filter-dialog .ns-filter-level-chip {
+            min-width: 32px !important;
+            min-height: 28px !important;
+            padding: 4px 8px !important;
+            border: 1px solid rgba(148, 163, 184, .34) !important;
+            border-radius: 8px !important;
+            background: rgba(248, 250, 252, .94) !important;
+            color: #475569 !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+        }
+
+        #ns-filter-dialog .ns-filter-level-chip-active {
+            background: #ccfbf1 !important;
+            border-color: rgba(20, 184, 166, .36) !important;
+            color: #0f766e !important;
+        }
+
+        #ns-filter-dialog .ns-filter-days-input {
+            width: 100% !important;
+            min-height: 34px !important;
+            padding: 5px 8px !important;
+            border-radius: 8px !important;
+            box-sizing: border-box !important;
+        }
+
         .ns-filter-actions {
             display: grid !important;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;

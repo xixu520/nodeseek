@@ -81,8 +81,11 @@
                 const highlightColor = localStorage.getItem('ns-filter-highlight-color');
                 const dialogPosition = localStorage.getItem('ns-filter-dialog-position');
                 const whitelistUsers = localStorage.getItem('ns-filter-whitelist-users');
+                const profileFilterEnabled = localStorage.getItem('ns-filter-profile-filter-enabled');
+                const blockLevels = localStorage.getItem('ns-filter-block-levels');
+                const maxJoinDays = localStorage.getItem('ns-filter-max-join-days');
 
-                if (customKeywords || displayKeywords || highlightKeywords || highlightPostKeywords || highlightAuthorEnabled || highlightColor || dialogPosition || whitelistUsers) {
+                if (customKeywords || displayKeywords || highlightKeywords || highlightPostKeywords || highlightAuthorEnabled || highlightColor || dialogPosition || whitelistUsers || profileFilterEnabled || blockLevels || maxJoinDays !== null) {
                     filterData = {
                         customKeywords: customKeywords ? JSON.parse(customKeywords) : [],
                         displayKeywords: displayKeywords ? JSON.parse(displayKeywords) : [],
@@ -91,7 +94,10 @@
                         highlightAuthorEnabled: highlightAuthorEnabled ? JSON.parse(highlightAuthorEnabled) : false,
                         highlightColor: highlightColor || '#facc15',
                         dialogPosition: dialogPosition ? JSON.parse(dialogPosition) : null,
-                        whitelistUsers: whitelistUsers ? JSON.parse(whitelistUsers) : []
+                        whitelistUsers: whitelistUsers ? JSON.parse(whitelistUsers) : [],
+                        profileFilterEnabled: profileFilterEnabled ? JSON.parse(profileFilterEnabled) : true,
+                        blockLevels: blockLevels ? JSON.parse(blockLevels) : ['0', '1'],
+                        maxJoinDays: maxJoinDays === '' ? null : (maxJoinDays ? Number(maxJoinDays) : 30)
                     };
                 }
             }
@@ -505,7 +511,19 @@
                                 localStorage.setItem('ns-filter-whitelist-users', JSON.stringify(json.filterData.whitelistUsers));
                             }
 
-                            if (filterImportCount > 0 || (json.filterData.displayKeywords && json.filterData.displayKeywords.length > 0) || (json.filterData.highlightKeywords && json.filterData.highlightKeywords.length > 0) || json.filterData.highlightAuthorEnabled !== undefined || (json.filterData.whitelistUsers && json.filterData.whitelistUsers.length > 0)) {
+                            if (json.filterData.profileFilterEnabled !== undefined) {
+                                localStorage.setItem('ns-filter-profile-filter-enabled', JSON.stringify(json.filterData.profileFilterEnabled));
+                            }
+
+                            if (json.filterData.blockLevels && Array.isArray(json.filterData.blockLevels)) {
+                                localStorage.setItem('ns-filter-block-levels', JSON.stringify(json.filterData.blockLevels));
+                            }
+
+                            if (json.filterData.maxJoinDays !== undefined) {
+                                localStorage.setItem('ns-filter-max-join-days', json.filterData.maxJoinDays === null ? '' : String(json.filterData.maxJoinDays));
+                            }
+
+                            if (filterImportCount > 0 || (json.filterData.displayKeywords && json.filterData.displayKeywords.length > 0) || (json.filterData.highlightKeywords && json.filterData.highlightKeywords.length > 0) || json.filterData.highlightAuthorEnabled !== undefined || (json.filterData.whitelistUsers && json.filterData.whitelistUsers.length > 0) || json.filterData.profileFilterEnabled !== undefined || (json.filterData.blockLevels && json.filterData.blockLevels.length > 0) || json.filterData.maxJoinDays !== undefined) {
                                 const customCount = json.filterData.customKeywords ? json.filterData.customKeywords.length : 0;
                                 const displayCount = json.filterData.displayKeywords ? json.filterData.displayKeywords.length : 0;
                                 const highlightCount = json.filterData.highlightKeywords ? json.filterData.highlightKeywords.length : 0;
@@ -725,7 +743,10 @@
             const highlightColor = localStorage.getItem('ns-filter-highlight-color');
             const dialogPosition = localStorage.getItem('ns-filter-dialog-position');
             const whitelistUsers = localStorage.getItem('ns-filter-whitelist-users');
-            if (customKeywords || displayKeywords || highlightKeywords || highlightPostKeywords || highlightAuthorEnabled || highlightColor || dialogPosition || whitelistUsers) {
+            const profileFilterEnabled = localStorage.getItem('ns-filter-profile-filter-enabled');
+            const blockLevels = localStorage.getItem('ns-filter-block-levels');
+            const maxJoinDays = localStorage.getItem('ns-filter-max-join-days');
+            if (customKeywords || displayKeywords || highlightKeywords || highlightPostKeywords || highlightAuthorEnabled || highlightColor || dialogPosition || whitelistUsers || profileFilterEnabled || blockLevels || maxJoinDays !== null) {
                 filterData = {
                     customKeywords: customKeywords ? JSON.parse(customKeywords) : [],
                     displayKeywords: displayKeywords ? JSON.parse(displayKeywords) : [],
@@ -734,7 +755,10 @@
                     highlightAuthorEnabled: highlightAuthorEnabled ? JSON.parse(highlightAuthorEnabled) : false,
                     highlightColor: highlightColor || '#facc15',
                     dialogPosition: dialogPosition ? JSON.parse(dialogPosition) : null,
-                    whitelistUsers: whitelistUsers ? JSON.parse(whitelistUsers) : []
+                    whitelistUsers: whitelistUsers ? JSON.parse(whitelistUsers) : [],
+                    profileFilterEnabled: profileFilterEnabled ? JSON.parse(profileFilterEnabled) : true,
+                    blockLevels: blockLevels ? JSON.parse(blockLevels) : ['0', '1'],
+                    maxJoinDays: maxJoinDays === '' ? null : (maxJoinDays ? Number(maxJoinDays) : 30)
                 };
             }
         } catch (error) {
@@ -877,6 +901,9 @@
                 if (json.filterData.highlightColor) localStorage.setItem('ns-filter-highlight-color', json.filterData.highlightColor);
                 if (json.filterData.dialogPosition && typeof json.filterData.dialogPosition === 'object') localStorage.setItem('ns-filter-dialog-position', JSON.stringify(json.filterData.dialogPosition));
                 if (Array.isArray(json.filterData.whitelistUsers)) localStorage.setItem('ns-filter-whitelist-users', JSON.stringify(json.filterData.whitelistUsers));
+                if (json.filterData.profileFilterEnabled !== undefined) localStorage.setItem('ns-filter-profile-filter-enabled', JSON.stringify(json.filterData.profileFilterEnabled));
+                if (Array.isArray(json.filterData.blockLevels)) localStorage.setItem('ns-filter-block-levels', JSON.stringify(json.filterData.blockLevels));
+                if (json.filterData.maxJoinDays !== undefined) localStorage.setItem('ns-filter-max-join-days', json.filterData.maxJoinDays === null ? '' : String(json.filterData.maxJoinDays));
             }
 
             if (json.notesData && typeof json.notesData === 'object') {
