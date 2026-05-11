@@ -595,22 +595,44 @@
 
         function openScriptUpdatePage(url) {
             if (!url) return false;
+            const installUrl = normalizeUserscriptInstallUrl(url);
+            const installText = String(installUrl || '');
+            try {
+                const link = document.createElement('a');
+                link.href = installText;
+                link.target = '_self';
+                link.rel = 'noopener noreferrer';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(function () { link.remove(); }, 1000);
+                return true;
+            } catch (e) { }
             try {
                 if (typeof GM_openInTab === 'function') {
-                    GM_openInTab(url, { active: true, insert: true, setParent: true });
+                    GM_openInTab(installText, { active: true, insert: true, setParent: true });
                     return true;
                 }
             } catch (e) { }
             try {
-                const tab = window.open(url, '_blank', 'noopener,noreferrer');
+                const tab = window.open(installText, '_blank', 'noopener,noreferrer');
                 if (tab) return true;
             } catch (e2) { }
             try {
-                window.location.href = url;
+                window.location.href = installText;
                 return true;
             } catch (e3) {
                 return false;
             }
+        }
+
+        function normalizeUserscriptInstallUrl(value) {
+            const source = String(value || '').trim();
+            const match = source.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+\.user\.js)(?:[?#].*)?$/i);
+            if (match) {
+                return 'https://github.com/' + match[1] + '/' + match[2] + '/raw/' + match[3] + '/' + match[4];
+            }
+            return source;
         }
 
         function scheduleScriptRestart(statusEl) {
@@ -642,15 +664,15 @@
                     statusEl.textContent = '发现新版本：' + latestVersion;
                     const latestName = parseMetaFieldFromScript(response.responseText, 'name') || meta.name || 'NodeseekLite';
                     const latestDesc = parseMetaFieldFromScript(response.responseText, 'description') || '';
-                    const downloadUrl = parseMetaFieldFromScript(response.responseText, 'downloadURL') || meta.downloadURL || url;
+                    const downloadUrl = normalizeUserscriptInstallUrl(parseMetaFieldFromScript(response.responseText, 'downloadURL') || meta.downloadURL || url);
                     const message = [
                         '脚本：' + latestName,
                         '当前版本：' + (currentVersion || '未知'),
                         '最新版本：' + latestVersion,
                         latestDesc ? '说明：' + latestDesc : '',
                         '',
-                        '点击确定后打开 Tampermonkey 更新页。',
-                        '完成更新后，本页面会自动刷新并重启脚本。'
+                        '点击确定后会在当前标签页打开 Tampermonkey 更新页。',
+                        '如果仍显示脚本文本，请确认 Tampermonkey 已启用用户脚本链接识别。'
                     ].filter(Boolean).join('\n');
                     if (confirm(message)) {
                         statusEl.textContent = '正在打开更新页面...';
