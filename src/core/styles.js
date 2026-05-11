@@ -689,6 +689,41 @@
             color: #64748b !important;
         }
 
+        .userscript-nodeseek-interaction-btn.ns-user-meta-badge {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: auto !important;
+            min-width: 0 !important;
+            max-width: none !important;
+            height: 20px !important;
+            min-height: 20px !important;
+            max-height: 20px !important;
+            margin-left: 4px !important;
+            padding: 0 6px !important;
+            border: 1px solid rgba(148, 163, 184, .36) !important;
+            border-radius: 5px !important;
+            background: rgba(248, 250, 252, .9) !important;
+            color: #64748b !important;
+            font-family: var(--ns-ui-font) !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            line-height: 18px !important;
+            vertical-align: middle !important;
+            white-space: nowrap !important;
+            box-sizing: border-box !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-meta-badge.ns-user-meta-loading {
+            color: #94a3b8 !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-meta-badge.ns-user-meta-danger {
+            background: rgba(254, 226, 226, .94) !important;
+            border-color: rgba(248, 113, 113, .45) !important;
+            color: #991b1b !important;
+        }
+
         #collapse-btn,
         #theme-toggle-btn {
             border-radius: 7px 0 0 7px !important;

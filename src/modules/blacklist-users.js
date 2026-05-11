@@ -4,6 +4,64 @@
         document.documentElement.style.setProperty('--ns-viewed-color', initialViewedColor);
     } catch (e) { }
 
+    function getUserIdFromAuthorLink(link) {
+        if (!link || !link.href) return '';
+        const match = link.href.match(/\/space\/(\d+)/) || link.href.match(/[?&]to=(\d+)/) || link.href.match(/\/user\/(\d+)/);
+        return match ? match[1] : '';
+    }
+
+    function getJoinDaysFromCreatedAt(value) {
+        if (!value) return null;
+        let joinDate = null;
+        if (typeof value === 'number') {
+            joinDate = new Date(value < 10000000000 ? value * 1000 : value);
+        } else {
+            const text = String(value).trim();
+            if (/^\d+$/.test(text)) {
+                const num = parseInt(text, 10);
+                joinDate = new Date(num < 10000000000 ? num * 1000 : num);
+            } else {
+                joinDate = new Date(text.replace(' ', 'T'));
+            }
+        }
+        if (!joinDate || Number.isNaN(joinDate.getTime())) return null;
+        return Math.max(0, Math.floor((Date.now() - joinDate.getTime()) / 86400000));
+    }
+
+    function createUserMetaBadge(type) {
+        const badge = document.createElement('span');
+        badge.className = 'userscript-nodeseek-interaction-btn ns-user-meta-badge ns-user-meta-' + type + ' ns-user-meta-loading';
+        badge.textContent = type === 'join' ? '加入 --' : 'Lv --';
+        return badge;
+    }
+
+    function updateUserMetaBadges(authorLink, joinBadge, rankBadge) {
+        const userId = getUserIdFromAuthorLink(authorLink);
+        if (!userId || typeof fetchUserData !== 'function') return;
+        fetchUserData(userId).then(function (userData) {
+            if (!userData) return;
+            const joinDays = getJoinDaysFromCreatedAt(userData.created_at);
+            const rank = parseInt(userData.rank, 10);
+            joinBadge.classList.remove('ns-user-meta-loading', 'ns-user-meta-danger');
+            rankBadge.classList.remove('ns-user-meta-loading', 'ns-user-meta-danger');
+            if (joinDays === null) {
+                joinBadge.textContent = '加入 --';
+            } else {
+                joinBadge.textContent = '加入 ' + joinDays + '天';
+                if (joinDays < 30) joinBadge.classList.add('ns-user-meta-danger');
+            }
+            if (Number.isNaN(rank)) {
+                rankBadge.textContent = 'Lv --';
+            } else {
+                rankBadge.textContent = 'Lv ' + rank;
+                if (rank <= 1) rankBadge.classList.add('ns-user-meta-danger');
+            }
+        }).catch(function () {
+            joinBadge.classList.remove('ns-user-meta-loading');
+            rankBadge.classList.remove('ns-user-meta-loading');
+        });
+    }
+
     // 处理所有用户名节点
     function processUsernames() {
         const SCRIPT_BUTTON_MARKER_CLASS = 'userscript-nodeseek-interaction-btn'; // 新增标记类
@@ -16,7 +74,7 @@
             const blacklistedNow = isBlacklisted(username);
             const friendNow = isFriend(username);
             const stateKey = username + '|' + (blacklistedNow ? '1' : '0') + '|' + (friendNow ? '1' : '0');
-            if (a.dataset.nsInteractionState === stateKey && parent.querySelectorAll('.' + SCRIPT_BUTTON_MARKER_CLASS).length >= 2) {
+            if (a.dataset.nsInteractionState === stateKey && parent.querySelectorAll('.' + SCRIPT_BUTTON_MARKER_CLASS).length >= 4) {
                 return;
             }
             a.dataset.nsInteractionState = stateKey;
@@ -233,6 +291,12 @@
                 }
             };
             parent.appendChild(friendBtn);
+
+            const joinBadge = createUserMetaBadge('join');
+            const rankBadge = createUserMetaBadge('rank');
+            parent.appendChild(joinBadge);
+            parent.appendChild(rankBadge);
+            updateUserMetaBadges(a, joinBadge, rankBadge);
         });
     }
 
