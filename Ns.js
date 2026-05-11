@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.11.12
+// @version      2026.05.11.13
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
-// @downloadURL  https://github.com/xixu520/nodeseek/raw/main/Ns.user.js
+// @downloadURL  https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
 // @grant        GM_xmlhttpRequest
 // @grant        GM_info
 // @grant        GM_openInTab
@@ -8101,6 +8101,8 @@
         content.style.flexDirection = 'column';
         content.style.gap = '15px';
 
+        const DEFAULT_USERSCRIPT_URL = 'https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js';
+
         function getScriptMeta() {
             const script = (typeof GM_info !== 'undefined' && GM_info.script) ? GM_info.script : {};
             return {
@@ -8175,11 +8177,26 @@
 
         function normalizeUserscriptInstallUrl(value) {
             const source = String(value || '').trim();
-            const match = source.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+\.user\.js)(?:[?#].*)?$/i);
-            if (match) {
-                return 'https://github.com/' + match[1] + '/' + match[2] + '/raw/' + match[3] + '/' + match[4];
+            if (!source) return DEFAULT_USERSCRIPT_URL;
+            const clean = source.replace(/[?#].*$/, '');
+            const rawMatch = clean.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/i);
+            if (rawMatch) {
+                const path = rawMatch[4].replace(/\/Ns\.js$/i, '/Ns.user.js');
+                return 'https://raw.githubusercontent.com/' + rawMatch[1] + '/' + rawMatch[2] + '/' + rawMatch[3] + '/' + path;
             }
-            return source;
+            const githubRawMatch = clean.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/raw\/(?:refs\/heads\/)?([^/]+)\/(.+)$/i);
+            if (githubRawMatch) {
+                const path = githubRawMatch[4].replace(/\/Ns\.js$/i, '/Ns.user.js');
+                return 'https://raw.githubusercontent.com/' + githubRawMatch[1] + '/' + githubRawMatch[2] + '/' + githubRawMatch[3] + '/' + path;
+            }
+            return clean.replace(/\/Ns\.js$/i, '/Ns.user.js');
+        }
+
+        function getPreferredScriptUrl(meta) {
+            const source = meta.updateURL || meta.downloadURL || DEFAULT_USERSCRIPT_URL;
+            const normalized = normalizeUserscriptInstallUrl(source);
+            if (/\/Ns\.js(?:[?#].*)?$/i.test(normalized)) return DEFAULT_USERSCRIPT_URL;
+            return normalized || DEFAULT_USERSCRIPT_URL;
         }
 
         function scheduleScriptRestart(statusEl) {
@@ -8194,7 +8211,7 @@
 
         async function checkScriptUpdate(statusEl) {
             const meta = getScriptMeta();
-            const url = meta.updateURL || meta.downloadURL;
+            const url = getPreferredScriptUrl(meta);
             if (!url || /REPLACE_USER|REPLACE_REPO/.test(url)) {
                 statusEl.textContent = '请先把脚本头部 updateURL 改成 GitHub Raw 地址。';
                 alert('请先把脚本头部 @updateURL 和 @downloadURL 改成你的 GitHub Raw 地址。');
@@ -8211,7 +8228,7 @@
                     statusEl.textContent = '发现新版本：' + latestVersion;
                     const latestName = parseMetaFieldFromScript(response.responseText, 'name') || meta.name || 'NodeseekLite';
                     const latestDesc = parseMetaFieldFromScript(response.responseText, 'description') || '';
-                    const downloadUrl = normalizeUserscriptInstallUrl(parseMetaFieldFromScript(response.responseText, 'downloadURL') || meta.downloadURL || url);
+                    const downloadUrl = normalizeUserscriptInstallUrl(parseMetaFieldFromScript(response.responseText, 'downloadURL') || url);
                     const message = [
                         '脚本：' + latestName,
                         '当前版本：' + (currentVersion || '未知'),
