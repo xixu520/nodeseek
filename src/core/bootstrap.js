@@ -311,7 +311,17 @@
 
     // 新增：用户数据缓存管理
     const userDataPendingRequests = new Map();
+    const userDataRequestQueue = [];
     const USER_DATA_REQUEST_TIMEOUT = 8000;
+    const USER_DATA_MAX_CONCURRENT = 2;
+    const USER_DATA_REQUEST_GAP = 500;
+    const USER_DATA_FAILED_CACHE_KEY = 'nodeseek_user_data_failed_cache';
+    const USER_DATA_RATE_LIMIT_UNTIL_KEY = 'nodeseek_user_data_rate_limit_until';
+    const USER_DATA_FAILED_TTL = 5 * 60 * 1000;
+    const USER_DATA_RATE_LIMIT_PAUSE = 5 * 60 * 1000;
+    let userDataActiveRequests = 0;
+    let userDataLastRequestAt = 0;
+    let userDataQueueTimer = null;
 
     function getUserDataCache() {
         try {
@@ -347,6 +357,60 @@
         }
     }
 
+    function getUserDataFailedCache() {
+        try {
+            const cache = JSON.parse(localStorage.getItem(USER_DATA_FAILED_CACHE_KEY) || '{}');
+            if (!cache || typeof cache !== 'object') return {};
+            const now = Date.now();
+            Object.keys(cache).forEach(userId => {
+                if (!cache[userId] || now - cache[userId] > USER_DATA_FAILED_TTL) {
+                    delete cache[userId];
+                }
+            });
+            localStorage.setItem(USER_DATA_FAILED_CACHE_KEY, JSON.stringify(cache));
+            return cache;
+        } catch (error) {
+            console.warn('读取用户数据失败缓存失败，已重置:', error);
+            localStorage.removeItem(USER_DATA_FAILED_CACHE_KEY);
+            return {};
+        }
+    }
+
+    function setUserDataFailedCache(userId) {
+        try {
+            const cache = getUserDataFailedCache();
+            cache[userId] = Date.now();
+            localStorage.setItem(USER_DATA_FAILED_CACHE_KEY, JSON.stringify(cache));
+        } catch (error) {
+            console.warn('写入用户数据失败缓存失败:', error);
+        }
+    }
+
+    function isUserDataFailedRecently(userId) {
+        const cache = getUserDataFailedCache();
+        return !!cache[userId] && Date.now() - cache[userId] <= USER_DATA_FAILED_TTL;
+    }
+
+    function getUserDataRateLimitUntil() {
+        const until = parseInt(localStorage.getItem(USER_DATA_RATE_LIMIT_UNTIL_KEY) || '0', 10) || 0;
+        return until > Date.now() ? until : 0;
+    }
+
+    function pauseUserDataRequests() {
+        const until = Date.now() + USER_DATA_RATE_LIMIT_PAUSE;
+        localStorage.setItem(USER_DATA_RATE_LIMIT_UNTIL_KEY, String(until));
+        while (userDataRequestQueue.length) {
+            const task = userDataRequestQueue.shift();
+            userDataPendingRequests.delete(task.userId);
+            task.resolve(null);
+        }
+    }
+
+    function isRateLimitMessage(message) {
+        const text = String(message || '');
+        return text.includes('请求频率过高') || text.includes('璇锋眰棰戠巼杩囬珮');
+    }
+
     async function fetchWithTimeout(url, options, timeoutMs) {
         const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
         const timer = setTimeout(function () {
@@ -363,60 +427,105 @@
         }
     }
 
+    async function requestUserData(userId) {
+        try {
+            const response = await fetchWithTimeout(`/api/account/getInfo/${userId}`, {
+                credentials: 'include'
+            }, USER_DATA_REQUEST_TIMEOUT);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (isRateLimitMessage(data && data.message)) {
+                pauseUserDataRequests();
+                return null;
+            }
+            if (data.success && data.detail) {
+                const userInfo = {
+                    member_id: data.detail.member_id,
+                    member_name: data.detail.member_name,
+                    rank: data.detail.rank,
+                    coin: data.detail.coin,
+                    stardust: data.detail.stardust,
+                    created_at: data.detail.created_at,
+                    nPost: data.detail.nPost,
+                    nComment: data.detail.nComment,
+                    follows: data.detail.follows,
+                    fans: data.detail.fans,
+                    created_at_str: data.detail.created_at_str
+                };
+
+                setUserDataCache(userId, userInfo);
+                return userInfo;
+            }
+            setUserDataFailedCache(userId);
+            return null;
+        } catch (error) {
+            console.warn('获取用户数据失败:', error);
+            setUserDataFailedCache(userId);
+            return null;
+        }
+    }
+
+    function scheduleUserDataQueue() {
+        if (userDataQueueTimer) return;
+        const delay = Math.max(0, USER_DATA_REQUEST_GAP - (Date.now() - userDataLastRequestAt));
+        userDataQueueTimer = setTimeout(function () {
+            userDataQueueTimer = null;
+            pumpUserDataQueue();
+        }, delay);
+    }
+
+    function pumpUserDataQueue() {
+        if (getUserDataRateLimitUntil()) {
+            pauseUserDataRequests();
+            return;
+        }
+        if (userDataActiveRequests >= USER_DATA_MAX_CONCURRENT || !userDataRequestQueue.length) return;
+        const wait = USER_DATA_REQUEST_GAP - (Date.now() - userDataLastRequestAt);
+        if (wait > 0) {
+            scheduleUserDataQueue();
+            return;
+        }
+
+        const task = userDataRequestQueue.shift();
+        if (!task) return;
+        userDataActiveRequests += 1;
+        userDataLastRequestAt = Date.now();
+
+        requestUserData(task.userId)
+            .then(task.resolve)
+            .catch(function () { task.resolve(null); })
+            .finally(function () {
+                userDataActiveRequests -= 1;
+                userDataPendingRequests.delete(task.userId);
+                scheduleUserDataQueue();
+            });
+
+        if (userDataActiveRequests < USER_DATA_MAX_CONCURRENT && userDataRequestQueue.length) {
+            scheduleUserDataQueue();
+        }
+    }
+
     // 新增：抓取用户数据
     async function fetchUserData(userId) {
         const normalizedUserId = String(userId || '').trim();
         if (!normalizedUserId) return null;
 
-        // 先检查缓存
         const cache = getUserDataCache();
         if (cache[normalizedUserId] && cache[normalizedUserId].timestamp) {
             return cache[normalizedUserId];
         }
-
+        if (getUserDataRateLimitUntil() || isUserDataFailedRecently(normalizedUserId)) return null;
         if (userDataPendingRequests.has(normalizedUserId)) {
             return userDataPendingRequests.get(normalizedUserId);
         }
 
-        const request = (async function () {
-            try {
-                // 从API获取数据
-                const response = await fetchWithTimeout(`/api/account/getInfo/${normalizedUserId}`, {
-                    credentials: 'include'
-                }, USER_DATA_REQUEST_TIMEOUT);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                if (data.success && data.detail) {
-                    const userInfo = {
-                        member_id: data.detail.member_id,
-                        member_name: data.detail.member_name,
-                        rank: data.detail.rank,
-                        coin: data.detail.coin,
-                        stardust: data.detail.stardust,
-                        created_at: data.detail.created_at,
-                        nPost: data.detail.nPost,
-                        nComment: data.detail.nComment,
-                        follows: data.detail.follows,
-                        fans: data.detail.fans,
-                        created_at_str: data.detail.created_at_str
-                    };
-
-                    // 缓存数据
-                    setUserDataCache(normalizedUserId, userInfo);
-                    return userInfo;
-                }
-                return null;
-            } catch (error) {
-                console.warn('获取用户数据失败:', error);
-                return null;
-            } finally {
-                userDataPendingRequests.delete(normalizedUserId);
-            }
-        })();
-
+        const request = new Promise(function (resolve) {
+            userDataRequestQueue.push({ userId: normalizedUserId, resolve });
+            scheduleUserDataQueue();
+        });
         userDataPendingRequests.set(normalizedUserId, request);
         return request;
     }
