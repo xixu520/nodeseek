@@ -249,8 +249,18 @@
 
             function createTagInput(values, tone) {
                 let items = uniqueWords(values || []);
+                const palette = [
+                    { bg: '#22c55e', fg: '#ffffff' },
+                    { bg: '#14b8a6', fg: '#ffffff' },
+                    { bg: '#38bdf8', fg: '#ffffff' },
+                    { bg: '#8b5cf6', fg: '#ffffff' },
+                    { bg: '#f97316', fg: '#ffffff' },
+                    { bg: '#ec4899', fg: '#ffffff' },
+                    { bg: '#64748b', fg: '#ffffff' }
+                ];
                 const wrap = document.createElement('div');
                 wrap.className = 'ns-filter-token-field ns-filter-token-field-' + tone;
+                wrap.setAttribute('role', 'group');
 
                 const list = document.createElement('div');
                 list.className = 'ns-filter-token-list';
@@ -260,13 +270,29 @@
                 input.className = 'ns-filter-token-input';
                 input.placeholder = '输入后按回车';
 
+                function colorForWord(word, index) {
+                    const text = String(word || '');
+                    let hash = tone.length + index;
+                    for (let i = 0; i < text.length; i++) {
+                        hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+                    }
+                    return palette[Math.abs(hash) % palette.length];
+                }
+
                 function render() {
                     list.innerHTML = '';
                     items.forEach((word, index) => {
                         const chip = document.createElement('span');
                         chip.className = 'ns-filter-chip ns-filter-chip-' + tone;
-                        chip.textContent = word;
+                        const chipColor = colorForWord(word, index);
+                        chip.style.setProperty('--ns-chip-bg', chipColor.bg);
+                        chip.style.setProperty('--ns-chip-fg', chipColor.fg);
                         chip.title = word;
+
+                        const text = document.createElement('span');
+                        text.className = 'ns-filter-chip-text';
+                        text.textContent = word;
+                        chip.appendChild(text);
 
                         const close = document.createElement('button');
                         close.type = 'button';
@@ -296,11 +322,19 @@
                 input.addEventListener('keydown', function (event) {
                     if (event.key === 'Enter' || event.key === ',') {
                         event.preventDefault();
+                        event.stopPropagation();
                         addFromText(input.value);
                     } else if (event.key === 'Backspace' && !input.value && items.length) {
+                        event.stopPropagation();
                         items.pop();
                         render();
                     }
+                });
+                input.addEventListener('mousedown', function (event) {
+                    event.stopPropagation();
+                });
+                input.addEventListener('click', function (event) {
+                    event.stopPropagation();
                 });
                 input.addEventListener('blur', function () {
                     if (input.value.trim()) addFromText(input.value);
@@ -311,7 +345,10 @@
                     }, 0);
                 });
 
-                wrap.onclick = function () { input.focus(); };
+                wrap.onclick = function (event) {
+                    if (event.target && event.target.closest && event.target.closest('.ns-filter-chip-close')) return;
+                    input.focus();
+                };
                 wrap.getValues = function () {
                     if (input.value.trim()) addFromText(input.value);
                     return uniqueWords(items);
@@ -364,7 +401,7 @@
                 dialog.appendChild(header);
 
                 function field(labelText, input) {
-                    const label = document.createElement('label');
+                    const label = document.createElement('div');
                     label.style.display = 'block';
                     label.style.marginBottom = '10px';
                     const span = document.createElement('span');

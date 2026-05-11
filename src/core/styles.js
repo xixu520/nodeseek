@@ -560,7 +560,7 @@
         }
 
         #nodeseek-plugin-buttons-container {
-            width: 112px !important;
+            width: 118px !important;
             padding: 8px !important;
             gap: 6px !important;
             border-radius: var(--ns-ui-radius) !important;
@@ -573,13 +573,14 @@
 
         #nodeseek-plugin-buttons-container > div {
             gap: 8px !important;
+            width: 100% !important;
         }
 
         #nodeseek-plugin-buttons-container .blacklist-btn,
         #nodeseek-plugin-buttons-container > button,
         .blacklist-btn {
-            min-height: 24px !important;
-            padding: 5px 8px !important;
+            min-height: 30px !important;
+            padding: 6px 9px !important;
             margin-left: 0 !important;
             border: 0 !important;
             border-radius: 8px !important;
@@ -591,8 +592,26 @@
             line-height: 1.2 !important;
             letter-spacing: 0 !important;
             white-space: nowrap !important;
+            text-align: center !important;
             cursor: pointer !important;
             transition: transform .12s ease, filter .12s ease, box-shadow .12s ease !important;
+        }
+
+        #nodeseek-plugin-buttons-container .blacklist-btn,
+        #nodeseek-plugin-buttons-container > button,
+        #nodeseek-plugin-buttons-container > div > button {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            height: 32px !important;
+            min-height: 32px !important;
+            max-height: 32px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            box-sizing: border-box !important;
         }
 
         #nodeseek-plugin-buttons-container .blacklist-btn:hover,
@@ -687,10 +706,10 @@
 
         .ns-filter-token-field {
             width: 100% !important;
-            min-height: 42px !important;
-            padding: 6px !important;
+            min-height: 46px !important;
+            padding: 8px !important;
             border: 1px solid var(--ns-ui-line) !important;
-            border-radius: 9px !important;
+            border-radius: 10px !important;
             background: var(--ns-ui-bg-solid) !important;
             box-sizing: border-box !important;
             cursor: text !important;
@@ -715,25 +734,27 @@
             display: flex !important;
             flex-wrap: wrap !important;
             align-items: center !important;
-            gap: 6px !important;
+            gap: 9px 8px !important;
             width: 100% !important;
             min-width: 0 !important;
         }
 
         #ns-filter-dialog .ns-filter-token-input,
         .ns-filter-token-input {
-            flex: 1 1 100px !important;
-            min-width: 72px !important;
+            flex: 1 1 118px !important;
+            min-width: 92px !important;
             max-width: 100% !important;
-            height: 26px !important;
-            padding: 2px 4px !important;
+            height: 34px !important;
+            min-height: 34px !important;
+            padding: 5px 6px !important;
             border: 0 !important;
             box-shadow: none !important;
             background: transparent !important;
             color: var(--ns-ui-text) !important;
-            font-size: 12px !important;
+            font-size: 13px !important;
             line-height: 1.4 !important;
             outline: none !important;
+            box-sizing: border-box !important;
         }
 
         #ns-filter-dialog .ns-filter-token-input:focus,
@@ -747,34 +768,38 @@
             display: inline-flex !important;
             align-items: center !important;
             max-width: 100% !important;
-            min-height: 26px !important;
-            padding: 5px 20px 5px 9px !important;
+            min-height: 34px !important;
+            padding: 7px 16px !important;
             border: 1px solid transparent !important;
-            border-radius: 8px !important;
-            font-size: 12px !important;
-            font-weight: 600 !important;
+            border-radius: 10px !important;
+            font-size: 15px !important;
+            font-weight: 800 !important;
             line-height: 1.2 !important;
             word-break: break-word !important;
-            color: var(--ns-ui-text) !important;
+            color: var(--ns-chip-fg, #fff) !important;
+            background: var(--ns-chip-bg, #22c55e) !important;
+            box-shadow: 0 5px 12px rgba(15, 23, 42, .12) !important;
             box-sizing: border-box !important;
         }
 
         .ns-filter-chip-hide {
-            background: rgba(251, 113, 133, .13) !important;
-            border-color: rgba(251, 113, 133, .32) !important;
-            color: #be123c !important;
+            border-color: rgba(255, 255, 255, .18) !important;
         }
 
         .ns-filter-chip-highlight {
-            background: rgba(56, 189, 248, .14) !important;
-            border-color: rgba(56, 189, 248, .34) !important;
-            color: #0369a1 !important;
+            border-color: rgba(255, 255, 255, .18) !important;
         }
 
         .ns-filter-chip-allow {
-            background: rgba(34, 197, 94, .13) !important;
-            border-color: rgba(34, 197, 94, .32) !important;
-            color: #15803d !important;
+            border-color: rgba(255, 255, 255, .18) !important;
+        }
+
+        .ns-filter-chip-text {
+            display: inline-block !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
         }
 
         html[data-theme="dark"] .ns-filter-chip,
@@ -782,24 +807,24 @@
         body.dark .ns-filter-chip,
         body.theme-dark .ns-filter-chip,
         html[data-ns-theme="dark"] .ns-filter-chip {
-            color: rgba(255, 255, 255, .86) !important;
+            color: var(--ns-chip-fg, #fff) !important;
         }
 
         #ns-filter-dialog .ns-filter-chip-close,
         .ns-filter-chip-close {
             position: absolute !important;
-            right: -5px !important;
-            top: -6px !important;
-            width: 16px !important;
-            height: 16px !important;
-            min-width: 16px !important;
-            min-height: 16px !important;
+            right: -6px !important;
+            top: -7px !important;
+            width: 18px !important;
+            height: 18px !important;
+            min-width: 18px !important;
+            min-height: 18px !important;
             padding: 0 !important;
-            border: 1px solid rgba(15, 23, 42, .08) !important;
+            border: 2px solid var(--ns-ui-bg-solid) !important;
             border-radius: 999px !important;
-            background: #ffffff !important;
-            color: #475569 !important;
-            box-shadow: 0 1px 4px rgba(15, 23, 42, .14) !important;
+            background: rgba(15, 23, 42, .78) !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, .24) !important;
             font-size: 12px !important;
             font-weight: 700 !important;
             line-height: 14px !important;
@@ -809,8 +834,8 @@
 
         #ns-filter-dialog .ns-filter-chip-close:hover,
         .ns-filter-chip-close:hover {
-            background: #f8fafc !important;
-            color: #0f172a !important;
+            background: #0f172a !important;
+            color: #ffffff !important;
         }
 
         #blacklist-dialog table, #friends-dialog table, #favorites-dialog table, #browse-history-dialog table {
@@ -903,22 +928,22 @@
             }
 
             .ns-filter-token-field {
-                min-height: 40px !important;
+                min-height: 46px !important;
                 padding: 6px !important;
             }
 
             .ns-filter-token-input {
-                flex-basis: 80px !important;
-                height: 28px !important;
-                font-size: 12px !important;
+                flex-basis: 96px !important;
+                height: 34px !important;
+                min-height: 34px !important;
+                font-size: 13px !important;
             }
 
             .ns-filter-chip {
                 max-width: calc(100vw - 66px) !important;
-                min-height: 28px !important;
-                padding-top: 6px !important;
-                padding-bottom: 6px !important;
-                font-size: 12px !important;
+                min-height: 34px !important;
+                padding: 7px 16px !important;
+                font-size: 15px !important;
             }
 
             #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
