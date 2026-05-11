@@ -108,10 +108,21 @@
     // 监听窗口加载完成事件
     window.addEventListener('load', recordBrowseHistory);
 
+    function runNsWhenIdle(fn, timeout) {
+        if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(fn, { timeout: timeout || 1200 });
+            return;
+        }
+        setTimeout(fn, 0);
+    }
+
     // 首次加载
     ensureNsModules();
-    updateAll();
     addExportImportButtons();
+    requestAnimationFrame(function () {
+        if (typeof scheduleUpdateAll === 'function') scheduleUpdateAll(0);
+        else updateAll();
+    });
 
     // 清理重复的浏览历史记录
     setTimeout(() => {
@@ -119,12 +130,14 @@
         if (cleaned) {
             addLog('已自动清理重复的浏览历史记录');
         }
-    }, 1000);
+    }, 2500);
 
     // 新增：初始化关键词过滤 observer
-    if (window.NodeSeekFilter && typeof window.NodeSeekFilter.initFilterObserver === 'function') {
-        window.NodeSeekFilter.initFilterObserver();
-    }
+    runNsWhenIdle(function () {
+        if (window.NodeSeekFilter && typeof window.NodeSeekFilter.initFilterObserver === 'function') {
+            window.NodeSeekFilter.initFilterObserver();
+        }
+    }, 2000);
 
     // 新增：实时更新黑名单弹窗中的内容
     function updateBlacklistDialogWithNewUser(username, remark, userLinkElement, buttonElement) {
@@ -465,7 +478,7 @@
         // }
 
         const title = document.createElement('div');
-        title.textContent = '插件设置';
+        title.textContent = 'NodeseekLite 设置';
         title.style.fontWeight = 'bold';
         title.style.fontSize = '16px';
         title.style.color = '#333';
@@ -544,7 +557,7 @@
         function getScriptMeta() {
             const script = (typeof GM_info !== 'undefined' && GM_info.script) ? GM_info.script : {};
             return {
-                name: script.name || 'NS综合插件',
+                name: script.name || 'NodeseekLite',
                 version: script.version || '',
                 updateURL: script.updateURL || '',
                 downloadURL: script.downloadURL || ''
@@ -627,7 +640,7 @@
                 const currentVersion = meta.version || '';
                 if (compareVersionText(latestVersion, currentVersion) > 0) {
                     statusEl.textContent = '发现新版本：' + latestVersion;
-                    const latestName = parseMetaFieldFromScript(response.responseText, 'name') || meta.name || 'NS综合插件';
+                    const latestName = parseMetaFieldFromScript(response.responseText, 'name') || meta.name || 'NodeseekLite';
                     const latestDesc = parseMetaFieldFromScript(response.responseText, 'description') || '';
                     const downloadUrl = parseMetaFieldFromScript(response.responseText, 'downloadURL') || meta.downloadURL || url;
                     const message = [
@@ -656,6 +669,28 @@
                 alert('检查更新失败：' + error.message);
             }
         }
+
+        const dataRow = document.createElement('div');
+        dataRow.style.display = 'grid';
+        dataRow.style.gridTemplateColumns = isMobile ? '1fr' : '1fr 1fr 1fr';
+        dataRow.style.gap = '8px';
+
+        function createSettingsActionButton(text, color, handler) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = text;
+            btn.className = 'blacklist-btn ns-tw-btn';
+            btn.style.background = color;
+            btn.style.width = '100%';
+            btn.style.minHeight = '30px';
+            btn.onclick = handler;
+            return btn;
+        }
+
+        dataRow.appendChild(createSettingsActionButton('导出', '#2563eb', exportBlacklist));
+        dataRow.appendChild(createSettingsActionButton('导入', '#2563eb', importBlacklist));
+        dataRow.appendChild(createSettingsActionButton('同步设置', '#475569', showWebdavSyncDialog));
+        content.appendChild(dataRow);
 
         // 1. 用户信息显示开关
         const userInfoRow = document.createElement('div');

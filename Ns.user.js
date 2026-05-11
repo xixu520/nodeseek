@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         NS综合插件
+// @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.11.8
+// @version      2026.05.11.10
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -1043,6 +1043,27 @@
         pointer-events: none !important;
     }
 
+    #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
+        right: 0 !important;
+        top: 40% !important;
+        align-items: center !important;
+    }
+
+    #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
+        position: static !important;
+        width: 34px !important;
+        height: 42px !important;
+        border-radius: 8px 0 0 8px !important;
+        border: 1px solid var(--ns-panel-collapse-border) !important;
+        border-right: none !important;
+        transform: none !important;
+        opacity: .92 !important;
+    }
+
+    #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #theme-toggle-btn {
+        display: none !important;
+    }
+
     /* 新增：确保用户弹窗能完全遮盖用户信息显示 */
     .hover-user-card, .user-card {
         z-index: 1000 !important;
@@ -1486,8 +1507,8 @@
             box-shadow: inset 0 -1px 0 rgba(0,0,0,0.12), 0 4px 10px rgba(15,23,42,0.12) !important;
         }
 
-        #settings-btn, #webdav-config-btn { background: #475569 !important; }
-        #blacklist-export-btn, #blacklist-import-btn, #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
+        #settings-btn { background: #475569 !important; }
+        #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
         #webdav-sync-btn, #ns-nodeimage-btn { background: var(--ns-ui-teal) !important; }
         #blacklist-view-btn, #friends-view-btn { background: var(--ns-ui-green) !important; }
         #quick-reply-btn { background: var(--ns-ui-purple) !important; }
@@ -1622,12 +1643,24 @@
                 grid-column: 1 / -1 !important;
             }
 
-            #collapse-btn, #theme-toggle-btn {
-                left: -42px !important;
-                width: 36px !important;
-                height: 36px !important;
-                border-radius: 9px !important;
-            }
+        #collapse-btn, #theme-toggle-btn {
+            left: -42px !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 9px !important;
+        }
+
+        #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
+            right: 0 !important;
+            bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+            top: auto !important;
+        }
+
+        #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
+            width: 38px !important;
+            height: 44px !important;
+            border-radius: 10px 0 0 10px !important;
+        }
 
             #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
             #settings-dialog, #webdav-sync-dialog, #jump-list-dialog, #ns-nodeimage-safari-dialog,
@@ -1684,6 +1717,15 @@
         document.querySelectorAll('a.author-name').forEach(function (a) {
             const username = a.textContent.trim();
             const parent = a.parentNode;
+            if (!username || !parent) return;
+
+            const blacklistedNow = isBlacklisted(username);
+            const friendNow = isFriend(username);
+            const stateKey = username + '|' + (blacklistedNow ? '1' : '0') + '|' + (friendNow ? '1' : '0');
+            if (a.dataset.nsInteractionState === stateKey && parent.querySelectorAll('.' + SCRIPT_BUTTON_MARKER_CLASS).length >= 2) {
+                return;
+            }
+            a.dataset.nsInteractionState = stateKey;
 
             // 总是先移除此脚本之前为该用户添加的交互按钮
             parent.querySelectorAll('.' + SCRIPT_BUTTON_MARKER_CLASS).forEach(btn => btn.remove());
@@ -1694,8 +1736,8 @@
             // 拉黑按钮
             const btn = document.createElement('button');
             // 为按钮添加标记类
-            btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + (isBlacklisted(username) ? ' red' : '');
-            btn.textContent = isBlacklisted(username) ? '移除黑名单' : '拉黑';
+            btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + (blacklistedNow ? ' red' : '');
+            btn.textContent = blacklistedNow ? '移除黑名单' : '拉黑';
             btn.onclick = function (e) {
                 e.stopPropagation();
                 if (isBlacklisted(username)) {
@@ -1792,9 +1834,9 @@
             const friendBtn = document.createElement('button');
             // 为按钮添加标记类
             friendBtn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS;
-            friendBtn.style.background = isFriend(username) ? '#aaa' : '#2ea44f';
+            friendBtn.style.background = friendNow ? '#aaa' : '#2ea44f';
             friendBtn.style.marginLeft = '4px';
-            friendBtn.textContent = isFriend(username) ? '删除好友' : '添加好友';
+            friendBtn.textContent = friendNow ? '删除好友' : '添加好友';
             friendBtn.onclick = function (e) {
                 e.stopPropagation();
                 if (!isFriend(username)) {
@@ -2409,10 +2451,7 @@
                     if (node.nodeType !== Node.ELEMENT_NODE) continue;
                     if (node.id && /^nodeseek-plugin|blacklist-dialog|friends-dialog|favorites-dialog|browse-history-dialog|logs-dialog|quick-reply-dialog/.test(node.id)) continue;
                     if (node.closest && node.closest('#nodeseek-plugin-main-container, #nodeseek-plugin-buttons-container, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog, #logs-dialog, #quick-reply-dialog')) continue;
-                    // 立即同步执行，不 debounce
-                    markViewedTitles(true);
-                    applyNewTabLinks();
-                    ensurePluginControlPanel();
+                    scheduleUpdateAll(180);
                     return;
                 }
             }
@@ -2430,11 +2469,10 @@
 
         // hash 路由切换时：立即同步执行 + 多次补漏（Vue 渲染可能分批）
         window.addEventListener('hashchange', function () {
-            markViewedTitles(true);
-            applyNewTabLinks();
+            scheduleUpdateAll(0);
             ensurePluginControlPanel();
-            setTimeout(function () { markViewedTitles(true); applyNewTabLinks(); }, 150);
-            setTimeout(function () { markViewedTitles(true); applyNewTabLinks(); ensurePluginControlPanel(); }, 400);
+            setTimeout(function () { scheduleUpdateAll(0); }, 150);
+            setTimeout(function () { scheduleUpdateAll(0); ensurePluginControlPanel(); }, 400);
         });
     })();
 
@@ -2624,15 +2662,32 @@
     function ensurePluginControlPanel() {
         if (!document.body) return;
         const panel = document.getElementById('nodeseek-plugin-main-container');
-        if (!panel || !document.body.contains(panel) || !document.getElementById('blacklist-export-btn')) {
+        if (!panel || !document.body.contains(panel) || !document.getElementById('settings-btn')) {
             addExportImportButtons();
         }
+    }
+
+    let updateAllTimer = null;
+    function scheduleUpdateAll(delay) {
+        if (updateAllTimer) clearTimeout(updateAllTimer);
+        updateAllTimer = setTimeout(function () {
+            updateAllTimer = null;
+            updateAll();
+        }, typeof delay === 'number' ? delay : 250);
+    }
+
+    function runWhenIdle(fn, timeout) {
+        if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(fn, { timeout: timeout || 1200 });
+            return;
+        }
+        setTimeout(fn, 0);
     }
 
     function updateAll() {
         const now = Date.now();
         // 避免过于频繁的更新
-        if (now - lastUpdateTime < 1000) {
+        if (now - lastUpdateTime < 600) {
             return;
         }
         lastUpdateTime = now;
@@ -2641,17 +2696,19 @@
         processUsernames();
         highlightBlacklisted();
         highlightFriends(); // 新增调用
-        processUserAvatars(); // 新增：处理用户头像信息显示
         replaceRelativeTimeWithAbsolute(); // 新增：替换相对时间为完整时间
-        markViewedTitles();
-        applyNewTabLinks(); // 新增：应用新标签页打开帖子逻辑
+        if (getViewedHistoryEnabled()) markViewedTitles();
+        if (getOpenPostNewTabEnabled()) applyNewTabLinks(); // 新增：应用新标签页打开帖子逻辑
         if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.bindEditorButton === 'function') window.NodeSeekQuickReply.bindEditorButton();
         ensurePluginControlPanel();
+        if (getUserInfoDisplayState()) {
+            runWhenIdle(function () { processUserAvatars(); }, 1800);
+        }
     }
 
     // 兼容异步加载，定时检查
-    setInterval(updateAll, 2000);
-    setInterval(ensurePluginControlPanel, 2000);
+    setInterval(function () { scheduleUpdateAll(0); }, 5000);
+    setInterval(ensurePluginControlPanel, 5000);
 
     // ====== 导出/导入黑名单功能 ======
 
@@ -5457,7 +5514,7 @@
 
     // ====== 按钮插入到页面右上角 ======
     function addExportImportButtons() {
-        if (document.getElementById('blacklist-export-btn')) return;
+        if (document.getElementById('nodeseek-plugin-main-container')) return;
 
         // 创建主容器
         const mainContainer = document.createElement('div');
@@ -5469,6 +5526,11 @@
         mainContainer.style.zIndex = 9999;
         mainContainer.style.display = 'flex'; // 使用flex布局
         mainContainer.style.flexDirection = 'row'; // 水平方向
+        const expandedPosition = {
+            top: mainContainer.style.top,
+            right: mainContainer.style.right,
+            bottom: mainContainer.style.bottom || ''
+        };
 
         // 创建按钮容器
         const container = document.createElement('div');
@@ -5509,12 +5571,32 @@
         mainContainer.appendChild(themeToggleBtn);
         mainContainer.appendChild(container);
 
+        function applyCollapsedLayout(collapsed) {
+            mainContainer.classList.toggle('nodeseek-plugin-main-collapsed', !!collapsed);
+            if (collapsed) {
+                if (window.innerWidth <= 767) {
+                    mainContainer.style.top = 'auto';
+                    mainContainer.style.right = '0px';
+                    mainContainer.style.bottom = 'calc(88px + env(safe-area-inset-bottom, 0px))';
+                } else {
+                    mainContainer.style.top = '40%';
+                    mainContainer.style.right = '0px';
+                    mainContainer.style.bottom = '';
+                }
+            } else {
+                mainContainer.style.top = expandedPosition.top;
+                mainContainer.style.right = expandedPosition.right;
+                mainContainer.style.bottom = expandedPosition.bottom;
+            }
+        }
+
         // 处理折叠状态
         const isCollapsed = getCollapsedState();
         if (isCollapsed) {
             container.classList.add('nodeseek-plugin-container-collapsed');
             collapseBtn.innerHTML = '&gt;'; // 折叠状态显示 >
             themeToggleBtn.style.display = 'none'; // 折叠时隐藏主题按钮
+            applyCollapsedLayout(true);
         }
 
         // 日志按钮
@@ -5526,85 +5608,22 @@
         logBtn.onclick = showLogs;
 
 
-        // 初始化签到功能模块
-        function initClockInFeature() {
-            // 延迟检查，确保内置签到功能加载完成
-            const checkClockIn = () => {
-                if (window.NodeSeekClockIn && window.NodeSeekClockIn.setAddLogFunction) {
-                    // 确保 addLog 函数能够传递给签到功能
-                    window.NodeSeekClockIn.setAddLogFunction(addLog);
-                } else {
-                    // 延迟重试
-                    setTimeout(checkClockIn, 500);
-                }
-            };
-            checkClockIn();
+        if (window.NodeSeekClockIn && window.NodeSeekClockIn.setAddLogFunction) {
+            window.NodeSeekClockIn.setAddLogFunction(addLog);
         }
-
-        // 延迟初始化，确保所有模块都加载完成
-        setTimeout(initClockInFeature, 100);
-
-        // 初始化统计功能
-        function initStatisticsFeature() {
-            // 延迟检查，确保内置统计功能加载完成
-            const checkStatistics = () => {
-                if (window.NodeSeekRegister && window.NodeSeekRegister.setAddLogFunction) {
-                    // 确保 addLog 函数能够传递给统计功能
-                    window.NodeSeekRegister.setAddLogFunction(addLog);
-                } else {
-                    // 延迟重试
-                    setTimeout(checkStatistics, 500);
-                }
-            };
-            checkStatistics();
+        if (window.NodeSeekRegister && window.NodeSeekRegister.setAddLogFunction) {
+            window.NodeSeekRegister.setAddLogFunction(addLog);
         }
-
-        // 延迟初始化，确保所有模块都加载完成
-        setTimeout(initStatisticsFeature, 100);
-
-        const exportBtn = document.createElement('button');
-        exportBtn.id = 'blacklist-export-btn';
-        exportBtn.className = 'blacklist-btn ns-tw-btn';
-        exportBtn.textContent = '导出';
-        exportBtn.onclick = exportBlacklist;
-        exportBtn.style.width = '50%'; // 设置为50%宽度，与导入按钮共享一行
-
-        const importBtn = document.createElement('button');
-        importBtn.id = 'blacklist-import-btn';
-        importBtn.className = 'blacklist-btn ns-tw-btn';
-        importBtn.textContent = '导入';
-        importBtn.onclick = importBlacklist;
-        importBtn.style.width = '50%'; // 设置为50%宽度，与导出按钮共享一行
 
         const webdavSyncBtn = document.createElement('button');
         webdavSyncBtn.id = 'webdav-sync-btn';
         webdavSyncBtn.className = 'blacklist-btn ns-tw-btn';
         webdavSyncBtn.textContent = '同步';
-        webdavSyncBtn.style.width = '50%';
+        webdavSyncBtn.style.width = '100%';
         webdavSyncBtn.style.background = '#0d9488';
         webdavSyncBtn.onclick = function () {
             syncWithWebdav('manual');
         };
-
-        const webdavConfigBtn = document.createElement('button');
-        webdavConfigBtn.id = 'webdav-config-btn';
-        webdavConfigBtn.className = 'blacklist-btn ns-tw-btn';
-        webdavConfigBtn.textContent = '同步设置';
-        webdavConfigBtn.style.width = '50%';
-        webdavConfigBtn.style.background = '#607D8B';
-        webdavConfigBtn.onclick = showWebdavSyncDialog;
-
-        // 创建一个水平排列的容器，用于导出和导入按钮
-        const dataContainer = document.createElement('div');
-        dataContainer.className = 'ns-tw-row';
-        dataContainer.style.display = 'flex';
-        dataContainer.style.flexDirection = 'row';
-        dataContainer.style.gap = '10px';
-        dataContainer.style.width = '100%';
-
-        // 将导出和导入按钮添加到水平容器中
-        dataContainer.appendChild(exportBtn); // 导出
-        dataContainer.appendChild(importBtn); // 导入
 
         const webdavContainer = document.createElement('div');
         webdavContainer.className = 'ns-tw-row';
@@ -5613,7 +5632,6 @@
         webdavContainer.style.gap = '10px';
         webdavContainer.style.width = '100%';
         webdavContainer.appendChild(webdavSyncBtn);
-        webdavContainer.appendChild(webdavConfigBtn);
 
         // 新增：查看黑名单按钮
         const viewBtn = document.createElement('button');
@@ -5637,7 +5655,6 @@
         // logBtn.style.width = btnWidth;
         logBtn.style.minWidth = btnWidth;
 
-        // 导出和导入按钮已使用百分比宽度，不需要再设置
         // viewBtn.style.width = btnWidth;
         viewBtn.style.minWidth = btnWidth;
 
@@ -5756,19 +5773,20 @@
                 container.classList.remove('nodeseek-plugin-container-collapsed');
                 collapseBtn.innerHTML = '&lt;';
                 themeToggleBtn.style.display = 'flex'; // 展开时显示主题按钮
+                applyCollapsedLayout(false);
                 setCollapsedState(false);
             } else {
                 // 折叠
                 container.classList.add('nodeseek-plugin-container-collapsed');
                 collapseBtn.innerHTML = '&gt;';
                 themeToggleBtn.style.display = 'none'; // 折叠时隐藏主题按钮
+                applyCollapsedLayout(true);
                 setCollapsedState(true);
             }
         };
 
         // 按照指定顺序添加按钮
         container.appendChild(settingsContainer); // 设置按钮行
-        container.appendChild(dataContainer); // 导出和导入按钮
         container.appendChild(webdavContainer); // WebDAV同步
         container.appendChild(logBtn);        // 日志
         container.appendChild(viewBtn);       // 查看黑名单
@@ -7405,10 +7423,21 @@
     // 监听窗口加载完成事件
     window.addEventListener('load', recordBrowseHistory);
 
+    function runNsWhenIdle(fn, timeout) {
+        if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(fn, { timeout: timeout || 1200 });
+            return;
+        }
+        setTimeout(fn, 0);
+    }
+
     // 首次加载
     ensureNsModules();
-    updateAll();
     addExportImportButtons();
+    requestAnimationFrame(function () {
+        if (typeof scheduleUpdateAll === 'function') scheduleUpdateAll(0);
+        else updateAll();
+    });
 
     // 清理重复的浏览历史记录
     setTimeout(() => {
@@ -7416,12 +7445,14 @@
         if (cleaned) {
             addLog('已自动清理重复的浏览历史记录');
         }
-    }, 1000);
+    }, 2500);
 
     // 新增：初始化关键词过滤 observer
-    if (window.NodeSeekFilter && typeof window.NodeSeekFilter.initFilterObserver === 'function') {
-        window.NodeSeekFilter.initFilterObserver();
-    }
+    runNsWhenIdle(function () {
+        if (window.NodeSeekFilter && typeof window.NodeSeekFilter.initFilterObserver === 'function') {
+            window.NodeSeekFilter.initFilterObserver();
+        }
+    }, 2000);
 
     // 新增：实时更新黑名单弹窗中的内容
     function updateBlacklistDialogWithNewUser(username, remark, userLinkElement, buttonElement) {
@@ -7762,7 +7793,7 @@
         // }
 
         const title = document.createElement('div');
-        title.textContent = '插件设置';
+        title.textContent = 'NodeseekLite 设置';
         title.style.fontWeight = 'bold';
         title.style.fontSize = '16px';
         title.style.color = '#333';
@@ -7841,7 +7872,7 @@
         function getScriptMeta() {
             const script = (typeof GM_info !== 'undefined' && GM_info.script) ? GM_info.script : {};
             return {
-                name: script.name || 'NS综合插件',
+                name: script.name || 'NodeseekLite',
                 version: script.version || '',
                 updateURL: script.updateURL || '',
                 downloadURL: script.downloadURL || ''
@@ -7924,7 +7955,7 @@
                 const currentVersion = meta.version || '';
                 if (compareVersionText(latestVersion, currentVersion) > 0) {
                     statusEl.textContent = '发现新版本：' + latestVersion;
-                    const latestName = parseMetaFieldFromScript(response.responseText, 'name') || meta.name || 'NS综合插件';
+                    const latestName = parseMetaFieldFromScript(response.responseText, 'name') || meta.name || 'NodeseekLite';
                     const latestDesc = parseMetaFieldFromScript(response.responseText, 'description') || '';
                     const downloadUrl = parseMetaFieldFromScript(response.responseText, 'downloadURL') || meta.downloadURL || url;
                     const message = [
@@ -7953,6 +7984,28 @@
                 alert('检查更新失败：' + error.message);
             }
         }
+
+        const dataRow = document.createElement('div');
+        dataRow.style.display = 'grid';
+        dataRow.style.gridTemplateColumns = isMobile ? '1fr' : '1fr 1fr 1fr';
+        dataRow.style.gap = '8px';
+
+        function createSettingsActionButton(text, color, handler) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = text;
+            btn.className = 'blacklist-btn ns-tw-btn';
+            btn.style.background = color;
+            btn.style.width = '100%';
+            btn.style.minHeight = '30px';
+            btn.onclick = handler;
+            return btn;
+        }
+
+        dataRow.appendChild(createSettingsActionButton('导出', '#2563eb', exportBlacklist));
+        dataRow.appendChild(createSettingsActionButton('导入', '#2563eb', importBlacklist));
+        dataRow.appendChild(createSettingsActionButton('同步设置', '#475569', showWebdavSyncDialog));
+        content.appendChild(dataRow);
 
         // 1. 用户信息显示开关
         const userInfoRow = document.createElement('div');

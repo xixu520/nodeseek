@@ -479,7 +479,7 @@
 
     // ====== 按钮插入到页面右上角 ======
     function addExportImportButtons() {
-        if (document.getElementById('blacklist-export-btn')) return;
+        if (document.getElementById('nodeseek-plugin-main-container')) return;
 
         // 创建主容器
         const mainContainer = document.createElement('div');
@@ -491,6 +491,11 @@
         mainContainer.style.zIndex = 9999;
         mainContainer.style.display = 'flex'; // 使用flex布局
         mainContainer.style.flexDirection = 'row'; // 水平方向
+        const expandedPosition = {
+            top: mainContainer.style.top,
+            right: mainContainer.style.right,
+            bottom: mainContainer.style.bottom || ''
+        };
 
         // 创建按钮容器
         const container = document.createElement('div');
@@ -531,12 +536,32 @@
         mainContainer.appendChild(themeToggleBtn);
         mainContainer.appendChild(container);
 
+        function applyCollapsedLayout(collapsed) {
+            mainContainer.classList.toggle('nodeseek-plugin-main-collapsed', !!collapsed);
+            if (collapsed) {
+                if (window.innerWidth <= 767) {
+                    mainContainer.style.top = 'auto';
+                    mainContainer.style.right = '0px';
+                    mainContainer.style.bottom = 'calc(88px + env(safe-area-inset-bottom, 0px))';
+                } else {
+                    mainContainer.style.top = '40%';
+                    mainContainer.style.right = '0px';
+                    mainContainer.style.bottom = '';
+                }
+            } else {
+                mainContainer.style.top = expandedPosition.top;
+                mainContainer.style.right = expandedPosition.right;
+                mainContainer.style.bottom = expandedPosition.bottom;
+            }
+        }
+
         // 处理折叠状态
         const isCollapsed = getCollapsedState();
         if (isCollapsed) {
             container.classList.add('nodeseek-plugin-container-collapsed');
             collapseBtn.innerHTML = '&gt;'; // 折叠状态显示 >
             themeToggleBtn.style.display = 'none'; // 折叠时隐藏主题按钮
+            applyCollapsedLayout(true);
         }
 
         // 日志按钮
@@ -548,85 +573,22 @@
         logBtn.onclick = showLogs;
 
 
-        // 初始化签到功能模块
-        function initClockInFeature() {
-            // 延迟检查，确保内置签到功能加载完成
-            const checkClockIn = () => {
-                if (window.NodeSeekClockIn && window.NodeSeekClockIn.setAddLogFunction) {
-                    // 确保 addLog 函数能够传递给签到功能
-                    window.NodeSeekClockIn.setAddLogFunction(addLog);
-                } else {
-                    // 延迟重试
-                    setTimeout(checkClockIn, 500);
-                }
-            };
-            checkClockIn();
+        if (window.NodeSeekClockIn && window.NodeSeekClockIn.setAddLogFunction) {
+            window.NodeSeekClockIn.setAddLogFunction(addLog);
         }
-
-        // 延迟初始化，确保所有模块都加载完成
-        setTimeout(initClockInFeature, 100);
-
-        // 初始化统计功能
-        function initStatisticsFeature() {
-            // 延迟检查，确保内置统计功能加载完成
-            const checkStatistics = () => {
-                if (window.NodeSeekRegister && window.NodeSeekRegister.setAddLogFunction) {
-                    // 确保 addLog 函数能够传递给统计功能
-                    window.NodeSeekRegister.setAddLogFunction(addLog);
-                } else {
-                    // 延迟重试
-                    setTimeout(checkStatistics, 500);
-                }
-            };
-            checkStatistics();
+        if (window.NodeSeekRegister && window.NodeSeekRegister.setAddLogFunction) {
+            window.NodeSeekRegister.setAddLogFunction(addLog);
         }
-
-        // 延迟初始化，确保所有模块都加载完成
-        setTimeout(initStatisticsFeature, 100);
-
-        const exportBtn = document.createElement('button');
-        exportBtn.id = 'blacklist-export-btn';
-        exportBtn.className = 'blacklist-btn ns-tw-btn';
-        exportBtn.textContent = '导出';
-        exportBtn.onclick = exportBlacklist;
-        exportBtn.style.width = '50%'; // 设置为50%宽度，与导入按钮共享一行
-
-        const importBtn = document.createElement('button');
-        importBtn.id = 'blacklist-import-btn';
-        importBtn.className = 'blacklist-btn ns-tw-btn';
-        importBtn.textContent = '导入';
-        importBtn.onclick = importBlacklist;
-        importBtn.style.width = '50%'; // 设置为50%宽度，与导出按钮共享一行
 
         const webdavSyncBtn = document.createElement('button');
         webdavSyncBtn.id = 'webdav-sync-btn';
         webdavSyncBtn.className = 'blacklist-btn ns-tw-btn';
         webdavSyncBtn.textContent = '同步';
-        webdavSyncBtn.style.width = '50%';
+        webdavSyncBtn.style.width = '100%';
         webdavSyncBtn.style.background = '#0d9488';
         webdavSyncBtn.onclick = function () {
             syncWithWebdav('manual');
         };
-
-        const webdavConfigBtn = document.createElement('button');
-        webdavConfigBtn.id = 'webdav-config-btn';
-        webdavConfigBtn.className = 'blacklist-btn ns-tw-btn';
-        webdavConfigBtn.textContent = '同步设置';
-        webdavConfigBtn.style.width = '50%';
-        webdavConfigBtn.style.background = '#607D8B';
-        webdavConfigBtn.onclick = showWebdavSyncDialog;
-
-        // 创建一个水平排列的容器，用于导出和导入按钮
-        const dataContainer = document.createElement('div');
-        dataContainer.className = 'ns-tw-row';
-        dataContainer.style.display = 'flex';
-        dataContainer.style.flexDirection = 'row';
-        dataContainer.style.gap = '10px';
-        dataContainer.style.width = '100%';
-
-        // 将导出和导入按钮添加到水平容器中
-        dataContainer.appendChild(exportBtn); // 导出
-        dataContainer.appendChild(importBtn); // 导入
 
         const webdavContainer = document.createElement('div');
         webdavContainer.className = 'ns-tw-row';
@@ -635,7 +597,6 @@
         webdavContainer.style.gap = '10px';
         webdavContainer.style.width = '100%';
         webdavContainer.appendChild(webdavSyncBtn);
-        webdavContainer.appendChild(webdavConfigBtn);
 
         // 新增：查看黑名单按钮
         const viewBtn = document.createElement('button');
@@ -659,7 +620,6 @@
         // logBtn.style.width = btnWidth;
         logBtn.style.minWidth = btnWidth;
 
-        // 导出和导入按钮已使用百分比宽度，不需要再设置
         // viewBtn.style.width = btnWidth;
         viewBtn.style.minWidth = btnWidth;
 
@@ -778,19 +738,20 @@
                 container.classList.remove('nodeseek-plugin-container-collapsed');
                 collapseBtn.innerHTML = '&lt;';
                 themeToggleBtn.style.display = 'flex'; // 展开时显示主题按钮
+                applyCollapsedLayout(false);
                 setCollapsedState(false);
             } else {
                 // 折叠
                 container.classList.add('nodeseek-plugin-container-collapsed');
                 collapseBtn.innerHTML = '&gt;';
                 themeToggleBtn.style.display = 'none'; // 折叠时隐藏主题按钮
+                applyCollapsedLayout(true);
                 setCollapsedState(true);
             }
         };
 
         // 按照指定顺序添加按钮
         container.appendChild(settingsContainer); // 设置按钮行
-        container.appendChild(dataContainer); // 导出和导入按钮
         container.appendChild(webdavContainer); // WebDAV同步
         container.appendChild(logBtn);        // 日志
         container.appendChild(viewBtn);       // 查看黑名单

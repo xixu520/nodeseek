@@ -11,6 +11,15 @@
         document.querySelectorAll('a.author-name').forEach(function (a) {
             const username = a.textContent.trim();
             const parent = a.parentNode;
+            if (!username || !parent) return;
+
+            const blacklistedNow = isBlacklisted(username);
+            const friendNow = isFriend(username);
+            const stateKey = username + '|' + (blacklistedNow ? '1' : '0') + '|' + (friendNow ? '1' : '0');
+            if (a.dataset.nsInteractionState === stateKey && parent.querySelectorAll('.' + SCRIPT_BUTTON_MARKER_CLASS).length >= 2) {
+                return;
+            }
+            a.dataset.nsInteractionState = stateKey;
 
             // 总是先移除此脚本之前为该用户添加的交互按钮
             parent.querySelectorAll('.' + SCRIPT_BUTTON_MARKER_CLASS).forEach(btn => btn.remove());
@@ -21,8 +30,8 @@
             // 拉黑按钮
             const btn = document.createElement('button');
             // 为按钮添加标记类
-            btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + (isBlacklisted(username) ? ' red' : '');
-            btn.textContent = isBlacklisted(username) ? '移除黑名单' : '拉黑';
+            btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + (blacklistedNow ? ' red' : '');
+            btn.textContent = blacklistedNow ? '移除黑名单' : '拉黑';
             btn.onclick = function (e) {
                 e.stopPropagation();
                 if (isBlacklisted(username)) {
@@ -119,9 +128,9 @@
             const friendBtn = document.createElement('button');
             // 为按钮添加标记类
             friendBtn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS;
-            friendBtn.style.background = isFriend(username) ? '#aaa' : '#2ea44f';
+            friendBtn.style.background = friendNow ? '#aaa' : '#2ea44f';
             friendBtn.style.marginLeft = '4px';
-            friendBtn.textContent = isFriend(username) ? '删除好友' : '添加好友';
+            friendBtn.textContent = friendNow ? '删除好友' : '添加好友';
             friendBtn.onclick = function (e) {
                 e.stopPropagation();
                 if (!isFriend(username)) {
@@ -736,10 +745,7 @@
                     if (node.nodeType !== Node.ELEMENT_NODE) continue;
                     if (node.id && /^nodeseek-plugin|blacklist-dialog|friends-dialog|favorites-dialog|browse-history-dialog|logs-dialog|quick-reply-dialog/.test(node.id)) continue;
                     if (node.closest && node.closest('#nodeseek-plugin-main-container, #nodeseek-plugin-buttons-container, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog, #logs-dialog, #quick-reply-dialog')) continue;
-                    // 立即同步执行，不 debounce
-                    markViewedTitles(true);
-                    applyNewTabLinks();
-                    ensurePluginControlPanel();
+                    scheduleUpdateAll(180);
                     return;
                 }
             }
@@ -757,11 +763,10 @@
 
         // hash 路由切换时：立即同步执行 + 多次补漏（Vue 渲染可能分批）
         window.addEventListener('hashchange', function () {
-            markViewedTitles(true);
-            applyNewTabLinks();
+            scheduleUpdateAll(0);
             ensurePluginControlPanel();
-            setTimeout(function () { markViewedTitles(true); applyNewTabLinks(); }, 150);
-            setTimeout(function () { markViewedTitles(true); applyNewTabLinks(); ensurePluginControlPanel(); }, 400);
+            setTimeout(function () { scheduleUpdateAll(0); }, 150);
+            setTimeout(function () { scheduleUpdateAll(0); ensurePluginControlPanel(); }, 400);
         });
     })();
 
@@ -951,15 +956,32 @@
     function ensurePluginControlPanel() {
         if (!document.body) return;
         const panel = document.getElementById('nodeseek-plugin-main-container');
-        if (!panel || !document.body.contains(panel) || !document.getElementById('blacklist-export-btn')) {
+        if (!panel || !document.body.contains(panel) || !document.getElementById('settings-btn')) {
             addExportImportButtons();
         }
+    }
+
+    let updateAllTimer = null;
+    function scheduleUpdateAll(delay) {
+        if (updateAllTimer) clearTimeout(updateAllTimer);
+        updateAllTimer = setTimeout(function () {
+            updateAllTimer = null;
+            updateAll();
+        }, typeof delay === 'number' ? delay : 250);
+    }
+
+    function runWhenIdle(fn, timeout) {
+        if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(fn, { timeout: timeout || 1200 });
+            return;
+        }
+        setTimeout(fn, 0);
     }
 
     function updateAll() {
         const now = Date.now();
         // 避免过于频繁的更新
-        if (now - lastUpdateTime < 1000) {
+        if (now - lastUpdateTime < 600) {
             return;
         }
         lastUpdateTime = now;
@@ -968,16 +990,18 @@
         processUsernames();
         highlightBlacklisted();
         highlightFriends(); // 新增调用
-        processUserAvatars(); // 新增：处理用户头像信息显示
         replaceRelativeTimeWithAbsolute(); // 新增：替换相对时间为完整时间
-        markViewedTitles();
-        applyNewTabLinks(); // 新增：应用新标签页打开帖子逻辑
+        if (getViewedHistoryEnabled()) markViewedTitles();
+        if (getOpenPostNewTabEnabled()) applyNewTabLinks(); // 新增：应用新标签页打开帖子逻辑
         if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.bindEditorButton === 'function') window.NodeSeekQuickReply.bindEditorButton();
         ensurePluginControlPanel();
+        if (getUserInfoDisplayState()) {
+            runWhenIdle(function () { processUserAvatars(); }, 1800);
+        }
     }
 
     // 兼容异步加载，定时检查
-    setInterval(updateAll, 2000);
-    setInterval(ensurePluginControlPanel, 2000);
+    setInterval(function () { scheduleUpdateAll(0); }, 5000);
+    setInterval(ensurePluginControlPanel, 5000);
 
     // ====== 导出/导入黑名单功能 ======

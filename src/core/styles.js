@@ -138,6 +138,27 @@
         pointer-events: none !important;
     }
 
+    #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
+        right: 0 !important;
+        top: 40% !important;
+        align-items: center !important;
+    }
+
+    #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
+        position: static !important;
+        width: 34px !important;
+        height: 42px !important;
+        border-radius: 8px 0 0 8px !important;
+        border: 1px solid var(--ns-panel-collapse-border) !important;
+        border-right: none !important;
+        transform: none !important;
+        opacity: .92 !important;
+    }
+
+    #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #theme-toggle-btn {
+        display: none !important;
+    }
+
     /* 新增：确保用户弹窗能完全遮盖用户信息显示 */
     .hover-user-card, .user-card {
         z-index: 1000 !important;
@@ -581,8 +602,8 @@
             box-shadow: inset 0 -1px 0 rgba(0,0,0,0.12), 0 4px 10px rgba(15,23,42,0.12) !important;
         }
 
-        #settings-btn, #webdav-config-btn { background: #475569 !important; }
-        #blacklist-export-btn, #blacklist-import-btn, #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
+        #settings-btn { background: #475569 !important; }
+        #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
         #webdav-sync-btn, #ns-nodeimage-btn { background: var(--ns-ui-teal) !important; }
         #blacklist-view-btn, #friends-view-btn { background: var(--ns-ui-green) !important; }
         #quick-reply-btn { background: var(--ns-ui-purple) !important; }
@@ -717,12 +738,24 @@
                 grid-column: 1 / -1 !important;
             }
 
-            #collapse-btn, #theme-toggle-btn {
-                left: -42px !important;
-                width: 36px !important;
-                height: 36px !important;
-                border-radius: 9px !important;
-            }
+        #collapse-btn, #theme-toggle-btn {
+            left: -42px !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 9px !important;
+        }
+
+        #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
+            right: 0 !important;
+            bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+            top: auto !important;
+        }
+
+        #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
+            width: 38px !important;
+            height: 44px !important;
+            border-radius: 10px 0 0 10px !important;
+        }
 
             #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
             #settings-dialog, #webdav-sync-dialog, #jump-list-dialog, #ns-nodeimage-safari-dialog,
