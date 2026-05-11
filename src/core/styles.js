@@ -778,9 +778,27 @@
             box-sizing: border-box !important;
         }
 
+        .ns-collapsed-reply-btn {
+            background: #dbeafe !important;
+            border-color: rgba(59, 130, 246, .22) !important;
+            color: #1d4ed8 !important;
+        }
+
+        .ns-collapsed-home-btn {
+            background: #ccfbf1 !important;
+            border-color: rgba(20, 184, 166, .24) !important;
+            color: #0f766e !important;
+        }
+
+        .ns-collapsed-refresh-btn {
+            background: #e0f2fe !important;
+            border-color: rgba(14, 165, 233, .24) !important;
+            color: #0369a1 !important;
+        }
+
         .ns-collapsed-action-btn:hover {
-            background: #a7f3d0 !important;
-            color: #065f46 !important;
+            filter: brightness(.98) !important;
+            box-shadow: 0 7px 18px rgba(15, 23, 42, .14) !important;
         }
 
         #ns-highlight-stats-container {

@@ -530,22 +530,38 @@
             return actionBtn;
         }
 
+        function isPostDetailPage() {
+            const path = window.location.pathname || '';
+            return path.includes('/topic/') || path.includes('/article/') || /\/post-\d+/i.test(path);
+        }
+
         function renderCollapsedActions() {
             collapsedRail.innerHTML = '';
-            let shortcuts = [];
-            if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.getSelectedShortcuts === 'function') {
-                shortcuts = window.NodeSeekQuickReply.getSelectedShortcuts();
+            if (isPostDetailPage()) {
+                let shortcuts = [];
+                if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.getSelectedShortcuts === 'function') {
+                    shortcuts = window.NodeSeekQuickReply.getSelectedShortcuts();
+                }
+                shortcuts.slice(0, 8).forEach((item, index) => {
+                    const replyBtn = createCollapsedActionButton('回' + (index + 1), item.title || ('快捷回复' + (index + 1)), function () {
+                        if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.insertReplyByKey === 'function') {
+                            window.NodeSeekQuickReply.insertReplyByKey(item.key);
+                        }
+                    });
+                    replyBtn.classList.add('ns-collapsed-reply-btn');
+                    collapsedRail.appendChild(replyBtn);
+                });
+                const homeBtn = createCollapsedActionButton('首', '回到首页', function () {
+                    window.location.href = 'https://www.nodeseek.com/';
+                });
+                homeBtn.classList.add('ns-collapsed-home-btn');
+                collapsedRail.appendChild(homeBtn);
             }
-            shortcuts.slice(0, 8).forEach((item, index) => {
-                collapsedRail.appendChild(createCollapsedActionButton('回' + (index + 1), item.title || ('快捷回复' + (index + 1)), function () {
-                    if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.insertReplyByKey === 'function') {
-                        window.NodeSeekQuickReply.insertReplyByKey(item.key);
-                    }
-                }));
+            const reloadBtn = createCollapsedActionButton('刷', '刷新页面', function () {
+                window.location.reload();
             });
-            collapsedRail.appendChild(createCollapsedActionButton('首', '回到首页', function () {
-                window.location.href = 'https://www.nodeseek.com/';
-            }));
+            reloadBtn.classList.add('ns-collapsed-refresh-btn');
+            collapsedRail.appendChild(reloadBtn);
         }
 
         window.NodeSeekCollapsedActions = {

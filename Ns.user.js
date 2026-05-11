@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.11.19
+// @version      2026.05.11.20
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -1683,9 +1683,27 @@
             box-sizing: border-box !important;
         }
 
+        .ns-collapsed-reply-btn {
+            background: #dbeafe !important;
+            border-color: rgba(59, 130, 246, .22) !important;
+            color: #1d4ed8 !important;
+        }
+
+        .ns-collapsed-home-btn {
+            background: #ccfbf1 !important;
+            border-color: rgba(20, 184, 166, .24) !important;
+            color: #0f766e !important;
+        }
+
+        .ns-collapsed-refresh-btn {
+            background: #e0f2fe !important;
+            border-color: rgba(14, 165, 233, .24) !important;
+            color: #0369a1 !important;
+        }
+
         .ns-collapsed-action-btn:hover {
-            background: #a7f3d0 !important;
-            color: #065f46 !important;
+            filter: brightness(.98) !important;
+            box-shadow: 0 7px 18px rgba(15, 23, 42, .14) !important;
         }
 
         #ns-highlight-stats-container {
@@ -6078,22 +6096,38 @@
             return actionBtn;
         }
 
+        function isPostDetailPage() {
+            const path = window.location.pathname || '';
+            return path.includes('/topic/') || path.includes('/article/') || /\/post-\d+/i.test(path);
+        }
+
         function renderCollapsedActions() {
             collapsedRail.innerHTML = '';
-            let shortcuts = [];
-            if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.getSelectedShortcuts === 'function') {
-                shortcuts = window.NodeSeekQuickReply.getSelectedShortcuts();
+            if (isPostDetailPage()) {
+                let shortcuts = [];
+                if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.getSelectedShortcuts === 'function') {
+                    shortcuts = window.NodeSeekQuickReply.getSelectedShortcuts();
+                }
+                shortcuts.slice(0, 8).forEach((item, index) => {
+                    const replyBtn = createCollapsedActionButton('回' + (index + 1), item.title || ('快捷回复' + (index + 1)), function () {
+                        if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.insertReplyByKey === 'function') {
+                            window.NodeSeekQuickReply.insertReplyByKey(item.key);
+                        }
+                    });
+                    replyBtn.classList.add('ns-collapsed-reply-btn');
+                    collapsedRail.appendChild(replyBtn);
+                });
+                const homeBtn = createCollapsedActionButton('首', '回到首页', function () {
+                    window.location.href = 'https://www.nodeseek.com/';
+                });
+                homeBtn.classList.add('ns-collapsed-home-btn');
+                collapsedRail.appendChild(homeBtn);
             }
-            shortcuts.slice(0, 8).forEach((item, index) => {
-                collapsedRail.appendChild(createCollapsedActionButton('回' + (index + 1), item.title || ('快捷回复' + (index + 1)), function () {
-                    if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.insertReplyByKey === 'function') {
-                        window.NodeSeekQuickReply.insertReplyByKey(item.key);
-                    }
-                }));
+            const reloadBtn = createCollapsedActionButton('刷', '刷新页面', function () {
+                window.location.reload();
             });
-            collapsedRail.appendChild(createCollapsedActionButton('首', '回到首页', function () {
-                window.location.href = 'https://www.nodeseek.com/';
-            }));
+            reloadBtn.classList.add('ns-collapsed-refresh-btn');
+            collapsedRail.appendChild(reloadBtn);
         }
 
         window.NodeSeekCollapsedActions = {
