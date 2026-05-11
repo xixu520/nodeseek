@@ -556,6 +556,12 @@
             return match ? match[1].trim() : '';
         }
 
+        function parseMetaFieldFromScript(text, field) {
+            const pattern = new RegExp('^\\\\s*//\\\\s*@' + field + '\\\\s+(.+)$', 'm');
+            const match = String(text || '').match(pattern);
+            return match ? match[1].trim() : '';
+        }
+
         function compareVersionText(a, b) {
             const left = String(a || '').split(/[^\dA-Za-z]+/).filter(Boolean);
             const right = String(b || '').split(/[^\dA-Za-z]+/).filter(Boolean);
@@ -572,6 +578,36 @@
                 }
             }
             return 0;
+        }
+
+        function openScriptUpdatePage(url) {
+            if (!url) return false;
+            try {
+                if (typeof GM_openInTab === 'function') {
+                    GM_openInTab(url, { active: true, insert: true, setParent: true });
+                    return true;
+                }
+            } catch (e) { }
+            try {
+                const tab = window.open(url, '_blank', 'noopener,noreferrer');
+                if (tab) return true;
+            } catch (e2) { }
+            try {
+                window.location.href = url;
+                return true;
+            } catch (e3) {
+                return false;
+            }
+        }
+
+        function scheduleScriptRestart(statusEl) {
+            try {
+                sessionStorage.setItem('nodeseek_pending_script_update_restart', '1');
+            } catch (e) { }
+            setTimeout(function () {
+                if (statusEl) statusEl.textContent = '正在刷新页面以重启脚本...';
+                location.reload();
+            }, 8000);
         }
 
         async function checkScriptUpdate(statusEl) {
@@ -591,8 +627,25 @@
                 const currentVersion = meta.version || '';
                 if (compareVersionText(latestVersion, currentVersion) > 0) {
                     statusEl.textContent = '发现新版本：' + latestVersion;
-                    if (confirm('发现新版本 ' + latestVersion + '，是否打开安装页面？')) {
-                        window.open(meta.downloadURL || url, '_blank', 'noopener,noreferrer');
+                    const latestName = parseMetaFieldFromScript(response.responseText, 'name') || meta.name || 'NS综合插件';
+                    const latestDesc = parseMetaFieldFromScript(response.responseText, 'description') || '';
+                    const downloadUrl = parseMetaFieldFromScript(response.responseText, 'downloadURL') || meta.downloadURL || url;
+                    const message = [
+                        '脚本：' + latestName,
+                        '当前版本：' + (currentVersion || '未知'),
+                        '最新版本：' + latestVersion,
+                        latestDesc ? '说明：' + latestDesc : '',
+                        '',
+                        '点击确定后打开 Tampermonkey 更新页。',
+                        '完成更新后，本页面会自动刷新并重启脚本。'
+                    ].filter(Boolean).join('\n');
+                    if (confirm(message)) {
+                        statusEl.textContent = '正在打开更新页面...';
+                        if (openScriptUpdatePage(downloadUrl)) {
+                            scheduleScriptRestart(statusEl);
+                        } else {
+                            throw new Error('无法打开更新页面');
+                        }
                     }
                 } else {
                     statusEl.textContent = '已是最新版本：' + currentVersion;
