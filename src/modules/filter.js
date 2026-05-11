@@ -407,10 +407,10 @@
                 dialog.style.right = isMobileDevice() ? '10px' : '16px';
                 dialog.style.left = isMobileDevice() ? '10px' : 'auto';
                 dialog.style.zIndex = '10000';
-                dialog.style.padding = isMobileDevice() ? '14px' : '16px';
-                dialog.style.width = isMobileDevice() ? 'auto' : '460px';
+                dialog.style.padding = isMobileDevice() ? '10px' : '12px';
+                dialog.style.width = isMobileDevice() ? 'auto' : '380px';
                 dialog.style.maxWidth = 'calc(100vw - 20px)';
-                dialog.style.maxHeight = '82vh';
+                dialog.style.maxHeight = isMobileDevice() ? '74vh' : '78vh';
                 dialog.style.overflow = 'auto';
                 dialog.style.boxSizing = 'border-box';
 

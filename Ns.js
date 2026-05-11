@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.11.15
+// @version      2026.05.11.16
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -1611,10 +1611,10 @@
 
         .ns-filter-token-field {
             width: 100% !important;
-            min-height: 46px !important;
-            padding: 8px !important;
+            min-height: 36px !important;
+            padding: 5px !important;
             border: 1px solid var(--ns-ui-line) !important;
-            border-radius: 10px !important;
+            border-radius: 8px !important;
             background: var(--ns-ui-bg-solid) !important;
             box-sizing: border-box !important;
             cursor: text !important;
@@ -1639,24 +1639,24 @@
             display: flex !important;
             flex-wrap: wrap !important;
             align-items: center !important;
-            gap: 9px 8px !important;
+            gap: 7px 6px !important;
             width: 100% !important;
             min-width: 0 !important;
         }
 
         #ns-filter-dialog .ns-filter-token-input,
         .ns-filter-token-input {
-            flex: 1 1 118px !important;
-            min-width: 92px !important;
+            flex: 1 1 96px !important;
+            min-width: 76px !important;
             max-width: 100% !important;
-            height: 34px !important;
-            min-height: 34px !important;
-            padding: 5px 6px !important;
+            height: 28px !important;
+            min-height: 28px !important;
+            padding: 3px 5px !important;
             border: 0 !important;
             box-shadow: none !important;
             background: transparent !important;
             color: var(--ns-ui-text) !important;
-            font-size: 13px !important;
+            font-size: 12px !important;
             line-height: 1.4 !important;
             outline: none !important;
             box-sizing: border-box !important;
@@ -1673,17 +1673,17 @@
             display: inline-flex !important;
             align-items: center !important;
             max-width: 100% !important;
-            min-height: 34px !important;
-            padding: 7px 16px !important;
+            min-height: 28px !important;
+            padding: 5px 13px !important;
             border: 1px solid transparent !important;
-            border-radius: 10px !important;
-            font-size: 15px !important;
-            font-weight: 800 !important;
+            border-radius: 8px !important;
+            font-size: 13px !important;
+            font-weight: 750 !important;
             line-height: 1.2 !important;
             word-break: break-word !important;
             color: var(--ns-chip-fg, #fff) !important;
             background: var(--ns-chip-bg, #22c55e) !important;
-            box-shadow: 0 5px 12px rgba(15, 23, 42, .12) !important;
+            box-shadow: 0 3px 8px rgba(15, 23, 42, .1) !important;
             box-sizing: border-box !important;
         }
 
@@ -1718,21 +1718,21 @@
         #ns-filter-dialog .ns-filter-chip-close,
         .ns-filter-chip-close {
             position: absolute !important;
-            right: -6px !important;
-            top: -7px !important;
-            width: 18px !important;
-            height: 18px !important;
-            min-width: 18px !important;
-            min-height: 18px !important;
+            right: -5px !important;
+            top: -6px !important;
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            min-height: 16px !important;
             padding: 0 !important;
             border: 2px solid var(--ns-ui-bg-solid) !important;
             border-radius: 999px !important;
             background: rgba(15, 23, 42, .78) !important;
             color: #ffffff !important;
             box-shadow: 0 2px 6px rgba(15, 23, 42, .24) !important;
-            font-size: 12px !important;
+            font-size: 11px !important;
             font-weight: 700 !important;
-            line-height: 14px !important;
+            line-height: 12px !important;
             text-align: center !important;
             cursor: pointer !important;
         }
@@ -1774,57 +1774,57 @@
         #ns-filter-dialog.ns-filter-dialog {
             background: rgba(248, 255, 253, .98) !important;
             border: 1px solid rgba(20, 184, 166, .2) !important;
-            border-radius: 14px !important;
+            border-radius: 12px !important;
         }
 
         .ns-filter-dialog-header {
             display: flex !important;
             align-items: center !important;
             justify-content: space-between !important;
-            gap: 12px !important;
-            margin-bottom: 16px !important;
+            gap: 10px !important;
+            margin-bottom: 12px !important;
         }
 
         .ns-filter-dialog-header strong {
             color: #0f172a !important;
-            font-size: 18px !important;
+            font-size: 16px !important;
             line-height: 1.3 !important;
         }
 
         #ns-filter-dialog .ns-filter-dialog-close {
-            width: 34px !important;
-            height: 34px !important;
-            min-width: 34px !important;
-            min-height: 34px !important;
+            width: 28px !important;
+            height: 28px !important;
+            min-width: 28px !important;
+            min-height: 28px !important;
             padding: 0 !important;
             border: 0 !important;
-            border-radius: 9px !important;
+            border-radius: 8px !important;
             background: #e5e7eb !important;
             color: #111827 !important;
-            box-shadow: 3px 3px 0 rgba(17, 24, 39, .45) !important;
-            font-size: 24px !important;
+            box-shadow: 2px 2px 0 rgba(17, 24, 39, .35) !important;
+            font-size: 20px !important;
             font-weight: 700 !important;
             line-height: 1 !important;
         }
 
         .ns-filter-field {
             display: block !important;
-            margin-bottom: 18px !important;
+            margin-bottom: 12px !important;
         }
 
         .ns-filter-field-label {
-            margin-bottom: 8px !important;
+            margin-bottom: 6px !important;
             color: #525252 !important;
-            font-size: 16px !important;
-            font-weight: 750 !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
             line-height: 1.35 !important;
         }
 
         #ns-filter-dialog .ns-filter-color-input {
-            width: 88px !important;
-            height: 44px !important;
-            padding: 7px !important;
-            border-radius: 11px !important;
+            width: 64px !important;
+            height: 34px !important;
+            padding: 5px !important;
+            border-radius: 8px !important;
             background: #f8fffd !important;
         }
 
@@ -1832,29 +1832,29 @@
             display: flex !important;
             align-items: center !important;
             gap: 10px !important;
-            margin: 4px 0 18px !important;
+            margin: 2px 0 12px !important;
             color: #404040 !important;
-            font-size: 16px !important;
-            font-weight: 750 !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
         }
 
         .ns-filter-check-row input {
-            width: 20px !important;
-            height: 20px !important;
+            width: 16px !important;
+            height: 16px !important;
         }
 
         .ns-filter-actions {
             display: grid !important;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
-            gap: 16px !important;
+            gap: 10px !important;
         }
 
         #ns-filter-dialog .ns-filter-actions button {
             width: 100% !important;
-            min-height: 42px !important;
-            border-radius: 10px !important;
-            font-size: 15px !important;
-            font-weight: 800 !important;
+            min-height: 34px !important;
+            border-radius: 8px !important;
+            font-size: 13px !important;
+            font-weight: 750 !important;
         }
 
         #ns-filter-dialog .ns-filter-save {
@@ -1923,31 +1923,31 @@
             }
 
             .ns-filter-token-field {
-                min-height: 46px !important;
-                padding: 6px !important;
+                min-height: 36px !important;
+                padding: 5px !important;
             }
 
             .ns-filter-token-input {
-                flex-basis: 96px !important;
-                height: 34px !important;
-                min-height: 34px !important;
-                font-size: 13px !important;
+                flex-basis: 82px !important;
+                height: 28px !important;
+                min-height: 28px !important;
+                font-size: 12px !important;
             }
 
             .ns-filter-chip {
                 max-width: calc(100vw - 66px) !important;
-                min-height: 34px !important;
-                padding: 7px 16px !important;
-                font-size: 15px !important;
+                min-height: 28px !important;
+                padding: 5px 13px !important;
+                font-size: 13px !important;
             }
 
             .ns-filter-dialog-header strong {
-                font-size: 17px !important;
+                font-size: 15px !important;
             }
 
             .ns-filter-field-label,
             .ns-filter-check-row {
-                font-size: 15px !important;
+                font-size: 13px !important;
             }
 
             .ns-filter-actions {
@@ -1969,6 +1969,12 @@
                 border-radius: 12px !important;
                 overflow-y: auto !important;
                 transform: none !important;
+            }
+
+            #ns-filter-dialog.ns-filter-dialog {
+                padding: 10px !important;
+                max-height: min(74vh, 620px) !important;
+                border-radius: 10px !important;
             }
 
             #blacklist-dialog tr, #friends-dialog tr, #favorites-dialog tr, #browse-history-dialog tr {
@@ -6700,10 +6706,10 @@
                 dialog.style.right = isMobileDevice() ? '10px' : '16px';
                 dialog.style.left = isMobileDevice() ? '10px' : 'auto';
                 dialog.style.zIndex = '10000';
-                dialog.style.padding = isMobileDevice() ? '14px' : '16px';
-                dialog.style.width = isMobileDevice() ? 'auto' : '460px';
+                dialog.style.padding = isMobileDevice() ? '10px' : '12px';
+                dialog.style.width = isMobileDevice() ? 'auto' : '380px';
                 dialog.style.maxWidth = 'calc(100vw - 20px)';
-                dialog.style.maxHeight = '82vh';
+                dialog.style.maxHeight = isMobileDevice() ? '74vh' : '78vh';
                 dialog.style.overflow = 'auto';
                 dialog.style.boxSizing = 'border-box';
 
