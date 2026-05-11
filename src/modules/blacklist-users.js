@@ -30,7 +30,7 @@
             // 拉黑按钮
             const btn = document.createElement('button');
             // 为按钮添加标记类
-            btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + (blacklistedNow ? ' red' : '');
+            btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-block-btn' + (blacklistedNow ? ' red ns-is-active' : '');
             btn.textContent = blacklistedNow ? '移除黑名单' : '拉黑';
             btn.onclick = function (e) {
                 e.stopPropagation();
@@ -40,7 +40,7 @@
 
                         // 不刷新页面，直接更新按钮和用户显示
                         btn.textContent = '拉黑';
-                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS;
+                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-block-btn';
 
                         // 更新当前页面上该用户的所有显示
                         document.querySelectorAll('a.author-name').forEach(function (link) {
@@ -102,7 +102,7 @@
 
                         // 不刷新页面，直接更新按钮和用户显示
                         btn.textContent = '移除黑名单';
-                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' red';
+                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-block-btn red ns-is-active';
 
                         // 更新当前页面上该用户的所有显示
                         highlightBlacklisted(username);
@@ -127,7 +127,7 @@
             // 添加好友按钮
             const friendBtn = document.createElement('button');
             // 为按钮添加标记类
-            friendBtn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS;
+            friendBtn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-friend-btn' + (friendNow ? ' ns-is-active' : '');
             friendBtn.style.background = friendNow ? '#aaa' : '#2ea44f';
             friendBtn.style.marginLeft = '4px';
             friendBtn.textContent = friendNow ? '删除好友' : '添加好友';
@@ -138,7 +138,7 @@
                         removeFromBlacklist(username);
                         // 更新黑名单按钮状态
                         btn.textContent = '拉黑';
-                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS;
+                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-block-btn';
 
                         // 如果黑名单弹窗是打开的，立即更新弹窗内容
                         const blacklistDialog = document.getElementById('blacklist-dialog');
@@ -177,6 +177,7 @@
 
                     // 不刷新页面，直接更新按钮和用户显示
                     friendBtn.textContent = '删除好友';
+                    friendBtn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-friend-btn ns-is-active';
                     friendBtn.style.background = '#aaa';
 
                     // 更新当前页面上该用户的所有显示
@@ -193,6 +194,7 @@
 
                         // 不刷新页面，直接更新按钮和用户显示
                         friendBtn.textContent = '添加好友';
+                        friendBtn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-friend-btn';
                         friendBtn.style.background = '#2ea44f';
 
                         // 更新当前页面上该用户的所有显示
@@ -215,6 +217,7 @@
                                 userButtons.forEach(btn => {
                                     if (btn.textContent === '删除好友') {
                                         btn.textContent = '添加好友';
+                                        btn.className = 'blacklist-btn userscript-nodeseek-interaction-btn ns-user-action-btn ns-user-friend-btn';
                                         btn.style.background = '#2ea44f';
                                     }
                                 });

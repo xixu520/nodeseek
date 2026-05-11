@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.11.16
+// @version      2026.05.11.17
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -1534,6 +1534,66 @@
         #sign-log-btn { background: var(--ns-ui-brown) !important; }
         .blacklist-btn.red { background: var(--ns-ui-red) !important; }
 
+        .userscript-nodeseek-interaction-btn.ns-user-action-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: auto !important;
+            min-width: 0 !important;
+            max-width: none !important;
+            height: 20px !important;
+            min-height: 20px !important;
+            max-height: 20px !important;
+            margin-left: 4px !important;
+            padding: 0 6px !important;
+            border: 1px solid rgba(148, 163, 184, .42) !important;
+            border-radius: 5px !important;
+            background: rgba(248, 250, 252, .92) !important;
+            box-shadow: none !important;
+            color: #475569 !important;
+            font-family: var(--ns-ui-font) !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            line-height: 18px !important;
+            vertical-align: middle !important;
+            white-space: nowrap !important;
+            transform: none !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-action-btn:hover {
+            background: rgba(241, 245, 249, .96) !important;
+            border-color: rgba(100, 116, 139, .45) !important;
+            color: #334155 !important;
+            filter: none !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-block-btn {
+            background: rgba(254, 242, 242, .82) !important;
+            border-color: rgba(248, 113, 113, .28) !important;
+            color: #9f1239 !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-block-btn.ns-is-active,
+        .userscript-nodeseek-interaction-btn.ns-user-block-btn.red {
+            background: rgba(255, 228, 230, .88) !important;
+            border-color: rgba(244, 63, 94, .34) !important;
+            color: #9f1239 !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-friend-btn {
+            background: rgba(240, 253, 250, .86) !important;
+            border-color: rgba(45, 212, 191, .3) !important;
+            color: #0f766e !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-friend-btn.ns-is-active {
+            background: rgba(241, 245, 249, .9) !important;
+            border-color: rgba(148, 163, 184, .42) !important;
+            color: #64748b !important;
+        }
+
         #collapse-btn,
         #theme-toggle-btn {
             border-radius: 7px 0 0 7px !important;
@@ -2034,7 +2094,7 @@
             // 拉黑按钮
             const btn = document.createElement('button');
             // 为按钮添加标记类
-            btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + (blacklistedNow ? ' red' : '');
+            btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-block-btn' + (blacklistedNow ? ' red ns-is-active' : '');
             btn.textContent = blacklistedNow ? '移除黑名单' : '拉黑';
             btn.onclick = function (e) {
                 e.stopPropagation();
@@ -2044,7 +2104,7 @@
 
                         // 不刷新页面，直接更新按钮和用户显示
                         btn.textContent = '拉黑';
-                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS;
+                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-block-btn';
 
                         // 更新当前页面上该用户的所有显示
                         document.querySelectorAll('a.author-name').forEach(function (link) {
@@ -2106,7 +2166,7 @@
 
                         // 不刷新页面，直接更新按钮和用户显示
                         btn.textContent = '移除黑名单';
-                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' red';
+                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-block-btn red ns-is-active';
 
                         // 更新当前页面上该用户的所有显示
                         highlightBlacklisted(username);
@@ -2131,7 +2191,7 @@
             // 添加好友按钮
             const friendBtn = document.createElement('button');
             // 为按钮添加标记类
-            friendBtn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS;
+            friendBtn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-friend-btn' + (friendNow ? ' ns-is-active' : '');
             friendBtn.style.background = friendNow ? '#aaa' : '#2ea44f';
             friendBtn.style.marginLeft = '4px';
             friendBtn.textContent = friendNow ? '删除好友' : '添加好友';
@@ -2142,7 +2202,7 @@
                         removeFromBlacklist(username);
                         // 更新黑名单按钮状态
                         btn.textContent = '拉黑';
-                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS;
+                        btn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-block-btn';
 
                         // 如果黑名单弹窗是打开的，立即更新弹窗内容
                         const blacklistDialog = document.getElementById('blacklist-dialog');
@@ -2181,6 +2241,7 @@
 
                     // 不刷新页面，直接更新按钮和用户显示
                     friendBtn.textContent = '删除好友';
+                    friendBtn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-friend-btn ns-is-active';
                     friendBtn.style.background = '#aaa';
 
                     // 更新当前页面上该用户的所有显示
@@ -2197,6 +2258,7 @@
 
                         // 不刷新页面，直接更新按钮和用户显示
                         friendBtn.textContent = '添加好友';
+                        friendBtn.className = 'blacklist-btn ' + SCRIPT_BUTTON_MARKER_CLASS + ' ns-user-action-btn ns-user-friend-btn';
                         friendBtn.style.background = '#2ea44f';
 
                         // 更新当前页面上该用户的所有显示
@@ -2219,6 +2281,7 @@
                                 userButtons.forEach(btn => {
                                     if (btn.textContent === '删除好友') {
                                         btn.textContent = '添加好友';
+                                        btn.className = 'blacklist-btn userscript-nodeseek-interaction-btn ns-user-action-btn ns-user-friend-btn';
                                         btn.style.background = '#2ea44f';
                                     }
                                 });

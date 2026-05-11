@@ -629,6 +629,66 @@
         #sign-log-btn { background: var(--ns-ui-brown) !important; }
         .blacklist-btn.red { background: var(--ns-ui-red) !important; }
 
+        .userscript-nodeseek-interaction-btn.ns-user-action-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: auto !important;
+            min-width: 0 !important;
+            max-width: none !important;
+            height: 20px !important;
+            min-height: 20px !important;
+            max-height: 20px !important;
+            margin-left: 4px !important;
+            padding: 0 6px !important;
+            border: 1px solid rgba(148, 163, 184, .42) !important;
+            border-radius: 5px !important;
+            background: rgba(248, 250, 252, .92) !important;
+            box-shadow: none !important;
+            color: #475569 !important;
+            font-family: var(--ns-ui-font) !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            line-height: 18px !important;
+            vertical-align: middle !important;
+            white-space: nowrap !important;
+            transform: none !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-action-btn:hover {
+            background: rgba(241, 245, 249, .96) !important;
+            border-color: rgba(100, 116, 139, .45) !important;
+            color: #334155 !important;
+            filter: none !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-block-btn {
+            background: rgba(254, 242, 242, .82) !important;
+            border-color: rgba(248, 113, 113, .28) !important;
+            color: #9f1239 !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-block-btn.ns-is-active,
+        .userscript-nodeseek-interaction-btn.ns-user-block-btn.red {
+            background: rgba(255, 228, 230, .88) !important;
+            border-color: rgba(244, 63, 94, .34) !important;
+            color: #9f1239 !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-friend-btn {
+            background: rgba(240, 253, 250, .86) !important;
+            border-color: rgba(45, 212, 191, .3) !important;
+            color: #0f766e !important;
+        }
+
+        .userscript-nodeseek-interaction-btn.ns-user-friend-btn.ns-is-active {
+            background: rgba(241, 245, 249, .9) !important;
+            border-color: rgba(148, 163, 184, .42) !important;
+            color: #64748b !important;
+        }
+
         #collapse-btn,
         #theme-toggle-btn {
             border-radius: 7px 0 0 7px !important;
