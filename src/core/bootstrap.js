@@ -86,7 +86,6 @@
     const WEBDAV_SYNC_FIELD_OPTIONS = [
         { key: 'blacklist', label: '黑名单', dataKeys: ['blacklist'] },
         { key: 'friends', label: '好友', dataKeys: ['friends'] },
-        { key: 'favorites', label: '收藏', dataKeys: ['favorites', 'favoriteCategories'] },
         { key: 'logs', label: '操作日志', dataKeys: ['logs'] },
         { key: 'browseHistory', label: '浏览历史', dataKeys: ['browseHistory'] },
         { key: 'quickReplies', label: '快捷回复', dataKeys: ['quickReplies', 'quickReplySettings'] },

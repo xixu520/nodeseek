@@ -968,7 +968,6 @@
         processUsernames();
         highlightBlacklisted();
         highlightFriends(); // 新增调用
-        if (nsCollect() && nsCollect().addFavoriteButton) nsCollect().addFavoriteButton(); // 新增收藏按钮
         processUserAvatars(); // 新增：处理用户头像信息显示
         replaceRelativeTimeWithAbsolute(); // 新增：替换相对时间为完整时间
         markViewedTitles();

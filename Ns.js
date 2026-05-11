@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NS综合插件
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.11.6
+// @version      2026.05.11.7
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.js
@@ -110,7 +110,6 @@
     const WEBDAV_SYNC_FIELD_OPTIONS = [
         { key: 'blacklist', label: '黑名单', dataKeys: ['blacklist'] },
         { key: 'friends', label: '好友', dataKeys: ['friends'] },
-        { key: 'favorites', label: '收藏', dataKeys: ['favorites', 'favoriteCategories'] },
         { key: 'logs', label: '操作日志', dataKeys: ['logs'] },
         { key: 'browseHistory', label: '浏览历史', dataKeys: ['browseHistory'] },
         { key: 'quickReplies', label: '快捷回复', dataKeys: ['quickReplies', 'quickReplySettings'] },
@@ -1008,18 +1007,6 @@
     }
     .blacklist-btn.red { background: #d00 !important; }
     .blacklist-time { color: #d00; font-size: 10px; margin-left: 4px; }
-    /* 新增：收藏按钮样式 */
-    .favorite-btn {
-        background-color: #1890ff;
-        border: none;
-        border-radius: 3px;
-        color: white;
-        padding: 2.7px 7.2px;
-        cursor: pointer;
-        margin-right: 4.5px;
-        font-size: 10.8px;
-    }
-    .favorite-btn.favorited { background-color: #ff9800; }
     /* 新增：折叠按钮样式 */
     .collapse-btn {
         position: absolute;
@@ -1307,17 +1294,6 @@
             overflow-y: auto !important;
         }
 
-        /* 收藏弹窗特殊处理 */
-        #favorites-dialog {
-            min-width: unset !important;
-        }
-
-        /* 收藏弹窗标题优化 */
-        #favorites-dialog td:first-child a {
-            width: 100% !important;
-            display: block !important;
-        }
-
         /* 当备注为空时显示提示文本 */
         #blacklist-dialog td:nth-child(2):empty::after,
         #friends-dialog td:nth-child(2):empty::after,
@@ -1484,8 +1460,7 @@
 
         #nodeseek-plugin-buttons-container .blacklist-btn,
         #nodeseek-plugin-buttons-container > button,
-        .blacklist-btn,
-        .favorite-btn {
+        .blacklist-btn {
             min-height: 24px !important;
             padding: 4px 7px !important;
             margin-left: 0 !important;
@@ -1504,15 +1479,14 @@
         }
 
         #nodeseek-plugin-buttons-container .blacklist-btn:hover,
-        #nodeseek-plugin-buttons-container > button:hover,
-        .favorite-btn:hover {
+        #nodeseek-plugin-buttons-container > button:hover {
             filter: brightness(1.06) !important;
             transform: translateY(-1px) !important;
             box-shadow: inset 0 -1px 0 rgba(0,0,0,0.12), 0 4px 10px rgba(15,23,42,0.12) !important;
         }
 
         #settings-btn, #webdav-config-btn { background: #475569 !important; }
-        #blacklist-export-btn, #blacklist-import-btn, #favorites-view-btn, #favorite-add-btn, #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
+        #blacklist-export-btn, #blacklist-import-btn, #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
         #webdav-sync-btn, #ns-nodeimage-btn { background: var(--ns-ui-teal) !important; }
         #blacklist-view-btn, #friends-view-btn { background: var(--ns-ui-green) !important; }
         #quick-reply-btn { background: var(--ns-ui-purple) !important; }
@@ -2666,7 +2640,6 @@
         processUsernames();
         highlightBlacklisted();
         highlightFriends(); // 新增调用
-        if (nsCollect() && nsCollect().addFavoriteButton) nsCollect().addFavoriteButton(); // 新增收藏按钮
         processUserAvatars(); // 新增：处理用户头像信息显示
         replaceRelativeTimeWithAbsolute(); // 新增：替换相对时间为完整时间
         markViewedTitles();
@@ -2682,12 +2655,9 @@
     // ====== 导出/导入黑名单功能 ======
 
     function exportBlacklist() {
-        // 同时导出所有用户数据：黑名单、好友、收藏、操作日志、浏览历史、热点统计等
+        // 同时导出所有用户数据：黑名单、好友、操作日志、浏览历史、热点统计等
         const blacklist = getBlacklist();
         const friends = getFriends();
-        const favorites = (nsCollect() && nsCollect().getFavorites) ? nsCollect().getFavorites() : [];
-        // 新增：收藏分类
-        const favoriteCategories = (nsCollect() && nsCollect().getFavoriteCategories) ? nsCollect().getFavoriteCategories() : [];
         const logs = getLogs();
         const browseHistory = getBrowseHistory();
 
@@ -2852,8 +2822,6 @@
         const data = JSON.stringify({
             blacklist: blacklist,
             friends: friends,
-            favorites: favorites,
-            favoriteCategories: favoriteCategories,
             logs: logs,
             browseHistory: browseHistory,
             quickReplies: quickReplies, // 添加快捷回复数据
@@ -2886,7 +2854,7 @@
         const hasFilterData = Object.keys(filterData).length > 0;
         const hasNotesData = Object.keys(notesData).length > 0;
         const hasViewedTitles = Object.keys(viewedTitles).length > 0;
-        let exportDesc = '导出数据备份 (黑名单、好友、收藏、操作日志、浏览历史';
+        let exportDesc = '导出数据备份 (黑名单、好友、操作日志、浏览历史';
         if (hasQuickReplies) {
             exportDesc += '、快捷回复';
         }
@@ -2933,21 +2901,6 @@
                     if (json.friends) {
                         setFriends(json.friends);
                         importInfo.push("好友");
-                    }
-
-                    // 处理收藏数据
-                    if (json.favorites && Array.isArray(json.favorites)) {
-                        if (nsCollect() && nsCollect().setFavorites) nsCollect().setFavorites(json.favorites);
-                        importInfo.push("收藏");
-                    }
-
-                    // 新增：处理收藏分类数据
-                    if (json.favoriteCategories && Array.isArray(json.favoriteCategories)) {
-                        try {
-                            if (nsCollect() && nsCollect().setFavoriteCategories) nsCollect().setFavoriteCategories(json.favoriteCategories);
-                        } catch (e) {
-                            console.error('导入收藏分类失败:', e);
-                        }
                     }
 
                     // 处理日志数据
@@ -3306,7 +3259,7 @@
                         }
                     }
 
-                    if (!json.blacklist && !json.friends && !json.logs && !json.favorites && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData) {
+                    if (!json.blacklist && !json.friends && !json.logs && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData) {
                         // 旧格式，直接作为黑名单
                         setBlacklist(json);
                         importInfo.push("旧格式黑名单");
@@ -3316,7 +3269,7 @@
                     const hasChickenLegStatsLog = json.chickenLegStats && typeof json.chickenLegStats === 'object' && Object.keys(json.chickenLegStats).length > 0;
                     const hasFilterDataLog = json.filterData && typeof json.filterData === 'object' && Object.keys(json.filterData).length > 0;
                     const hasNotesDataLog = json.notesData && typeof json.notesData === 'object' && Object.keys(json.notesData).length > 0;
-                    let importDesc = '导入数据备份 (黑名单、好友、收藏、操作日志、浏览历史';
+                    let importDesc = '导入数据备份 (黑名单、好友、操作日志、浏览历史';
                     if (hasQuickRepliesLog) importDesc += '、快捷回复';
                     if (hasChickenLegStatsLog) importDesc += '、鸡腿统计';
                     if (hasFilterDataLog) importDesc += '、关键词过滤';
@@ -3364,8 +3317,6 @@
     function buildNodeSeekBackupData(fields) {
         const blacklist = getBlacklist();
         const friends = getFriends();
-        const favorites = (nsCollect() && nsCollect().getFavorites) ? nsCollect().getFavorites() : [];
-        const favoriteCategories = (nsCollect() && nsCollect().getFavoriteCategories) ? nsCollect().getFavoriteCategories() : [];
         const logs = getLogs();
         const browseHistory = getBrowseHistory();
 
@@ -3504,8 +3455,6 @@
         const data = {
             blacklist: blacklist,
             friends: friends,
-            favorites: favorites,
-            favoriteCategories: favoriteCategories,
             logs: logs,
             browseHistory: browseHistory,
             quickReplies: quickReplies,
@@ -3531,8 +3480,6 @@
         try {
             if (json.blacklist) setBlacklist(json.blacklist);
             if (json.friends) setFriends(json.friends);
-            if (json.favorites && Array.isArray(json.favorites) && nsCollect() && nsCollect().setFavorites) nsCollect().setFavorites(json.favorites);
-            if (json.favoriteCategories && Array.isArray(json.favoriteCategories) && nsCollect() && nsCollect().setFavoriteCategories) nsCollect().setFavoriteCategories(json.favoriteCategories);
             if (json.logs && Array.isArray(json.logs)) localStorage.setItem(LOGS_KEY, JSON.stringify(json.logs));
             if (json.browseHistory && Array.isArray(json.browseHistory)) setBrowseHistory(json.browseHistory);
             if (json.quickReplies && typeof json.quickReplies === 'object') {
@@ -5406,7 +5353,6 @@
             ['sync', '同步'],
             ['filter', '过滤'],
             ['reply', '回复'],
-            ['favorite', '收藏'],
             ['friend', '好友'],
             ['blacklist', '黑名单'],
             ['other', '其他']
@@ -5449,7 +5395,6 @@
             if (/WebDAV|同步/.test(text)) return 'sync';
             if (/过滤|高亮|屏蔽/.test(text)) return 'filter';
             if (/回复/.test(text)) return 'reply';
-            if (/收藏/.test(text)) return 'favorite';
             if (/好友/.test(text)) return 'friend';
             if (/黑名单|拉黑/.test(text)) return 'blacklist';
             return 'other';
@@ -5698,15 +5643,6 @@
         // viewFriendsBtn.style.width = btnWidth;
         viewFriendsBtn.style.minWidth = btnWidth;
 
-        // 新增：查看按钮
-        const viewFavoritesBtn = document.createElement('button');
-        viewFavoritesBtn.id = 'favorites-view-btn';
-        viewFavoritesBtn.className = 'blacklist-btn ns-tw-btn';
-        viewFavoritesBtn.style.background = '#1890ff'; // 蓝色背景
-        viewFavoritesBtn.textContent = '查看';
-        viewFavoritesBtn.style.width = '50%'; // 设置为50%宽度，与收藏按钮共享一行
-        viewFavoritesBtn.onclick = showFavoritesDialog;
-
         // 新增：关键词过滤按钮
         const filterBtn = document.createElement('button');
         filterBtn.id = 'keyword-filter-btn';
@@ -5722,45 +5658,6 @@
                 alert('关键词过滤功能未加载');
             }
         };
-
-        // 新增：收藏当前页面按钮
-        const addFavoriteBtn = document.createElement('button');
-        addFavoriteBtn.id = 'favorite-add-btn';
-        addFavoriteBtn.className = 'blacklist-btn ns-tw-btn';
-        addFavoriteBtn.style.background = '#1890ff'; // 蓝色背景
-        addFavoriteBtn.textContent = '收藏';
-        addFavoriteBtn.style.width = '50%'; // 设置为50%宽度，与查看按钮共享一行
-        addFavoriteBtn.onclick = function () {
-            // 获取当前页面URL
-            const url = window.location.href;
-            // 获取当前页面标题
-            const title = document.title.replace(' - NodeSeek', '').trim();
-
-            // 检查是否已收藏
-            const isFavorited = isCurrentPageFavorited();
-            if (isFavorited) {
-                // 已收藏，询问是否取消收藏
-                if (confirm('当前页面已收藏，是否取消收藏？')) {
-                    removeFromFavorites(url);
-                    // 不显示弹窗提示
-                }
-            } else {
-                // 未收藏，添加收藏 - 使用自定义弹窗选择分类
-                showAddFavoriteDialog();
-            }
-        };
-
-        // 创建一个水平排列的容器，用于收藏相关按钮
-        const favoriteContainer = document.createElement('div');
-        favoriteContainer.className = 'ns-tw-row';
-        favoriteContainer.style.display = 'flex';
-        favoriteContainer.style.flexDirection = 'row';
-        favoriteContainer.style.gap = '10px';
-        favoriteContainer.style.width = '100%';
-
-        // 将收藏和查看按钮添加到水平容器中
-        favoriteContainer.appendChild(addFavoriteBtn); // 收藏
-        favoriteContainer.appendChild(viewFavoritesBtn); // 查看收藏列表
 
         // 新增：关键词过滤按钮单独一行
         const filterBtnContainer = document.createElement('div');
@@ -5875,7 +5772,6 @@
         container.appendChild(logBtn);        // 日志
         container.appendChild(viewBtn);       // 查看黑名单
         container.appendChild(viewFriendsBtn); // 查看好友
-        container.appendChild(favoriteContainer); // 收藏相关按钮行
         container.appendChild(filterBtnContainer); // 关键词过滤按钮行
         container.appendChild(quickReplyContainer); // 快捷回复按钮行
         container.appendChild(nodeImageBtnContainer); // NS 图床
@@ -6853,35 +6749,6 @@
     // updateFriendRemark 函数已内置
     const updateFriendRemark = (username, newRemark) => window.NodeSeekFriends?.updateFriendRemark(username, newRemark);
 
-    function nsCollect() {
-        return window.NodeSeekCollect;
-    }
-    function showFavoritesDialog() {
-        ensureNsModules();
-        if (nsCollect() && typeof nsCollect().showFavoritesDialog === 'function') {
-            nsCollect().showFavoritesDialog();
-        } else {
-            console.error('收藏功能未加载');
-            alert('收藏功能未加载');
-        }
-    }
-    function showAddFavoriteDialog() {
-        ensureNsModules();
-        if (nsCollect() && typeof nsCollect().showAddFavoriteDialog === 'function') {
-            nsCollect().showAddFavoriteDialog();
-        }
-    }
-    function isCurrentPageFavorited() {
-        return nsCollect() && typeof nsCollect().isCurrentPageFavorited === 'function'
-            ? nsCollect().isCurrentPageFavorited()
-            : false;
-    }
-    function removeFromFavorites(url) {
-        return nsCollect() && typeof nsCollect().removeFromFavorites === 'function'
-            ? nsCollect().removeFromFavorites(url)
-            : false;
-    }
-
     function makeDraggable(dialog, handleSize) {
         if (!dialog || dialog.dataset.nsGlobalDragReady) return;
         dialog.dataset.nsGlobalDragReady = '1';
@@ -7115,127 +6982,6 @@
                 highlightFriends,
                 updateFriendsDialogWithNewUser: () => { },
                 removeFriendFromDialog: () => { }
-            };
-        }
-
-        if (!window.NodeSeekCollect) {
-            const favoriteKey = 'nodeseek_favorites';
-            const categoryKey = 'nodeseek_favorite_categories';
-            const clean = list => Array.isArray(list) ? list.filter(item => item && item.url).map(item => ({
-                title: item.title || item.url,
-                url: item.url,
-                remark: item.remark || '',
-                category: item.category || '默认',
-                createdAt: item.createdAt || item.timestamp || new Date().toISOString()
-            })) : [];
-            const getFavorites = () => clean(read(favoriteKey, []));
-            const setFavorites = list => write(favoriteKey, clean(list));
-            const getFavoriteCategories = () => {
-                const list = read(categoryKey, ['默认']);
-                return Array.isArray(list) && list.length ? Array.from(new Set(list.filter(Boolean))) : ['默认'];
-            };
-            const setFavoriteCategories = list => write(categoryKey, Array.isArray(list) && list.length ? Array.from(new Set(list.filter(Boolean))) : ['默认']);
-            const isCurrentPageFavorited = () => getFavorites().some(item => normalizeUrl(item.url) === normalizeUrl(location.href));
-            const removeFromFavoritesData = url => {
-                setFavorites(getFavorites().filter(item => normalizeUrl(item.url) !== normalizeUrl(url || location.href)));
-                return true;
-            };
-            const showAddFavoriteDialog = () => {
-                const dialog = box('favorite-add-dialog', '添加收藏', '360px');
-                if (!dialog) return;
-                const title = document.createElement('input');
-                title.value = document.title.replace(' - NodeSeek', '').trim() || location.href;
-                const category = document.createElement('input');
-                category.value = getFavoriteCategories()[0] || '默认';
-                const remark = document.createElement('textarea');
-                remark.placeholder = '备注';
-                const save = document.createElement('button');
-                save.textContent = '保存';
-                save.className = 'blacklist-btn';
-                [title, category, remark, save].forEach(el => {
-                    el.style.width = '100%';
-                    el.style.boxSizing = 'border-box';
-                    el.style.marginBottom = '8px';
-                    dialog.appendChild(el);
-                });
-                save.onclick = () => {
-                    const list = getFavorites().filter(item => normalizeUrl(item.url) !== normalizeUrl(location.href));
-                    const cat = category.value.trim() || '默认';
-                    list.unshift({ title: title.value.trim() || location.href, url: location.href, remark: remark.value.trim(), category: cat, createdAt: new Date().toISOString() });
-                    setFavorites(list);
-                    const cats = getFavoriteCategories();
-                    if (!cats.includes(cat)) {
-                        cats.push(cat);
-                        setFavoriteCategories(cats);
-                    }
-                    log('收藏页面：' + (title.value.trim() || location.href));
-                    dialog.remove();
-                };
-            };
-            const showFavoritesDialog = () => {
-                const dialog = box('favorites-dialog', '收藏', '720px');
-                if (!dialog) return;
-                const list = getFavorites();
-                if (!list.length) {
-                    const empty = document.createElement('div');
-                    empty.textContent = '暂无收藏';
-                    empty.style.cssText = 'text-align:center;color:#888;margin:18px 0;';
-                    dialog.appendChild(empty);
-                    return;
-                }
-                const table = document.createElement('table');
-                table.style.cssText = 'width:100%;border-collapse:collapse;';
-                table.innerHTML = '<thead><tr><th style="text-align:left;font-size:13px;">标题</th><th style="text-align:left;font-size:13px;">备注</th><th style="text-align:left;font-size:13px;">分类</th><th></th></tr></thead>';
-                const tbody = document.createElement('tbody');
-                table.appendChild(tbody);
-                list.forEach(item => {
-                    const tr = document.createElement('tr');
-                    tr.style.borderBottom = '1px solid #eee';
-                    const title = document.createElement('td');
-                    const link = document.createElement('a');
-                    link.href = item.url;
-                    link.target = '_blank';
-                    link.textContent = item.title;
-                    title.appendChild(link);
-                    const remark = document.createElement('td');
-                    remark.textContent = item.remark || '';
-                    const category = document.createElement('td');
-                    category.textContent = item.category || '默认';
-                    const op = document.createElement('td');
-                    const del = document.createElement('button');
-                    del.textContent = '移除';
-                    del.className = 'blacklist-btn red';
-                    del.onclick = () => {
-                        if (!confirm('确定要移除该收藏？')) return;
-                        removeFromFavoritesData(item.url);
-                        tr.remove();
-                    };
-                    op.appendChild(del);
-                    [title, remark, category, op].forEach(td => {
-                        td.style.padding = '6px 4px';
-                        tr.appendChild(td);
-                    });
-                    tbody.appendChild(tr);
-                });
-                dialog.appendChild(table);
-            };
-            const addFavoriteButton = () => {
-                const btn = document.getElementById('favorite-add-btn');
-                if (!btn) return;
-                const saved = isCurrentPageFavorited();
-                btn.textContent = saved ? '已收藏' : '收藏';
-                btn.style.background = saved ? '#ff9800' : '#1890ff';
-            };
-            window.NodeSeekCollect = {
-                getFavorites,
-                setFavorites,
-                getFavoriteCategories,
-                setFavoriteCategories,
-                showFavoritesDialog,
-                showAddFavoriteDialog,
-                isCurrentPageFavorited,
-                removeFromFavorites: removeFromFavoritesData,
-                addFavoriteButton
             };
         }
 

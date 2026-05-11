@@ -103,18 +103,6 @@
     }
     .blacklist-btn.red { background: #d00 !important; }
     .blacklist-time { color: #d00; font-size: 10px; margin-left: 4px; }
-    /* 新增：收藏按钮样式 */
-    .favorite-btn {
-        background-color: #1890ff;
-        border: none;
-        border-radius: 3px;
-        color: white;
-        padding: 2.7px 7.2px;
-        cursor: pointer;
-        margin-right: 4.5px;
-        font-size: 10.8px;
-    }
-    .favorite-btn.favorited { background-color: #ff9800; }
     /* 新增：折叠按钮样式 */
     .collapse-btn {
         position: absolute;
@@ -402,17 +390,6 @@
             overflow-y: auto !important;
         }
 
-        /* 收藏弹窗特殊处理 */
-        #favorites-dialog {
-            min-width: unset !important;
-        }
-
-        /* 收藏弹窗标题优化 */
-        #favorites-dialog td:first-child a {
-            width: 100% !important;
-            display: block !important;
-        }
-
         /* 当备注为空时显示提示文本 */
         #blacklist-dialog td:nth-child(2):empty::after,
         #friends-dialog td:nth-child(2):empty::after,
@@ -579,8 +556,7 @@
 
         #nodeseek-plugin-buttons-container .blacklist-btn,
         #nodeseek-plugin-buttons-container > button,
-        .blacklist-btn,
-        .favorite-btn {
+        .blacklist-btn {
             min-height: 24px !important;
             padding: 4px 7px !important;
             margin-left: 0 !important;
@@ -599,15 +575,14 @@
         }
 
         #nodeseek-plugin-buttons-container .blacklist-btn:hover,
-        #nodeseek-plugin-buttons-container > button:hover,
-        .favorite-btn:hover {
+        #nodeseek-plugin-buttons-container > button:hover {
             filter: brightness(1.06) !important;
             transform: translateY(-1px) !important;
             box-shadow: inset 0 -1px 0 rgba(0,0,0,0.12), 0 4px 10px rgba(15,23,42,0.12) !important;
         }
 
         #settings-btn, #webdav-config-btn { background: #475569 !important; }
-        #blacklist-export-btn, #blacklist-import-btn, #favorites-view-btn, #favorite-add-btn, #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
+        #blacklist-export-btn, #blacklist-import-btn, #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
         #webdav-sync-btn, #ns-nodeimage-btn { background: var(--ns-ui-teal) !important; }
         #blacklist-view-btn, #friends-view-btn { background: var(--ns-ui-green) !important; }
         #quick-reply-btn { background: var(--ns-ui-purple) !important; }

@@ -16,35 +16,6 @@
     // updateFriendRemark 函数已内置
     const updateFriendRemark = (username, newRemark) => window.NodeSeekFriends?.updateFriendRemark(username, newRemark);
 
-    function nsCollect() {
-        return window.NodeSeekCollect;
-    }
-    function showFavoritesDialog() {
-        ensureNsModules();
-        if (nsCollect() && typeof nsCollect().showFavoritesDialog === 'function') {
-            nsCollect().showFavoritesDialog();
-        } else {
-            console.error('收藏功能未加载');
-            alert('收藏功能未加载');
-        }
-    }
-    function showAddFavoriteDialog() {
-        ensureNsModules();
-        if (nsCollect() && typeof nsCollect().showAddFavoriteDialog === 'function') {
-            nsCollect().showAddFavoriteDialog();
-        }
-    }
-    function isCurrentPageFavorited() {
-        return nsCollect() && typeof nsCollect().isCurrentPageFavorited === 'function'
-            ? nsCollect().isCurrentPageFavorited()
-            : false;
-    }
-    function removeFromFavorites(url) {
-        return nsCollect() && typeof nsCollect().removeFromFavorites === 'function'
-            ? nsCollect().removeFromFavorites(url)
-            : false;
-    }
-
     function makeDraggable(dialog, handleSize) {
         if (!dialog || dialog.dataset.nsGlobalDragReady) return;
         dialog.dataset.nsGlobalDragReady = '1';

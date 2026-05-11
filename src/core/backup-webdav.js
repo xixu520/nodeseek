@@ -1,10 +1,7 @@
     function exportBlacklist() {
-        // 同时导出所有用户数据：黑名单、好友、收藏、操作日志、浏览历史、热点统计等
+        // 同时导出所有用户数据：黑名单、好友、操作日志、浏览历史、热点统计等
         const blacklist = getBlacklist();
         const friends = getFriends();
-        const favorites = (nsCollect() && nsCollect().getFavorites) ? nsCollect().getFavorites() : [];
-        // 新增：收藏分类
-        const favoriteCategories = (nsCollect() && nsCollect().getFavoriteCategories) ? nsCollect().getFavoriteCategories() : [];
         const logs = getLogs();
         const browseHistory = getBrowseHistory();
 
@@ -169,8 +166,6 @@
         const data = JSON.stringify({
             blacklist: blacklist,
             friends: friends,
-            favorites: favorites,
-            favoriteCategories: favoriteCategories,
             logs: logs,
             browseHistory: browseHistory,
             quickReplies: quickReplies, // 添加快捷回复数据
@@ -203,7 +198,7 @@
         const hasFilterData = Object.keys(filterData).length > 0;
         const hasNotesData = Object.keys(notesData).length > 0;
         const hasViewedTitles = Object.keys(viewedTitles).length > 0;
-        let exportDesc = '导出数据备份 (黑名单、好友、收藏、操作日志、浏览历史';
+        let exportDesc = '导出数据备份 (黑名单、好友、操作日志、浏览历史';
         if (hasQuickReplies) {
             exportDesc += '、快捷回复';
         }
@@ -250,21 +245,6 @@
                     if (json.friends) {
                         setFriends(json.friends);
                         importInfo.push("好友");
-                    }
-
-                    // 处理收藏数据
-                    if (json.favorites && Array.isArray(json.favorites)) {
-                        if (nsCollect() && nsCollect().setFavorites) nsCollect().setFavorites(json.favorites);
-                        importInfo.push("收藏");
-                    }
-
-                    // 新增：处理收藏分类数据
-                    if (json.favoriteCategories && Array.isArray(json.favoriteCategories)) {
-                        try {
-                            if (nsCollect() && nsCollect().setFavoriteCategories) nsCollect().setFavoriteCategories(json.favoriteCategories);
-                        } catch (e) {
-                            console.error('导入收藏分类失败:', e);
-                        }
                     }
 
                     // 处理日志数据
@@ -623,7 +603,7 @@
                         }
                     }
 
-                    if (!json.blacklist && !json.friends && !json.logs && !json.favorites && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData) {
+                    if (!json.blacklist && !json.friends && !json.logs && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData) {
                         // 旧格式，直接作为黑名单
                         setBlacklist(json);
                         importInfo.push("旧格式黑名单");
@@ -633,7 +613,7 @@
                     const hasChickenLegStatsLog = json.chickenLegStats && typeof json.chickenLegStats === 'object' && Object.keys(json.chickenLegStats).length > 0;
                     const hasFilterDataLog = json.filterData && typeof json.filterData === 'object' && Object.keys(json.filterData).length > 0;
                     const hasNotesDataLog = json.notesData && typeof json.notesData === 'object' && Object.keys(json.notesData).length > 0;
-                    let importDesc = '导入数据备份 (黑名单、好友、收藏、操作日志、浏览历史';
+                    let importDesc = '导入数据备份 (黑名单、好友、操作日志、浏览历史';
                     if (hasQuickRepliesLog) importDesc += '、快捷回复';
                     if (hasChickenLegStatsLog) importDesc += '、鸡腿统计';
                     if (hasFilterDataLog) importDesc += '、关键词过滤';
@@ -681,8 +661,6 @@
     function buildNodeSeekBackupData(fields) {
         const blacklist = getBlacklist();
         const friends = getFriends();
-        const favorites = (nsCollect() && nsCollect().getFavorites) ? nsCollect().getFavorites() : [];
-        const favoriteCategories = (nsCollect() && nsCollect().getFavoriteCategories) ? nsCollect().getFavoriteCategories() : [];
         const logs = getLogs();
         const browseHistory = getBrowseHistory();
 
@@ -821,8 +799,6 @@
         const data = {
             blacklist: blacklist,
             friends: friends,
-            favorites: favorites,
-            favoriteCategories: favoriteCategories,
             logs: logs,
             browseHistory: browseHistory,
             quickReplies: quickReplies,
@@ -848,8 +824,6 @@
         try {
             if (json.blacklist) setBlacklist(json.blacklist);
             if (json.friends) setFriends(json.friends);
-            if (json.favorites && Array.isArray(json.favorites) && nsCollect() && nsCollect().setFavorites) nsCollect().setFavorites(json.favorites);
-            if (json.favoriteCategories && Array.isArray(json.favoriteCategories) && nsCollect() && nsCollect().setFavoriteCategories) nsCollect().setFavoriteCategories(json.favoriteCategories);
             if (json.logs && Array.isArray(json.logs)) localStorage.setItem(LOGS_KEY, JSON.stringify(json.logs));
             if (json.browseHistory && Array.isArray(json.browseHistory)) setBrowseHistory(json.browseHistory);
             if (json.quickReplies && typeof json.quickReplies === 'object') {
