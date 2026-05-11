@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.11.18
+// @version      2026.05.11.19
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -1046,7 +1046,8 @@
     #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
         right: 0 !important;
         top: 40% !important;
-        align-items: center !important;
+        align-items: flex-end !important;
+        flex-direction: column !important;
     }
 
     #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
@@ -1647,6 +1648,46 @@
             box-sizing: border-box !important;
         }
 
+        .ns-collapsed-action-rail {
+            display: none !important;
+            flex-direction: column !important;
+            align-items: flex-end !important;
+            gap: 7px !important;
+            margin-bottom: 7px !important;
+            padding-right: 0 !important;
+        }
+
+        #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed .ns-collapsed-action-rail {
+            display: flex !important;
+        }
+
+        .ns-collapsed-action-btn {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            min-height: 34px !important;
+            max-width: 34px !important;
+            max-height: 34px !important;
+            padding: 0 !important;
+            border: 1px solid rgba(20, 184, 166, .24) !important;
+            border-right: none !important;
+            border-radius: 9px 0 0 9px !important;
+            background: #ccfbf1 !important;
+            color: #0f766e !important;
+            box-shadow: 0 6px 16px rgba(15, 118, 110, .13) !important;
+            font-family: var(--ns-ui-font) !important;
+            font-size: 14px !important;
+            font-weight: 800 !important;
+            line-height: 1 !important;
+            cursor: pointer !important;
+            box-sizing: border-box !important;
+        }
+
+        .ns-collapsed-action-btn:hover {
+            background: #a7f3d0 !important;
+            color: #065f46 !important;
+        }
+
         #ns-highlight-stats-container {
             margin-top: 1px !important;
             padding: 5px !important;
@@ -1692,6 +1733,13 @@
             background: var(--ns-ui-bg-solid) !important;
             color: var(--ns-ui-text) !important;
             outline: none !important;
+        }
+
+        #quick-reply-dialog input[type="checkbox"] {
+            width: 16px !important;
+            height: 16px !important;
+            min-height: 16px !important;
+            accent-color: #14b8a6 !important;
         }
 
         #logs-dialog input:focus, #blacklist-dialog input:focus, #friends-dialog input:focus,
@@ -2015,6 +2063,11 @@
                 max-width: 34px !important;
                 max-height: 34px !important;
                 border-radius: 10px 0 0 10px !important;
+            }
+
+            .ns-collapsed-action-rail {
+                gap: 6px !important;
+                margin-bottom: 6px !important;
             }
 
             .ns-filter-token-field {
@@ -6006,6 +6059,48 @@
         container.style.transition = 'all 0.3s ease'; // 添加过渡效果
         container.style.width = 'auto'; // 确保初始宽度正确
 
+        const collapsedRail = document.createElement('div');
+        collapsedRail.id = 'ns-collapsed-action-rail';
+        collapsedRail.className = 'ns-collapsed-action-rail';
+        collapsedRail.style.display = 'none';
+
+        function createCollapsedActionButton(label, title, handler) {
+            const actionBtn = document.createElement('button');
+            actionBtn.type = 'button';
+            actionBtn.className = 'ns-collapsed-action-btn';
+            actionBtn.textContent = label;
+            actionBtn.title = title;
+            actionBtn.onclick = function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                handler();
+            };
+            return actionBtn;
+        }
+
+        function renderCollapsedActions() {
+            collapsedRail.innerHTML = '';
+            let shortcuts = [];
+            if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.getSelectedShortcuts === 'function') {
+                shortcuts = window.NodeSeekQuickReply.getSelectedShortcuts();
+            }
+            shortcuts.slice(0, 8).forEach((item, index) => {
+                collapsedRail.appendChild(createCollapsedActionButton('回' + (index + 1), item.title || ('快捷回复' + (index + 1)), function () {
+                    if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.insertReplyByKey === 'function') {
+                        window.NodeSeekQuickReply.insertReplyByKey(item.key);
+                    }
+                }));
+            });
+            collapsedRail.appendChild(createCollapsedActionButton('首', '回到首页', function () {
+                window.location.href = 'https://www.nodeseek.com/';
+            }));
+        }
+
+        window.NodeSeekCollapsedActions = {
+            refresh: renderCollapsedActions
+        };
+        renderCollapsedActions();
+
         // 新增：添加折叠按钮
         const collapseBtn = document.createElement('button');
         collapseBtn.id = 'collapse-btn';
@@ -6027,6 +6122,7 @@
         };
 
         // 组装UI - 先添加折叠按钮，再添加内容容器
+        mainContainer.appendChild(collapsedRail);
         mainContainer.appendChild(collapseBtn);
         mainContainer.appendChild(themeToggleBtn);
         mainContainer.appendChild(container);
@@ -6034,6 +6130,10 @@
         function applyCollapsedLayout(collapsed) {
             mainContainer.classList.toggle('nodeseek-plugin-main-collapsed', !!collapsed);
             if (collapsed) {
+                mainContainer.style.flexDirection = 'column';
+                mainContainer.style.alignItems = 'flex-end';
+                collapsedRail.style.display = 'flex';
+                renderCollapsedActions();
                 if (window.innerWidth <= 767) {
                     mainContainer.style.top = 'auto';
                     mainContainer.style.right = '0px';
@@ -6044,6 +6144,9 @@
                     mainContainer.style.bottom = '';
                 }
             } else {
+                mainContainer.style.flexDirection = 'row';
+                mainContainer.style.alignItems = '';
+                collapsedRail.style.display = 'none';
                 mainContainer.style.top = expandedPosition.top;
                 mainContainer.style.right = expandedPosition.right;
                 mainContainer.style.bottom = expandedPosition.bottom;
@@ -7034,6 +7137,42 @@
                 localStorage.setItem('nodeseek_quick_reply_last_used', JSON.stringify(data));
             }
 
+            function getSelectedShortcutKeys() {
+                try {
+                    const value = JSON.parse(localStorage.getItem('nodeseek_quick_reply_shortcuts') || '[]');
+                    return Array.isArray(value) ? value.filter(Boolean) : [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function setSelectedShortcutKeys(keys) {
+                const seen = new Set();
+                const next = [];
+                (keys || []).forEach(key => {
+                    if (!key || seen.has(key)) return;
+                    seen.add(key);
+                    next.push(key);
+                });
+                localStorage.setItem('nodeseek_quick_reply_shortcuts', JSON.stringify(next));
+                if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                    window.NodeSeekCollapsedActions.refresh();
+                }
+            }
+
+            function getSelectedShortcuts() {
+                const replies = getQuickReplies();
+                return getSelectedShortcutKeys()
+                    .filter(key => Object.prototype.hasOwnProperty.call(replies, key))
+                    .map(key => ({ key, title: key, text: replies[key] }));
+            }
+
+            function setShortcutSelected(key, selected) {
+                const keys = getSelectedShortcutKeys().filter(item => item !== key);
+                if (selected) keys.push(key);
+                setSelectedShortcutKeys(keys);
+            }
+
             function makeReplyTitle(text, replies, oldKey) {
                 const firstLine = String(text || '').split(/\n/).map(item => item.trim()).find(Boolean) || '快捷回复';
                 const base = firstLine.length > 28 ? firstLine.slice(0, 28) + '…' : firstLine;
@@ -7102,6 +7241,14 @@
                     if (typeof ensurePluginControlPanel === 'function') ensurePluginControlPanel();
                 }, 800);
                 return inserted;
+            }
+
+            function insertReplyByKey(key) {
+                const replies = getQuickReplies();
+                if (!Object.prototype.hasOwnProperty.call(replies, key)) return false;
+                const ok = insertReply(replies[key]);
+                if (ok) setLastUsed(key);
+                return ok;
             }
 
             function bindEditorButton() {
@@ -7224,6 +7371,7 @@
                 function renderList() {
                     const replies = getQuickReplies();
                     const lastUsed = getLastUsed();
+                    const selectedKeys = new Set(getSelectedShortcutKeys());
                     const keyword = (searchInput.value || '').trim().toLowerCase();
                     const keys = Object.keys(replies)
                         .filter(key => {
@@ -7244,7 +7392,7 @@
                     keys.forEach(key => {
                         const row = document.createElement('div');
                         row.style.display = 'grid';
-                        row.style.gridTemplateColumns = '1fr auto auto auto';
+                        row.style.gridTemplateColumns = '1fr auto auto auto auto';
                         row.style.gap = '6px';
                         row.style.alignItems = 'center';
                         row.style.borderBottom = '1px solid #eee';
@@ -7257,6 +7405,17 @@
                         name.style.overflow = 'hidden';
                         name.style.textOverflow = 'ellipsis';
                         name.style.whiteSpace = 'nowrap';
+
+                        const shortcutCheck = document.createElement('input');
+                        shortcutCheck.type = 'checkbox';
+                        shortcutCheck.title = '显示到最小化按钮';
+                        shortcutCheck.checked = selectedKeys.has(key);
+                        shortcutCheck.onclick = function (event) {
+                            event.stopPropagation();
+                        };
+                        shortcutCheck.onchange = function () {
+                            setShortcutSelected(key, shortcutCheck.checked);
+                        };
 
                         const useBtn = document.createElement('button');
                         useBtn.textContent = '插入';
@@ -7282,10 +7441,12 @@
                             const next = getQuickReplies();
                             delete next[key];
                             setQuickReplies(next);
+                            setSelectedShortcutKeys(getSelectedShortcutKeys().filter(item => item !== key));
                             renderList();
                         };
 
                         row.appendChild(name);
+                        row.appendChild(shortcutCheck);
                         row.appendChild(useBtn);
                         row.appendChild(editBtn);
                         row.appendChild(delBtn);
@@ -7301,7 +7462,13 @@
                     }
                     const replies = getQuickReplies();
                     const key = makeReplyTitle(value, replies, editingKey);
-                    if (editingKey && editingKey !== key) delete replies[editingKey];
+                    if (editingKey && editingKey !== key) {
+                        delete replies[editingKey];
+                        const shortcutKeys = getSelectedShortcutKeys();
+                        if (shortcutKeys.includes(editingKey)) {
+                            setSelectedShortcutKeys(shortcutKeys.map(item => item === editingKey ? key : item));
+                        }
+                    }
                     replies[key] = value;
                     setQuickReplies(replies);
                     editingKey = '';
@@ -7327,9 +7494,16 @@
                 setQuickReplies,
                 showQuickReplyDialog,
                 insertReply,
+                insertReplyByKey,
+                getSelectedShortcuts,
                 bindEditorButton
             };
         })();
+        setTimeout(function () {
+            if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                window.NodeSeekCollapsedActions.refresh();
+            }
+        }, 0);
     }
 
     // 新增：黑名单弹窗 - 调用内置模块

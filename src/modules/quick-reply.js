@@ -47,6 +47,42 @@
                 localStorage.setItem('nodeseek_quick_reply_last_used', JSON.stringify(data));
             }
 
+            function getSelectedShortcutKeys() {
+                try {
+                    const value = JSON.parse(localStorage.getItem('nodeseek_quick_reply_shortcuts') || '[]');
+                    return Array.isArray(value) ? value.filter(Boolean) : [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function setSelectedShortcutKeys(keys) {
+                const seen = new Set();
+                const next = [];
+                (keys || []).forEach(key => {
+                    if (!key || seen.has(key)) return;
+                    seen.add(key);
+                    next.push(key);
+                });
+                localStorage.setItem('nodeseek_quick_reply_shortcuts', JSON.stringify(next));
+                if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                    window.NodeSeekCollapsedActions.refresh();
+                }
+            }
+
+            function getSelectedShortcuts() {
+                const replies = getQuickReplies();
+                return getSelectedShortcutKeys()
+                    .filter(key => Object.prototype.hasOwnProperty.call(replies, key))
+                    .map(key => ({ key, title: key, text: replies[key] }));
+            }
+
+            function setShortcutSelected(key, selected) {
+                const keys = getSelectedShortcutKeys().filter(item => item !== key);
+                if (selected) keys.push(key);
+                setSelectedShortcutKeys(keys);
+            }
+
             function makeReplyTitle(text, replies, oldKey) {
                 const firstLine = String(text || '').split(/\n/).map(item => item.trim()).find(Boolean) || '快捷回复';
                 const base = firstLine.length > 28 ? firstLine.slice(0, 28) + '…' : firstLine;
@@ -115,6 +151,14 @@
                     if (typeof ensurePluginControlPanel === 'function') ensurePluginControlPanel();
                 }, 800);
                 return inserted;
+            }
+
+            function insertReplyByKey(key) {
+                const replies = getQuickReplies();
+                if (!Object.prototype.hasOwnProperty.call(replies, key)) return false;
+                const ok = insertReply(replies[key]);
+                if (ok) setLastUsed(key);
+                return ok;
             }
 
             function bindEditorButton() {
@@ -237,6 +281,7 @@
                 function renderList() {
                     const replies = getQuickReplies();
                     const lastUsed = getLastUsed();
+                    const selectedKeys = new Set(getSelectedShortcutKeys());
                     const keyword = (searchInput.value || '').trim().toLowerCase();
                     const keys = Object.keys(replies)
                         .filter(key => {
@@ -257,7 +302,7 @@
                     keys.forEach(key => {
                         const row = document.createElement('div');
                         row.style.display = 'grid';
-                        row.style.gridTemplateColumns = '1fr auto auto auto';
+                        row.style.gridTemplateColumns = '1fr auto auto auto auto';
                         row.style.gap = '6px';
                         row.style.alignItems = 'center';
                         row.style.borderBottom = '1px solid #eee';
@@ -270,6 +315,17 @@
                         name.style.overflow = 'hidden';
                         name.style.textOverflow = 'ellipsis';
                         name.style.whiteSpace = 'nowrap';
+
+                        const shortcutCheck = document.createElement('input');
+                        shortcutCheck.type = 'checkbox';
+                        shortcutCheck.title = '显示到最小化按钮';
+                        shortcutCheck.checked = selectedKeys.has(key);
+                        shortcutCheck.onclick = function (event) {
+                            event.stopPropagation();
+                        };
+                        shortcutCheck.onchange = function () {
+                            setShortcutSelected(key, shortcutCheck.checked);
+                        };
 
                         const useBtn = document.createElement('button');
                         useBtn.textContent = '插入';
@@ -295,10 +351,12 @@
                             const next = getQuickReplies();
                             delete next[key];
                             setQuickReplies(next);
+                            setSelectedShortcutKeys(getSelectedShortcutKeys().filter(item => item !== key));
                             renderList();
                         };
 
                         row.appendChild(name);
+                        row.appendChild(shortcutCheck);
                         row.appendChild(useBtn);
                         row.appendChild(editBtn);
                         row.appendChild(delBtn);
@@ -314,7 +372,13 @@
                     }
                     const replies = getQuickReplies();
                     const key = makeReplyTitle(value, replies, editingKey);
-                    if (editingKey && editingKey !== key) delete replies[editingKey];
+                    if (editingKey && editingKey !== key) {
+                        delete replies[editingKey];
+                        const shortcutKeys = getSelectedShortcutKeys();
+                        if (shortcutKeys.includes(editingKey)) {
+                            setSelectedShortcutKeys(shortcutKeys.map(item => item === editingKey ? key : item));
+                        }
+                    }
                     replies[key] = value;
                     setQuickReplies(replies);
                     editingKey = '';
@@ -340,7 +404,14 @@
                 setQuickReplies,
                 showQuickReplyDialog,
                 insertReply,
+                insertReplyByKey,
+                getSelectedShortcuts,
                 bindEditorButton
             };
         })();
+        setTimeout(function () {
+            if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                window.NodeSeekCollapsedActions.refresh();
+            }
+        }, 0);
     }

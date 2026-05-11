@@ -511,6 +511,48 @@
         container.style.transition = 'all 0.3s ease'; // 添加过渡效果
         container.style.width = 'auto'; // 确保初始宽度正确
 
+        const collapsedRail = document.createElement('div');
+        collapsedRail.id = 'ns-collapsed-action-rail';
+        collapsedRail.className = 'ns-collapsed-action-rail';
+        collapsedRail.style.display = 'none';
+
+        function createCollapsedActionButton(label, title, handler) {
+            const actionBtn = document.createElement('button');
+            actionBtn.type = 'button';
+            actionBtn.className = 'ns-collapsed-action-btn';
+            actionBtn.textContent = label;
+            actionBtn.title = title;
+            actionBtn.onclick = function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                handler();
+            };
+            return actionBtn;
+        }
+
+        function renderCollapsedActions() {
+            collapsedRail.innerHTML = '';
+            let shortcuts = [];
+            if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.getSelectedShortcuts === 'function') {
+                shortcuts = window.NodeSeekQuickReply.getSelectedShortcuts();
+            }
+            shortcuts.slice(0, 8).forEach((item, index) => {
+                collapsedRail.appendChild(createCollapsedActionButton('回' + (index + 1), item.title || ('快捷回复' + (index + 1)), function () {
+                    if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.insertReplyByKey === 'function') {
+                        window.NodeSeekQuickReply.insertReplyByKey(item.key);
+                    }
+                }));
+            });
+            collapsedRail.appendChild(createCollapsedActionButton('首', '回到首页', function () {
+                window.location.href = 'https://www.nodeseek.com/';
+            }));
+        }
+
+        window.NodeSeekCollapsedActions = {
+            refresh: renderCollapsedActions
+        };
+        renderCollapsedActions();
+
         // 新增：添加折叠按钮
         const collapseBtn = document.createElement('button');
         collapseBtn.id = 'collapse-btn';
@@ -532,6 +574,7 @@
         };
 
         // 组装UI - 先添加折叠按钮，再添加内容容器
+        mainContainer.appendChild(collapsedRail);
         mainContainer.appendChild(collapseBtn);
         mainContainer.appendChild(themeToggleBtn);
         mainContainer.appendChild(container);
@@ -539,6 +582,10 @@
         function applyCollapsedLayout(collapsed) {
             mainContainer.classList.toggle('nodeseek-plugin-main-collapsed', !!collapsed);
             if (collapsed) {
+                mainContainer.style.flexDirection = 'column';
+                mainContainer.style.alignItems = 'flex-end';
+                collapsedRail.style.display = 'flex';
+                renderCollapsedActions();
                 if (window.innerWidth <= 767) {
                     mainContainer.style.top = 'auto';
                     mainContainer.style.right = '0px';
@@ -549,6 +596,9 @@
                     mainContainer.style.bottom = '';
                 }
             } else {
+                mainContainer.style.flexDirection = 'row';
+                mainContainer.style.alignItems = '';
+                collapsedRail.style.display = 'none';
                 mainContainer.style.top = expandedPosition.top;
                 mainContainer.style.right = expandedPosition.right;
                 mainContainer.style.bottom = expandedPosition.bottom;

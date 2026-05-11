@@ -141,7 +141,8 @@
     #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
         right: 0 !important;
         top: 40% !important;
-        align-items: center !important;
+        align-items: flex-end !important;
+        flex-direction: column !important;
     }
 
     #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
@@ -742,6 +743,46 @@
             box-sizing: border-box !important;
         }
 
+        .ns-collapsed-action-rail {
+            display: none !important;
+            flex-direction: column !important;
+            align-items: flex-end !important;
+            gap: 7px !important;
+            margin-bottom: 7px !important;
+            padding-right: 0 !important;
+        }
+
+        #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed .ns-collapsed-action-rail {
+            display: flex !important;
+        }
+
+        .ns-collapsed-action-btn {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            min-height: 34px !important;
+            max-width: 34px !important;
+            max-height: 34px !important;
+            padding: 0 !important;
+            border: 1px solid rgba(20, 184, 166, .24) !important;
+            border-right: none !important;
+            border-radius: 9px 0 0 9px !important;
+            background: #ccfbf1 !important;
+            color: #0f766e !important;
+            box-shadow: 0 6px 16px rgba(15, 118, 110, .13) !important;
+            font-family: var(--ns-ui-font) !important;
+            font-size: 14px !important;
+            font-weight: 800 !important;
+            line-height: 1 !important;
+            cursor: pointer !important;
+            box-sizing: border-box !important;
+        }
+
+        .ns-collapsed-action-btn:hover {
+            background: #a7f3d0 !important;
+            color: #065f46 !important;
+        }
+
         #ns-highlight-stats-container {
             margin-top: 1px !important;
             padding: 5px !important;
@@ -787,6 +828,13 @@
             background: var(--ns-ui-bg-solid) !important;
             color: var(--ns-ui-text) !important;
             outline: none !important;
+        }
+
+        #quick-reply-dialog input[type="checkbox"] {
+            width: 16px !important;
+            height: 16px !important;
+            min-height: 16px !important;
+            accent-color: #14b8a6 !important;
         }
 
         #logs-dialog input:focus, #blacklist-dialog input:focus, #friends-dialog input:focus,
@@ -1110,6 +1158,11 @@
                 max-width: 34px !important;
                 max-height: 34px !important;
                 border-radius: 10px 0 0 10px !important;
+            }
+
+            .ns-collapsed-action-rail {
+                gap: 6px !important;
+                margin-bottom: 6px !important;
             }
 
             .ns-filter-token-field {
