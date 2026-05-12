@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.11.23
+// @version      2026.05.12.1
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -1861,6 +1861,41 @@
             box-shadow: 0 7px 18px rgba(15, 23, 42, .14) !important;
         }
 
+        .ns-collapsed-highlight-count {
+            display: none;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 34px !important;
+            min-width: 34px !important;
+            height: 42px !important;
+            min-height: 42px !important;
+            margin-top: 7px !important;
+            padding: 0 !important;
+            border: 1px solid rgba(245, 158, 11, .24) !important;
+            border-right: none !important;
+            border-radius: 9px 0 0 9px !important;
+            background: #fef3c7 !important;
+            color: #92400e !important;
+            box-shadow: 0 6px 16px rgba(146, 64, 14, .11) !important;
+            font-family: var(--ns-ui-font) !important;
+            cursor: pointer !important;
+            box-sizing: border-box !important;
+        }
+
+        .ns-collapsed-highlight-count span {
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            line-height: 1 !important;
+        }
+
+        .ns-collapsed-highlight-count strong {
+            margin-top: 3px !important;
+            font-size: 14px !important;
+            font-weight: 850 !important;
+            line-height: 1 !important;
+        }
+
         #ns-highlight-stats-container {
             margin-top: 1px !important;
             padding: 5px !important;
@@ -1868,6 +1903,33 @@
             background: var(--ns-ui-soft) !important;
             border: 1px solid var(--ns-ui-line) !important;
             color: var(--ns-ui-muted) !important;
+        }
+
+        .ns-filter-stat-tags {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 5px !important;
+        }
+
+        .ns-filter-stat-tag {
+            width: 100% !important;
+            min-height: 26px !important;
+            padding: 4px 5px !important;
+            border: 1px solid var(--ns-ui-line) !important;
+            border-radius: 7px !important;
+            background: var(--ns-ui-bg-solid) !important;
+            color: var(--ns-ui-muted) !important;
+            font-family: var(--ns-ui-font) !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            box-shadow: none !important;
+        }
+
+        .ns-filter-stat-tag-active {
+            background: #ccfbf1 !important;
+            border-color: rgba(20, 184, 166, .36) !important;
+            color: #0f766e !important;
         }
 
         #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
@@ -6315,6 +6377,11 @@
             return path.includes('/topic/') || path.includes('/article/') || /\/post-\d+/i.test(path);
         }
 
+        function isHomePage() {
+            const path = window.location.pathname || '/';
+            return path === '/' || path === '/board';
+        }
+
         function renderCollapsedActions() {
             collapsedRail.innerHTML = '';
             if (isPostDetailPage()) {
@@ -6342,12 +6409,15 @@
             });
             reloadBtn.classList.add('ns-collapsed-refresh-btn');
             collapsedRail.appendChild(reloadBtn);
+            updateCollapsedHighlightCount();
         }
 
         window.NodeSeekCollapsedActions = {
-            refresh: renderCollapsedActions
+            refresh: function () {
+                renderCollapsedActions();
+                updateCollapsedHighlightCount();
+            }
         };
-        renderCollapsedActions();
 
         // 新增：添加折叠按钮
         const collapseBtn = document.createElement('button');
@@ -6355,6 +6425,31 @@
         collapseBtn.className = 'collapse-btn';
         collapseBtn.innerHTML = '&lt;'; // 默认显示 <
         collapseBtn.title = '点击折叠/展开';
+
+        const collapsedHighlightBtn = document.createElement('button');
+        collapsedHighlightBtn.id = 'ns-collapsed-highlight-count';
+        collapsedHighlightBtn.className = 'ns-collapsed-highlight-count';
+        collapsedHighlightBtn.type = 'button';
+        collapsedHighlightBtn.title = '高亮数目';
+        collapsedHighlightBtn.style.display = 'none';
+        collapsedHighlightBtn.onclick = function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (window.NodeSeekFilter && typeof window.NodeSeekFilter.showOnlyHighlighted === 'function') {
+                window.NodeSeekFilter.showOnlyHighlighted();
+            }
+        };
+
+        function updateCollapsedHighlightCount() {
+            if (!collapsedHighlightBtn) return;
+            const stats = (window.NodeSeekFilter && typeof window.NodeSeekFilter.getStats === 'function')
+                ? window.NodeSeekFilter.getStats()
+                : { highlighted: 0 };
+            const count = stats && Number.isFinite(Number(stats.highlighted)) ? Number(stats.highlighted) : 0;
+            collapsedHighlightBtn.innerHTML = '<span>高亮</span><strong>' + count + '</strong>';
+            collapsedHighlightBtn.title = '高亮数目：' + count + '，点击只看高亮帖子';
+        }
+        renderCollapsedActions();
 
         const themeToggleBtn = document.createElement('button');
         themeToggleBtn.id = 'theme-toggle-btn';
@@ -6372,6 +6467,7 @@
         // 组装UI - 先添加折叠按钮，再添加内容容器
         mainContainer.appendChild(collapsedRail);
         mainContainer.appendChild(collapseBtn);
+        mainContainer.appendChild(collapsedHighlightBtn);
         mainContainer.appendChild(themeToggleBtn);
         mainContainer.appendChild(container);
 
@@ -6382,6 +6478,8 @@
                 mainContainer.style.alignItems = 'flex-end';
                 collapsedRail.style.display = 'flex';
                 renderCollapsedActions();
+                collapsedHighlightBtn.style.display = isHomePage() ? 'inline-flex' : 'none';
+                updateCollapsedHighlightCount();
                 if (window.innerWidth <= 767) {
                     mainContainer.style.top = 'auto';
                     mainContainer.style.right = '0px';
@@ -6395,6 +6493,7 @@
                 mainContainer.style.flexDirection = 'row';
                 mainContainer.style.alignItems = '';
                 collapsedRail.style.display = 'none';
+                collapsedHighlightBtn.style.display = 'none';
                 mainContainer.style.top = expandedPosition.top;
                 mainContainer.style.right = expandedPosition.right;
                 mainContainer.style.bottom = expandedPosition.bottom;
@@ -6816,6 +6915,7 @@
             let applyTimer = null;
             let lastStats = { hidden: 0, highlighted: 0 };
             let profileFilterSignature = '';
+            let selectedFilterMode = '';
 
             const TOKEN_COLORS = ['#22c55e', '#14b8a6', '#38bdf8', '#8b5cf6', '#f97316', '#ec4899', '#64748b'];
             const PLUGIN_SELECTOR = '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #favorites-dialog, #friends-dialog';
@@ -7042,6 +7142,7 @@
             }
 
             function resetFilters() {
+                clearSelectedFilterView();
                 document.querySelectorAll('[data-ns-filter-hit]').forEach(node => {
                     node.style.display = node.getAttribute('data-ns-filter-old-display') || '';
                     node.removeAttribute('data-ns-filter-hit');
@@ -7050,6 +7151,66 @@
                     node.classList.remove('ns-filter-highlighted');
                     node.style.removeProperty('--ns-filter-highlight-color');
                 });
+            }
+
+            function getHighlightedContainers() {
+                const result = [];
+                const seen = new Set();
+                document.querySelectorAll('.ns-filter-highlighted').forEach(node => {
+                    const container = getContainer(node);
+                    if (!container || seen.has(container) || isPluginNode(container)) return;
+                    seen.add(container);
+                    result.push(container);
+                });
+                return result;
+            }
+
+            function clearSelectedFilterView() {
+                document.querySelectorAll('[data-ns-filter-focus-hidden]').forEach(node => {
+                    node.style.display = node.getAttribute('data-ns-filter-focus-display') || '';
+                    node.removeAttribute('data-ns-filter-focus-hidden');
+                    node.removeAttribute('data-ns-filter-focus-display');
+                });
+                document.querySelectorAll('[data-ns-filter-hit="hidden"]').forEach(node => {
+                    node.style.display = 'none';
+                });
+            }
+
+            function showNodeForSelectedView(node) {
+                node.style.display = node.getAttribute('data-ns-filter-old-display') || '';
+                node.removeAttribute('data-ns-filter-focus-hidden');
+                node.removeAttribute('data-ns-filter-focus-display');
+            }
+
+            function hideNodeForSelectedView(node) {
+                if (!node.hasAttribute('data-ns-filter-focus-hidden')) {
+                    node.setAttribute('data-ns-filter-focus-display', node.style.display || '');
+                }
+                node.style.display = 'none';
+                node.setAttribute('data-ns-filter-focus-hidden', 'true');
+            }
+
+            function applySelectedFilterView(mode) {
+                clearSelectedFilterView();
+                selectedFilterMode = mode || '';
+                if (!selectedFilterMode) {
+                    renderHighlightStatsToContainer();
+                    return;
+                }
+
+                const selected = new Set(selectedFilterMode === 'hidden'
+                    ? Array.from(document.querySelectorAll('[data-ns-filter-hit="hidden"]'))
+                    : getHighlightedContainers());
+
+                getContentCandidates().forEach(node => {
+                    if (selected.has(node)) showNodeForSelectedView(node);
+                    else hideNodeForSelectedView(node);
+                });
+                renderHighlightStatsToContainer();
+            }
+
+            function toggleSelectedFilterView(mode) {
+                applySelectedFilterView(selectedFilterMode === mode ? '' : mode);
             }
 
             function applyFilters() {
@@ -7095,6 +7256,7 @@
                             node.style.display = 'none';
                             node.setAttribute('data-ns-filter-hit', 'hidden');
                             lastStats.hidden += 1;
+                            if (selectedFilterMode) applySelectedFilterView(selectedFilterMode);
                             renderHighlightStatsToContainer();
                         }).catch(function () { });
                     });
@@ -7114,6 +7276,7 @@
                 });
 
                 lastStats = { hidden, highlighted };
+                if (selectedFilterMode) applySelectedFilterView(selectedFilterMode);
                 renderHighlightStatsToContainer();
             }
 
@@ -7134,7 +7297,12 @@
 
             function renderHighlightStatsToContainer() {
                 const box = document.getElementById('ns-highlight-stats-container');
-                if (!box) return;
+                if (!box) {
+                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                        window.NodeSeekCollapsedActions.refresh();
+                    }
+                    return;
+                }
                 const detailMode = box.getAttribute('data-ns-filter-detail') === 'true';
                 box.innerHTML = '';
                 box.style.cursor = 'pointer';
@@ -7152,13 +7320,27 @@
                 };
 
                 if (!detailMode) {
-                    const text = document.createElement('div');
-                    text.style.textAlign = 'center';
-                    text.style.padding = '4px';
-                    text.style.fontSize = '11px';
-                    text.style.color = '#666';
-                    text.textContent = '隐藏 ' + lastStats.hidden + '，高亮 ' + lastStats.highlighted;
-                    box.appendChild(text);
+                    const tags = document.createElement('div');
+                    tags.className = 'ns-filter-stat-tags';
+                    [
+                        ['hidden', '隐藏 ' + lastStats.hidden],
+                        ['highlighted', '高亮 ' + lastStats.highlighted]
+                    ].forEach(item => {
+                        const tag = document.createElement('button');
+                        tag.type = 'button';
+                        tag.className = 'ns-filter-stat-tag' + (selectedFilterMode === item[0] ? ' ns-filter-stat-tag-active' : '');
+                        tag.textContent = item[1];
+                        tag.onclick = function (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toggleSelectedFilterView(item[0]);
+                        };
+                        tags.appendChild(tag);
+                    });
+                    box.appendChild(tags);
+                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                        window.NodeSeekCollapsedActions.refresh();
+                    }
                     return;
                 }
 
@@ -7182,6 +7364,9 @@
                 actions.style.gap = '6px';
                 [
                     ['设置关键词', createFilterUI],
+                    ['只看隐藏', function () { applySelectedFilterView('hidden'); }],
+                    ['只看高亮', function () { applySelectedFilterView('highlighted'); }],
+                    ['显示全部', function () { applySelectedFilterView(''); }],
                     ['重新扫描', applyFilters],
                     ['返回主页', function () { box.click(); }]
                 ].forEach(item => {
@@ -7497,7 +7682,11 @@
                 createFilterUI,
                 initFilterObserver,
                 renderHighlightStatsToContainer,
-                applyFilters
+                applyFilters,
+                getStats: function () { return { hidden: lastStats.hidden, highlighted: lastStats.highlighted, mode: selectedFilterMode }; },
+                showOnlyHighlighted: function () { applySelectedFilterView('highlighted'); },
+                showOnlyHidden: function () { applySelectedFilterView('hidden'); },
+                showAllFiltered: function () { applySelectedFilterView(''); }
             };
         })();
     }
@@ -8251,6 +8440,11 @@
                 logFn(message || '自动签到：已执行');
             }
 
+            function cacheTodaySigned(message) {
+                localStorage.setItem(SIGN_LAST_SUCCESS_DATE_KEY, signDateKey());
+                setSignResult(message || '自动签到：今日已签到');
+            }
+
             async function readBoardAttendance() {
                 const response = await fetch('/api/attendance/board?page=1', {
                     method: 'GET',
@@ -8272,7 +8466,7 @@
                 if (!isSignEnabled()) return false;
                 if (running) return false;
                 const today = signDateKey();
-                if (!force && localStorage.getItem(SIGN_LAST_SUCCESS_DATE_KEY) === today) return false;
+                if (localStorage.getItem(SIGN_LAST_SUCCESS_DATE_KEY) === today) return true;
                 const lastAttempt = parseInt(localStorage.getItem(SIGN_LAST_ATTEMPT_AT_KEY) || '0', 10) || 0;
                 if (!force && lastAttempt && Date.now() - lastAttempt < SIGN_ATTEMPT_INTERVAL) return false;
 
@@ -8281,8 +8475,7 @@
                 try {
                     const board = await readBoardAttendance();
                     if (board && board.record) {
-                        localStorage.setItem(SIGN_LAST_SUCCESS_DATE_KEY, today);
-                        setSignResult('自动签到：今日已签到');
+                        cacheTodaySigned('自动签到：今日已签到');
                         return true;
                     }
                     if (!board || !Array.isArray(board.list)) {
@@ -8291,8 +8484,11 @@
                     }
                     const result = await postBoardAttendance();
                     if (result && result.success) {
-                        localStorage.setItem(SIGN_LAST_SUCCESS_DATE_KEY, today);
-                        setSignResult('自动签到：' + (result.message || '签到成功'));
+                        cacheTodaySigned('自动签到：' + (result.message || '签到成功'));
+                        return true;
+                    }
+                    if (result && /已签到|今日已/.test(String(result.message || ''))) {
+                        cacheTodaySigned('自动签到：' + (result.message || '今日已签到'));
                         return true;
                     }
                     setSignResult('自动签到：' + ((result && result.message) || '签到失败'));

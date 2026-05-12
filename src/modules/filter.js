@@ -4,6 +4,7 @@
             let applyTimer = null;
             let lastStats = { hidden: 0, highlighted: 0 };
             let profileFilterSignature = '';
+            let selectedFilterMode = '';
 
             const TOKEN_COLORS = ['#22c55e', '#14b8a6', '#38bdf8', '#8b5cf6', '#f97316', '#ec4899', '#64748b'];
             const PLUGIN_SELECTOR = '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #favorites-dialog, #friends-dialog';
@@ -230,6 +231,7 @@
             }
 
             function resetFilters() {
+                clearSelectedFilterView();
                 document.querySelectorAll('[data-ns-filter-hit]').forEach(node => {
                     node.style.display = node.getAttribute('data-ns-filter-old-display') || '';
                     node.removeAttribute('data-ns-filter-hit');
@@ -238,6 +240,66 @@
                     node.classList.remove('ns-filter-highlighted');
                     node.style.removeProperty('--ns-filter-highlight-color');
                 });
+            }
+
+            function getHighlightedContainers() {
+                const result = [];
+                const seen = new Set();
+                document.querySelectorAll('.ns-filter-highlighted').forEach(node => {
+                    const container = getContainer(node);
+                    if (!container || seen.has(container) || isPluginNode(container)) return;
+                    seen.add(container);
+                    result.push(container);
+                });
+                return result;
+            }
+
+            function clearSelectedFilterView() {
+                document.querySelectorAll('[data-ns-filter-focus-hidden]').forEach(node => {
+                    node.style.display = node.getAttribute('data-ns-filter-focus-display') || '';
+                    node.removeAttribute('data-ns-filter-focus-hidden');
+                    node.removeAttribute('data-ns-filter-focus-display');
+                });
+                document.querySelectorAll('[data-ns-filter-hit="hidden"]').forEach(node => {
+                    node.style.display = 'none';
+                });
+            }
+
+            function showNodeForSelectedView(node) {
+                node.style.display = node.getAttribute('data-ns-filter-old-display') || '';
+                node.removeAttribute('data-ns-filter-focus-hidden');
+                node.removeAttribute('data-ns-filter-focus-display');
+            }
+
+            function hideNodeForSelectedView(node) {
+                if (!node.hasAttribute('data-ns-filter-focus-hidden')) {
+                    node.setAttribute('data-ns-filter-focus-display', node.style.display || '');
+                }
+                node.style.display = 'none';
+                node.setAttribute('data-ns-filter-focus-hidden', 'true');
+            }
+
+            function applySelectedFilterView(mode) {
+                clearSelectedFilterView();
+                selectedFilterMode = mode || '';
+                if (!selectedFilterMode) {
+                    renderHighlightStatsToContainer();
+                    return;
+                }
+
+                const selected = new Set(selectedFilterMode === 'hidden'
+                    ? Array.from(document.querySelectorAll('[data-ns-filter-hit="hidden"]'))
+                    : getHighlightedContainers());
+
+                getContentCandidates().forEach(node => {
+                    if (selected.has(node)) showNodeForSelectedView(node);
+                    else hideNodeForSelectedView(node);
+                });
+                renderHighlightStatsToContainer();
+            }
+
+            function toggleSelectedFilterView(mode) {
+                applySelectedFilterView(selectedFilterMode === mode ? '' : mode);
             }
 
             function applyFilters() {
@@ -283,6 +345,7 @@
                             node.style.display = 'none';
                             node.setAttribute('data-ns-filter-hit', 'hidden');
                             lastStats.hidden += 1;
+                            if (selectedFilterMode) applySelectedFilterView(selectedFilterMode);
                             renderHighlightStatsToContainer();
                         }).catch(function () { });
                     });
@@ -302,6 +365,7 @@
                 });
 
                 lastStats = { hidden, highlighted };
+                if (selectedFilterMode) applySelectedFilterView(selectedFilterMode);
                 renderHighlightStatsToContainer();
             }
 
@@ -322,7 +386,12 @@
 
             function renderHighlightStatsToContainer() {
                 const box = document.getElementById('ns-highlight-stats-container');
-                if (!box) return;
+                if (!box) {
+                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                        window.NodeSeekCollapsedActions.refresh();
+                    }
+                    return;
+                }
                 const detailMode = box.getAttribute('data-ns-filter-detail') === 'true';
                 box.innerHTML = '';
                 box.style.cursor = 'pointer';
@@ -340,13 +409,27 @@
                 };
 
                 if (!detailMode) {
-                    const text = document.createElement('div');
-                    text.style.textAlign = 'center';
-                    text.style.padding = '4px';
-                    text.style.fontSize = '11px';
-                    text.style.color = '#666';
-                    text.textContent = '隐藏 ' + lastStats.hidden + '，高亮 ' + lastStats.highlighted;
-                    box.appendChild(text);
+                    const tags = document.createElement('div');
+                    tags.className = 'ns-filter-stat-tags';
+                    [
+                        ['hidden', '隐藏 ' + lastStats.hidden],
+                        ['highlighted', '高亮 ' + lastStats.highlighted]
+                    ].forEach(item => {
+                        const tag = document.createElement('button');
+                        tag.type = 'button';
+                        tag.className = 'ns-filter-stat-tag' + (selectedFilterMode === item[0] ? ' ns-filter-stat-tag-active' : '');
+                        tag.textContent = item[1];
+                        tag.onclick = function (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toggleSelectedFilterView(item[0]);
+                        };
+                        tags.appendChild(tag);
+                    });
+                    box.appendChild(tags);
+                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                        window.NodeSeekCollapsedActions.refresh();
+                    }
                     return;
                 }
 
@@ -370,6 +453,9 @@
                 actions.style.gap = '6px';
                 [
                     ['设置关键词', createFilterUI],
+                    ['只看隐藏', function () { applySelectedFilterView('hidden'); }],
+                    ['只看高亮', function () { applySelectedFilterView('highlighted'); }],
+                    ['显示全部', function () { applySelectedFilterView(''); }],
                     ['重新扫描', applyFilters],
                     ['返回主页', function () { box.click(); }]
                 ].forEach(item => {
@@ -685,7 +771,11 @@
                 createFilterUI,
                 initFilterObserver,
                 renderHighlightStatsToContainer,
-                applyFilters
+                applyFilters,
+                getStats: function () { return { hidden: lastStats.hidden, highlighted: lastStats.highlighted, mode: selectedFilterMode }; },
+                showOnlyHighlighted: function () { applySelectedFilterView('highlighted'); },
+                showOnlyHidden: function () { applySelectedFilterView('hidden'); },
+                showAllFiltered: function () { applySelectedFilterView(''); }
             };
         })();
     }

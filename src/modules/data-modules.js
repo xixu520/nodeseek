@@ -280,6 +280,11 @@
                 logFn(message || '自动签到：已执行');
             }
 
+            function cacheTodaySigned(message) {
+                localStorage.setItem(SIGN_LAST_SUCCESS_DATE_KEY, signDateKey());
+                setSignResult(message || '自动签到：今日已签到');
+            }
+
             async function readBoardAttendance() {
                 const response = await fetch('/api/attendance/board?page=1', {
                     method: 'GET',
@@ -301,7 +306,7 @@
                 if (!isSignEnabled()) return false;
                 if (running) return false;
                 const today = signDateKey();
-                if (!force && localStorage.getItem(SIGN_LAST_SUCCESS_DATE_KEY) === today) return false;
+                if (localStorage.getItem(SIGN_LAST_SUCCESS_DATE_KEY) === today) return true;
                 const lastAttempt = parseInt(localStorage.getItem(SIGN_LAST_ATTEMPT_AT_KEY) || '0', 10) || 0;
                 if (!force && lastAttempt && Date.now() - lastAttempt < SIGN_ATTEMPT_INTERVAL) return false;
 
@@ -310,8 +315,7 @@
                 try {
                     const board = await readBoardAttendance();
                     if (board && board.record) {
-                        localStorage.setItem(SIGN_LAST_SUCCESS_DATE_KEY, today);
-                        setSignResult('自动签到：今日已签到');
+                        cacheTodaySigned('自动签到：今日已签到');
                         return true;
                     }
                     if (!board || !Array.isArray(board.list)) {
@@ -320,8 +324,11 @@
                     }
                     const result = await postBoardAttendance();
                     if (result && result.success) {
-                        localStorage.setItem(SIGN_LAST_SUCCESS_DATE_KEY, today);
-                        setSignResult('自动签到：' + (result.message || '签到成功'));
+                        cacheTodaySigned('自动签到：' + (result.message || '签到成功'));
+                        return true;
+                    }
+                    if (result && /已签到|今日已/.test(String(result.message || ''))) {
+                        cacheTodaySigned('自动签到：' + (result.message || '今日已签到'));
                         return true;
                     }
                     setSignResult('自动签到：' + ((result && result.message) || '签到失败'));

@@ -801,6 +801,41 @@
             box-shadow: 0 7px 18px rgba(15, 23, 42, .14) !important;
         }
 
+        .ns-collapsed-highlight-count {
+            display: none;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 34px !important;
+            min-width: 34px !important;
+            height: 42px !important;
+            min-height: 42px !important;
+            margin-top: 7px !important;
+            padding: 0 !important;
+            border: 1px solid rgba(245, 158, 11, .24) !important;
+            border-right: none !important;
+            border-radius: 9px 0 0 9px !important;
+            background: #fef3c7 !important;
+            color: #92400e !important;
+            box-shadow: 0 6px 16px rgba(146, 64, 14, .11) !important;
+            font-family: var(--ns-ui-font) !important;
+            cursor: pointer !important;
+            box-sizing: border-box !important;
+        }
+
+        .ns-collapsed-highlight-count span {
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            line-height: 1 !important;
+        }
+
+        .ns-collapsed-highlight-count strong {
+            margin-top: 3px !important;
+            font-size: 14px !important;
+            font-weight: 850 !important;
+            line-height: 1 !important;
+        }
+
         #ns-highlight-stats-container {
             margin-top: 1px !important;
             padding: 5px !important;
@@ -808,6 +843,33 @@
             background: var(--ns-ui-soft) !important;
             border: 1px solid var(--ns-ui-line) !important;
             color: var(--ns-ui-muted) !important;
+        }
+
+        .ns-filter-stat-tags {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 5px !important;
+        }
+
+        .ns-filter-stat-tag {
+            width: 100% !important;
+            min-height: 26px !important;
+            padding: 4px 5px !important;
+            border: 1px solid var(--ns-ui-line) !important;
+            border-radius: 7px !important;
+            background: var(--ns-ui-bg-solid) !important;
+            color: var(--ns-ui-muted) !important;
+            font-family: var(--ns-ui-font) !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            box-shadow: none !important;
+        }
+
+        .ns-filter-stat-tag-active {
+            background: #ccfbf1 !important;
+            border-color: rgba(20, 184, 166, .36) !important;
+            color: #0f766e !important;
         }
 
         #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,

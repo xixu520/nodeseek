@@ -535,6 +535,11 @@
             return path.includes('/topic/') || path.includes('/article/') || /\/post-\d+/i.test(path);
         }
 
+        function isHomePage() {
+            const path = window.location.pathname || '/';
+            return path === '/' || path === '/board';
+        }
+
         function renderCollapsedActions() {
             collapsedRail.innerHTML = '';
             if (isPostDetailPage()) {
@@ -562,12 +567,15 @@
             });
             reloadBtn.classList.add('ns-collapsed-refresh-btn');
             collapsedRail.appendChild(reloadBtn);
+            updateCollapsedHighlightCount();
         }
 
         window.NodeSeekCollapsedActions = {
-            refresh: renderCollapsedActions
+            refresh: function () {
+                renderCollapsedActions();
+                updateCollapsedHighlightCount();
+            }
         };
-        renderCollapsedActions();
 
         // 新增：添加折叠按钮
         const collapseBtn = document.createElement('button');
@@ -575,6 +583,31 @@
         collapseBtn.className = 'collapse-btn';
         collapseBtn.innerHTML = '&lt;'; // 默认显示 <
         collapseBtn.title = '点击折叠/展开';
+
+        const collapsedHighlightBtn = document.createElement('button');
+        collapsedHighlightBtn.id = 'ns-collapsed-highlight-count';
+        collapsedHighlightBtn.className = 'ns-collapsed-highlight-count';
+        collapsedHighlightBtn.type = 'button';
+        collapsedHighlightBtn.title = '高亮数目';
+        collapsedHighlightBtn.style.display = 'none';
+        collapsedHighlightBtn.onclick = function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (window.NodeSeekFilter && typeof window.NodeSeekFilter.showOnlyHighlighted === 'function') {
+                window.NodeSeekFilter.showOnlyHighlighted();
+            }
+        };
+
+        function updateCollapsedHighlightCount() {
+            if (!collapsedHighlightBtn) return;
+            const stats = (window.NodeSeekFilter && typeof window.NodeSeekFilter.getStats === 'function')
+                ? window.NodeSeekFilter.getStats()
+                : { highlighted: 0 };
+            const count = stats && Number.isFinite(Number(stats.highlighted)) ? Number(stats.highlighted) : 0;
+            collapsedHighlightBtn.innerHTML = '<span>高亮</span><strong>' + count + '</strong>';
+            collapsedHighlightBtn.title = '高亮数目：' + count + '，点击只看高亮帖子';
+        }
+        renderCollapsedActions();
 
         const themeToggleBtn = document.createElement('button');
         themeToggleBtn.id = 'theme-toggle-btn';
@@ -592,6 +625,7 @@
         // 组装UI - 先添加折叠按钮，再添加内容容器
         mainContainer.appendChild(collapsedRail);
         mainContainer.appendChild(collapseBtn);
+        mainContainer.appendChild(collapsedHighlightBtn);
         mainContainer.appendChild(themeToggleBtn);
         mainContainer.appendChild(container);
 
@@ -602,6 +636,8 @@
                 mainContainer.style.alignItems = 'flex-end';
                 collapsedRail.style.display = 'flex';
                 renderCollapsedActions();
+                collapsedHighlightBtn.style.display = isHomePage() ? 'inline-flex' : 'none';
+                updateCollapsedHighlightCount();
                 if (window.innerWidth <= 767) {
                     mainContainer.style.top = 'auto';
                     mainContainer.style.right = '0px';
@@ -615,6 +651,7 @@
                 mainContainer.style.flexDirection = 'row';
                 mainContainer.style.alignItems = '';
                 collapsedRail.style.display = 'none';
+                collapsedHighlightBtn.style.display = 'none';
                 mainContainer.style.top = expandedPosition.top;
                 mainContainer.style.right = expandedPosition.right;
                 mainContainer.style.bottom = expandedPosition.bottom;
