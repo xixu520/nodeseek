@@ -821,6 +821,14 @@
             font-family: var(--ns-ui-font) !important;
             cursor: pointer !important;
             box-sizing: border-box !important;
+            transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease !important;
+        }
+
+        .ns-collapsed-highlight-count.ns-collapsed-highlight-active {
+            background: #ccfbf1 !important;
+            border-color: rgba(20, 184, 166, .36) !important;
+            color: #0f766e !important;
+            box-shadow: 0 7px 18px rgba(15, 118, 110, .16) !important;
         }
 
         .ns-collapsed-highlight-count span {

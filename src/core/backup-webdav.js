@@ -169,6 +169,13 @@
             console.error('导出新标签页打开帖子设置失败:', error);
         }
 
+        let adFilterSettings = {};
+        try {
+            adFilterSettings.enabled = getAdFilterEnabled();
+        } catch (error) {
+            console.error('导出广告遮蔽设置失败:', error);
+        }
+
         const data = JSON.stringify({
             blacklist: blacklist,
             friends: friends,
@@ -180,6 +187,7 @@
             userInfoSettings: userInfoSettings, // 新增：用户信息显示设置
             skipJumpSettings: skipJumpSettings, // 新增：屏蔽URL跳转提醒设置
             openPostNewTabSettings: openPostNewTabSettings, // 新增：新标签页打开帖子设置
+            adFilterSettings: adFilterSettings, // 新增：广告遮蔽设置
             chickenLegStats: chickenLegStats, // 添加鸡腿统计数据
             filterData: filterData, // 添加关键词过滤数据
             notesData: notesData, // 添加笔记数据
@@ -200,6 +208,7 @@
         const hasQuickReplies = Object.keys(quickReplies).length > 0;
         const hasQuickReplySettings = Object.keys(quickReplySettings).length > 0;
         const hasSignSettings = Object.keys(signSettings).length > 0;
+        const hasAdFilterSettings = Object.keys(adFilterSettings).length > 0;
         const hasChickenLegStats = Object.keys(chickenLegStats).length > 0;
         const hasFilterData = Object.keys(filterData).length > 0;
         const hasNotesData = Object.keys(notesData).length > 0;
@@ -219,6 +228,9 @@
         }
         if (hasViewedTitles) {
             exportDesc += '、阅读记忆';
+        }
+        if (hasAdFilterSettings) {
+            exportDesc += '、广告遮蔽';
         }
         // 不在导出日志中包含“自动同步设置”
         // 始终包含备份设置
@@ -424,6 +436,21 @@
                         }
                     }
 
+                    if (json.adFilterSettings && typeof json.adFilterSettings === 'object') {
+                        try {
+                            if (typeof json.adFilterSettings.enabled !== 'undefined') {
+                                setAdFilterEnabled(json.adFilterSettings.enabled);
+                                if (window.NodeSeekAdFilter && typeof window.NodeSeekAdFilter.refresh === 'function') {
+                                    window.NodeSeekAdFilter.refresh();
+                                }
+                                importInfo.push(`广告遮蔽设置(${json.adFilterSettings.enabled ? '开启' : '关闭'})`);
+                            }
+                        } catch (error) {
+                            console.error('导入广告遮蔽设置失败:', error);
+                            importInfo.push('广告遮蔽设置(失败)');
+                        }
+                    }
+
                     // 处理鸡腿统计数据
                     if (json.chickenLegStats && typeof json.chickenLegStats === 'object') {
                         try {
@@ -621,7 +648,7 @@
                         }
                     }
 
-                    if (!json.blacklist && !json.friends && !json.logs && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData) {
+                    if (!json.blacklist && !json.friends && !json.logs && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData && !json.adFilterSettings) {
                         // 旧格式，直接作为黑名单
                         setBlacklist(json);
                         importInfo.push("旧格式黑名单");
@@ -631,11 +658,13 @@
                     const hasChickenLegStatsLog = json.chickenLegStats && typeof json.chickenLegStats === 'object' && Object.keys(json.chickenLegStats).length > 0;
                     const hasFilterDataLog = json.filterData && typeof json.filterData === 'object' && Object.keys(json.filterData).length > 0;
                     const hasNotesDataLog = json.notesData && typeof json.notesData === 'object' && Object.keys(json.notesData).length > 0;
+                    const hasAdFilterSettingsLog = json.adFilterSettings && typeof json.adFilterSettings === 'object' && Object.keys(json.adFilterSettings).length > 0;
                     let importDesc = '导入数据备份 (黑名单、好友、操作日志、浏览历史';
                     if (hasQuickRepliesLog) importDesc += '、快捷回复';
                     if (hasChickenLegStatsLog) importDesc += '、鸡腿统计';
                     if (hasFilterDataLog) importDesc += '、关键词过滤';
                     if (hasNotesDataLog) importDesc += '、笔记';
+                    if (hasAdFilterSettingsLog) importDesc += '、广告遮蔽';
                     // 始终包含备份设置
                     if (json.backupLimit) importDesc += '、设置';
                     importDesc += ')';
@@ -658,10 +687,16 @@
     }
 
     function normalizeWebdavSyncFields(fields) {
-        const allowed = new Set(getDefaultWebdavSyncFields());
+        const defaults = getDefaultWebdavSyncFields();
+        const allowed = new Set(defaults);
         if (!Array.isArray(fields)) return getDefaultWebdavSyncFields();
         const list = fields.filter(key => allowed.has(key));
-        return Array.from(new Set(list));
+        const selected = new Set(list);
+        const allOldDefaultFieldsSelected = defaults
+            .filter(key => key !== 'adFilterSettings')
+            .every(key => selected.has(key));
+        if (allOldDefaultFieldsSelected) selected.add('adFilterSettings');
+        return Array.from(selected);
     }
 
     function filterNodeSeekBackupData(data, fields) {
@@ -820,6 +855,13 @@
             console.error('读取新标签页打开帖子设置失败:', error);
         }
 
+        let adFilterSettings = {};
+        try {
+            adFilterSettings.enabled = getAdFilterEnabled();
+        } catch (error) {
+            console.error('读取广告遮蔽设置失败:', error);
+        }
+
         const data = {
             blacklist: blacklist,
             friends: friends,
@@ -831,6 +873,7 @@
             userInfoSettings: userInfoSettings,
             skipJumpSettings: skipJumpSettings,
             openPostNewTabSettings: openPostNewTabSettings,
+            adFilterSettings: adFilterSettings,
             chickenLegStats: chickenLegStats,
             filterData: filterData,
             notesData: notesData,
@@ -879,6 +922,13 @@
 
             if (json.openPostNewTabSettings && typeof json.openPostNewTabSettings === 'object' && typeof json.openPostNewTabSettings.enabled !== 'undefined') {
                 setOpenPostNewTabEnabled(json.openPostNewTabSettings.enabled);
+            }
+
+            if (json.adFilterSettings && typeof json.adFilterSettings === 'object' && typeof json.adFilterSettings.enabled !== 'undefined') {
+                setAdFilterEnabled(json.adFilterSettings.enabled);
+                if (window.NodeSeekAdFilter && typeof window.NodeSeekAdFilter.refresh === 'function') {
+                    window.NodeSeekAdFilter.refresh();
+                }
             }
 
             if (json.chickenLegStats && typeof json.chickenLegStats === 'object') {

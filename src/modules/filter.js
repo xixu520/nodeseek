@@ -284,6 +284,9 @@
                 selectedFilterMode = mode || '';
                 if (!selectedFilterMode) {
                     renderHighlightStatsToContainer();
+                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                        window.NodeSeekCollapsedActions.refresh();
+                    }
                     return;
                 }
 
@@ -296,6 +299,9 @@
                     else hideNodeForSelectedView(node);
                 });
                 renderHighlightStatsToContainer();
+                if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                    window.NodeSeekCollapsedActions.refresh();
+                }
             }
 
             function toggleSelectedFilterView(mode) {
@@ -774,7 +780,9 @@
                 applyFilters,
                 getStats: function () { return { hidden: lastStats.hidden, highlighted: lastStats.highlighted, mode: selectedFilterMode }; },
                 showOnlyHighlighted: function () { applySelectedFilterView('highlighted'); },
+                toggleHighlighted: function () { toggleSelectedFilterView('highlighted'); },
                 showOnlyHidden: function () { applySelectedFilterView('hidden'); },
+                toggleHidden: function () { toggleSelectedFilterView('hidden'); },
                 showAllFiltered: function () { applySelectedFilterView(''); }
             };
         })();

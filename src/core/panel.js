@@ -593,7 +593,9 @@
         collapsedHighlightBtn.onclick = function (event) {
             event.preventDefault();
             event.stopPropagation();
-            if (window.NodeSeekFilter && typeof window.NodeSeekFilter.showOnlyHighlighted === 'function') {
+            if (window.NodeSeekFilter && typeof window.NodeSeekFilter.toggleHighlighted === 'function') {
+                window.NodeSeekFilter.toggleHighlighted();
+            } else if (window.NodeSeekFilter && typeof window.NodeSeekFilter.showOnlyHighlighted === 'function') {
                 window.NodeSeekFilter.showOnlyHighlighted();
             }
         };
@@ -604,8 +606,10 @@
                 ? window.NodeSeekFilter.getStats()
                 : { highlighted: 0 };
             const count = stats && Number.isFinite(Number(stats.highlighted)) ? Number(stats.highlighted) : 0;
+            const active = stats && stats.mode === 'highlighted';
             collapsedHighlightBtn.innerHTML = '<span>高亮</span><strong>' + count + '</strong>';
-            collapsedHighlightBtn.title = '高亮数目：' + count + '，点击只看高亮帖子';
+            collapsedHighlightBtn.classList.toggle('ns-collapsed-highlight-active', !!active);
+            collapsedHighlightBtn.title = active ? '正在只看高亮帖子，点击恢复全部' : '高亮数目：' + count + '，点击只看高亮帖子';
         }
         renderCollapsedActions();
 
