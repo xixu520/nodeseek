@@ -7,7 +7,6 @@
   "src/core/panel.js",
   "src/modules/blacklist-viewer.js",
   "src/modules/filter.js",
-  "src/modules/ad-filter.js",
   "src/modules/quick-reply.js",
   "src/core/adapters.js",
   "src/modules/data-modules.js",

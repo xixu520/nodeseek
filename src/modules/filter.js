@@ -5,6 +5,7 @@
             let lastStats = { hidden: 0, highlighted: 0 };
             let profileFilterSignature = '';
             let selectedFilterMode = '';
+            const profileFilterState = new WeakMap();
 
             const TOKEN_COLORS = ['#22c55e', '#14b8a6', '#38bdf8', '#8b5cf6', '#f97316', '#ec4899', '#64748b'];
             const PLUGIN_SELECTOR = '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #favorites-dialog, #friends-dialog';
@@ -133,9 +134,14 @@
                 }
             }
 
-            function textHas(text, words) {
+            function prepareWords(words) {
+                return uniqueWords(words || []).map(word => String(word).toLowerCase());
+            }
+
+            function textHasPrepared(text, preparedWords) {
+                if (!preparedWords || preparedWords.length === 0) return false;
                 const source = String(text || '').toLowerCase();
-                return (words || []).some(word => source.includes(String(word).toLowerCase()));
+                return preparedWords.some(word => source.includes(word));
             }
 
             function isPluginNode(node) {
@@ -221,6 +227,14 @@
                 return levelMatched || daysMatched;
             }
 
+            function hideMatchedNode(node) {
+                if (!node.hasAttribute('data-ns-filter-old-display')) {
+                    node.setAttribute('data-ns-filter-old-display', node.style.display || '');
+                }
+                node.style.display = 'none';
+                node.setAttribute('data-ns-filter-hit', 'hidden');
+            }
+
             function getProfileFilterSignature(settings, whitelist) {
                 return JSON.stringify({
                     enabled: !!settings.profileFilterEnabled,
@@ -284,7 +298,9 @@
                 selectedFilterMode = mode || '';
                 if (!selectedFilterMode) {
                     renderHighlightStatsToContainer();
-                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.updateHighlightCount === 'function') {
+                        window.NodeSeekCollapsedActions.updateHighlightCount();
+                    } else if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
                         window.NodeSeekCollapsedActions.refresh();
                     }
                     return;
@@ -299,7 +315,9 @@
                     else hideNodeForSelectedView(node);
                 });
                 renderHighlightStatsToContainer();
-                if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.updateHighlightCount === 'function') {
+                    window.NodeSeekCollapsedActions.updateHighlightCount();
+                } else if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
                     window.NodeSeekCollapsedActions.refresh();
                 }
             }
@@ -312,6 +330,8 @@
                 const settings = getSettings();
                 const hideWords = uniqueWords(settings.displayKeywords);
                 const highlightWords = uniqueWords(settings.highlightKeywords);
+                const hideMatchers = prepareWords(hideWords);
+                const highlightMatchers = prepareWords(highlightWords);
                 const whitelist = new Set(uniqueWords(settings.whitelistUsers).map(name => name.toLowerCase()));
                 const currentProfileFilterSignature = getProfileFilterSignature(settings, whitelist);
                 profileFilterSignature = currentProfileFilterSignature;
@@ -320,18 +340,16 @@
 
                 resetFilters();
 
-                getContentCandidates().forEach(node => {
-                    const author = getAuthorName(node).toLowerCase();
-                    if (author && whitelist.has(author)) return;
-                    if (textHas(node.textContent || '', hideWords)) {
-                        if (!node.hasAttribute('data-ns-filter-old-display')) {
-                            node.setAttribute('data-ns-filter-old-display', node.style.display || '');
+                if (hideMatchers.length > 0) {
+                    getContentCandidates().forEach(node => {
+                        const author = getAuthorName(node).toLowerCase();
+                        if (author && whitelist.has(author)) return;
+                        if (textHasPrepared(node.textContent || '', hideMatchers)) {
+                            hideMatchedNode(node);
+                            hidden += 1;
                         }
-                        node.style.display = 'none';
-                        node.setAttribute('data-ns-filter-hit', 'hidden');
-                        hidden += 1;
-                    }
-                });
+                    });
+                }
 
                 if (settings.profileFilterEnabled && typeof fetchUserData === 'function') {
                     getPostListCandidates().forEach(node => {
@@ -341,34 +359,48 @@
                         if (author && whitelist.has(author)) return;
                         const userId = getUserIdFromLink(authorLink);
                         if (!userId) return;
+                        const requestKey = currentProfileFilterSignature + ':' + userId;
+                        const state = profileFilterState.get(node);
+                        if (state && state.key === requestKey) {
+                            if (state.status === 'matched') {
+                                hideMatchedNode(node);
+                                hidden += 1;
+                            }
+                            if (state.status === 'matched' || state.status === 'miss' || state.status === 'pending') return;
+                        }
+                        profileFilterState.set(node, { key: requestKey, status: 'pending' });
                         fetchUserData(userId).then(userData => {
                             if (currentProfileFilterSignature !== profileFilterSignature) return;
                             if (!userData || node.getAttribute('data-ns-filter-hit') === 'hidden') return;
-                            if (!isProfileMatched(userData, settings)) return;
-                            if (!node.hasAttribute('data-ns-filter-old-display')) {
-                                node.setAttribute('data-ns-filter-old-display', node.style.display || '');
+                            if (!isProfileMatched(userData, settings)) {
+                                profileFilterState.set(node, { key: requestKey, status: 'miss' });
+                                return;
                             }
-                            node.style.display = 'none';
-                            node.setAttribute('data-ns-filter-hit', 'hidden');
+                            profileFilterState.set(node, { key: requestKey, status: 'matched' });
+                            hideMatchedNode(node);
                             lastStats.hidden += 1;
                             if (selectedFilterMode) applySelectedFilterView(selectedFilterMode);
                             renderHighlightStatsToContainer();
-                        }).catch(function () { });
+                        }).catch(function () {
+                            profileFilterState.set(node, { key: requestKey, status: 'error' });
+                        });
                     });
                 }
 
-                getTitleElements().forEach(node => {
-                    const container = getContainer(node);
-                    if (container?.getAttribute('data-ns-filter-hit') === 'hidden') return;
-                    const author = container ? getAuthorName(container).toLowerCase() : '';
-                    if (author && whitelist.has(author)) return;
-                    const authorMatched = settings.highlightAuthorEnabled && author && textHas(author, highlightWords);
-                    if (textHas(node.textContent || '', highlightWords) || authorMatched) {
-                        node.style.setProperty('--ns-filter-highlight-color', settings.highlightColor || '#38bdf8');
-                        node.classList.add('ns-filter-highlighted');
-                        highlighted += 1;
-                    }
-                });
+                if (highlightMatchers.length > 0) {
+                    getTitleElements().forEach(node => {
+                        const container = getContainer(node);
+                        if (container?.getAttribute('data-ns-filter-hit') === 'hidden') return;
+                        const author = container ? getAuthorName(container).toLowerCase() : '';
+                        if (author && whitelist.has(author)) return;
+                        const authorMatched = settings.highlightAuthorEnabled && author && textHasPrepared(author, highlightMatchers);
+                        if (textHasPrepared(node.textContent || '', highlightMatchers) || authorMatched) {
+                            node.style.setProperty('--ns-filter-highlight-color', settings.highlightColor || '#38bdf8');
+                            node.classList.add('ns-filter-highlighted');
+                            highlighted += 1;
+                        }
+                    });
+                }
 
                 lastStats = { hidden, highlighted };
                 if (selectedFilterMode) applySelectedFilterView(selectedFilterMode);
@@ -383,17 +415,34 @@
                 }, 200);
             }
 
+            function nodeCanAffectFilters(node) {
+                if (!(node instanceof Element) || isPluginNode(node)) return false;
+                if (node.matches?.('article, .nsk-content, .card, .post, .topic, .reply, li, tr, a[href*="/post"], a[href*="/topic"], a[href*="/article"], .post-list-item, .thread-title, .topic-title, .post-title, .article-title, .content-title, h1, h2, h3')) return true;
+                return !!node.querySelector?.('article, .nsk-content, .card, .post, .topic, .reply, li, tr, a[href*="/post"], a[href*="/topic"], a[href*="/article"], .post-list-item, .thread-title, .topic-title, .post-title, .article-title, .content-title, h1, h2, h3');
+            }
+
             function initFilterObserver() {
                 applyFilters();
                 if (observer) return;
-                observer = new MutationObserver(scheduleApplyFilters);
+                observer = new MutationObserver(function (mutations) {
+                    for (const mutation of mutations) {
+                        for (const node of mutation.addedNodes) {
+                            if (nodeCanAffectFilters(node)) {
+                                scheduleApplyFilters();
+                                return;
+                            }
+                        }
+                    }
+                });
                 observer.observe(document.body, { childList: true, subtree: true });
             }
 
             function renderHighlightStatsToContainer() {
                 const box = document.getElementById('ns-highlight-stats-container');
                 if (!box) {
-                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.updateHighlightCount === 'function') {
+                        window.NodeSeekCollapsedActions.updateHighlightCount();
+                    } else if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
                         window.NodeSeekCollapsedActions.refresh();
                     }
                     return;
@@ -433,7 +482,9 @@
                         tags.appendChild(tag);
                     });
                     box.appendChild(tags);
-                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.updateHighlightCount === 'function') {
+                        window.NodeSeekCollapsedActions.updateHighlightCount();
+                    } else if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
                         window.NodeSeekCollapsedActions.refresh();
                     }
                     return;

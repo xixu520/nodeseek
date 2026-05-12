@@ -574,6 +574,9 @@
             refresh: function () {
                 renderCollapsedActions();
                 updateCollapsedHighlightCount();
+            },
+            updateHighlightCount: function () {
+                updateCollapsedHighlightCount();
             }
         };
 

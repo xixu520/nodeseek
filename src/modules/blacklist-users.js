@@ -1020,6 +1020,7 @@
 
     // 优化主更新函数，减少不必要的重复调用
     let lastUpdateTime = 0;
+    let deferredUpdateTimer = null;
     function ensurePluginControlPanel() {
         if (!document.body) return;
         const panel = document.getElementById('nodeseek-plugin-main-container');
@@ -1049,6 +1050,12 @@
         const now = Date.now();
         // 避免过于频繁的更新
         if (now - lastUpdateTime < 600) {
+            if (!deferredUpdateTimer) {
+                deferredUpdateTimer = setTimeout(function () {
+                    deferredUpdateTimer = null;
+                    scheduleUpdateAll(0);
+                }, Math.max(120, 620 - (now - lastUpdateTime)));
+            }
             return;
         }
         lastUpdateTime = now;
@@ -1068,7 +1075,7 @@
     }
 
     // 兼容异步加载，定时检查
-    setInterval(function () { scheduleUpdateAll(0); }, 5000);
-    setInterval(ensurePluginControlPanel, 5000);
+    setInterval(function () { scheduleUpdateAll(0); }, 12000);
+    setInterval(ensurePluginControlPanel, 10000);
 
     // ====== 导出/导入黑名单功能 ======

@@ -1005,35 +1005,6 @@
         openPostNewTabRow.appendChild(openPostNewTabSwitch);
         content.appendChild(openPostNewTabRow);
 
-        const adFilterRow = document.createElement('div');
-        adFilterRow.style.display = 'flex';
-        adFilterRow.style.justifyContent = 'space-between';
-        adFilterRow.style.alignItems = 'center';
-        adFilterRow.style.gap = '8px';
-
-        const adFilterLabel = document.createElement('label');
-        adFilterLabel.textContent = '隐藏广告/推广位';
-        adFilterLabel.style.fontWeight = '500';
-        adFilterLabel.style.color = '#555';
-
-        const adFilterSwitch = document.createElement('input');
-        adFilterSwitch.type = 'checkbox';
-        adFilterSwitch.checked = getAdFilterEnabled();
-        adFilterSwitch.style.transform = 'scale(1.2)';
-        adFilterSwitch.onchange = function () {
-            const newState = this.checked;
-            if (window.NodeSeekAdFilter && typeof window.NodeSeekAdFilter.setEnabled === 'function') {
-                window.NodeSeekAdFilter.setEnabled(newState);
-            } else {
-                setAdFilterEnabled(newState);
-            }
-            addLog('广告遮蔽：' + (newState ? '开启' : '关闭'));
-        };
-
-        adFilterRow.appendChild(adFilterLabel);
-        adFilterRow.appendChild(adFilterSwitch);
-        content.appendChild(adFilterRow);
-
         // 4. 跳过跳转页面开关 -> 改为 屏蔽URL跳转提醒
         const skipJumpRow = document.createElement('div');
         skipJumpRow.style.display = 'flex';

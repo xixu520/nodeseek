@@ -71,7 +71,6 @@
 
     // 新增：新标签页打开帖子开关
     const OPEN_POST_NEW_TAB_KEY = 'nodeseek_open_post_new_tab';
-    const AD_FILTER_ENABLED_KEY = 'nodeseek_ad_filter_enabled';
 
     // WebDAV 同步设置
     const WEBDAV_SYNC_CONFIG_KEY = 'nodeseek_webdav_sync_config';
@@ -94,7 +93,6 @@
         { key: 'userInfoSettings', label: '用户信息显示设置', dataKeys: ['userInfoSettings'] },
         { key: 'skipJumpSettings', label: '跳转设置', dataKeys: ['skipJumpSettings'] },
         { key: 'openPostNewTabSettings', label: '新标签打开设置', dataKeys: ['openPostNewTabSettings'] },
-        { key: 'adFilterSettings', label: '广告遮蔽设置', dataKeys: ['adFilterSettings'] },
         { key: 'chickenLegStats', label: '鸡腿统计', dataKeys: ['chickenLegStats'] },
         { key: 'filterData', label: '关键词过滤', dataKeys: ['filterData'] },
         { key: 'notesData', label: '笔记', dataKeys: ['notesData'] },
@@ -143,14 +141,6 @@
 
     function setOpenPostNewTabEnabled(enabled) {
         localStorage.setItem(OPEN_POST_NEW_TAB_KEY, enabled.toString());
-    }
-
-    function getAdFilterEnabled() {
-        return localStorage.getItem(AD_FILTER_ENABLED_KEY) === 'true';
-    }
-
-    function setAdFilterEnabled(enabled) {
-        localStorage.setItem(AD_FILTER_ENABLED_KEY, enabled ? 'true' : 'false');
     }
 
     // 新增：获取用户信息显示状态

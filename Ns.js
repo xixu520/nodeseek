@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.12.2
+// @version      2026.05.12.4
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -96,7 +96,6 @@
 
     // 新增：新标签页打开帖子开关
     const OPEN_POST_NEW_TAB_KEY = 'nodeseek_open_post_new_tab';
-    const AD_FILTER_ENABLED_KEY = 'nodeseek_ad_filter_enabled';
 
     // WebDAV 同步设置
     const WEBDAV_SYNC_CONFIG_KEY = 'nodeseek_webdav_sync_config';
@@ -119,7 +118,6 @@
         { key: 'userInfoSettings', label: '用户信息显示设置', dataKeys: ['userInfoSettings'] },
         { key: 'skipJumpSettings', label: '跳转设置', dataKeys: ['skipJumpSettings'] },
         { key: 'openPostNewTabSettings', label: '新标签打开设置', dataKeys: ['openPostNewTabSettings'] },
-        { key: 'adFilterSettings', label: '广告遮蔽设置', dataKeys: ['adFilterSettings'] },
         { key: 'chickenLegStats', label: '鸡腿统计', dataKeys: ['chickenLegStats'] },
         { key: 'filterData', label: '关键词过滤', dataKeys: ['filterData'] },
         { key: 'notesData', label: '笔记', dataKeys: ['notesData'] },
@@ -168,14 +166,6 @@
 
     function setOpenPostNewTabEnabled(enabled) {
         localStorage.setItem(OPEN_POST_NEW_TAB_KEY, enabled.toString());
-    }
-
-    function getAdFilterEnabled() {
-        return localStorage.getItem(AD_FILTER_ENABLED_KEY) === 'true';
-    }
-
-    function setAdFilterEnabled(enabled) {
-        localStorage.setItem(AD_FILTER_ENABLED_KEY, enabled ? 'true' : 'false');
     }
 
     // 新增：获取用户信息显示状态
@@ -3457,6 +3447,7 @@
 
     // 优化主更新函数，减少不必要的重复调用
     let lastUpdateTime = 0;
+    let deferredUpdateTimer = null;
     function ensurePluginControlPanel() {
         if (!document.body) return;
         const panel = document.getElementById('nodeseek-plugin-main-container');
@@ -3486,6 +3477,12 @@
         const now = Date.now();
         // 避免过于频繁的更新
         if (now - lastUpdateTime < 600) {
+            if (!deferredUpdateTimer) {
+                deferredUpdateTimer = setTimeout(function () {
+                    deferredUpdateTimer = null;
+                    scheduleUpdateAll(0);
+                }, Math.max(120, 620 - (now - lastUpdateTime)));
+            }
             return;
         }
         lastUpdateTime = now;
@@ -3505,8 +3502,8 @@
     }
 
     // 兼容异步加载，定时检查
-    setInterval(function () { scheduleUpdateAll(0); }, 5000);
-    setInterval(ensurePluginControlPanel, 5000);
+    setInterval(function () { scheduleUpdateAll(0); }, 12000);
+    setInterval(ensurePluginControlPanel, 10000);
 
     // ====== 导出/导入黑名单功能 ======
 
@@ -3681,13 +3678,6 @@
             console.error('导出新标签页打开帖子设置失败:', error);
         }
 
-        let adFilterSettings = {};
-        try {
-            adFilterSettings.enabled = getAdFilterEnabled();
-        } catch (error) {
-            console.error('导出广告遮蔽设置失败:', error);
-        }
-
         const data = JSON.stringify({
             blacklist: blacklist,
             friends: friends,
@@ -3699,7 +3689,6 @@
             userInfoSettings: userInfoSettings, // 新增：用户信息显示设置
             skipJumpSettings: skipJumpSettings, // 新增：屏蔽URL跳转提醒设置
             openPostNewTabSettings: openPostNewTabSettings, // 新增：新标签页打开帖子设置
-            adFilterSettings: adFilterSettings, // 新增：广告遮蔽设置
             chickenLegStats: chickenLegStats, // 添加鸡腿统计数据
             filterData: filterData, // 添加关键词过滤数据
             notesData: notesData, // 添加笔记数据
@@ -3720,7 +3709,6 @@
         const hasQuickReplies = Object.keys(quickReplies).length > 0;
         const hasQuickReplySettings = Object.keys(quickReplySettings).length > 0;
         const hasSignSettings = Object.keys(signSettings).length > 0;
-        const hasAdFilterSettings = Object.keys(adFilterSettings).length > 0;
         const hasChickenLegStats = Object.keys(chickenLegStats).length > 0;
         const hasFilterData = Object.keys(filterData).length > 0;
         const hasNotesData = Object.keys(notesData).length > 0;
@@ -3740,9 +3728,6 @@
         }
         if (hasViewedTitles) {
             exportDesc += '、阅读记忆';
-        }
-        if (hasAdFilterSettings) {
-            exportDesc += '、广告遮蔽';
         }
         // 不在导出日志中包含“自动同步设置”
         // 始终包含备份设置
@@ -3948,21 +3933,6 @@
                         }
                     }
 
-                    if (json.adFilterSettings && typeof json.adFilterSettings === 'object') {
-                        try {
-                            if (typeof json.adFilterSettings.enabled !== 'undefined') {
-                                setAdFilterEnabled(json.adFilterSettings.enabled);
-                                if (window.NodeSeekAdFilter && typeof window.NodeSeekAdFilter.refresh === 'function') {
-                                    window.NodeSeekAdFilter.refresh();
-                                }
-                                importInfo.push(`广告遮蔽设置(${json.adFilterSettings.enabled ? '开启' : '关闭'})`);
-                            }
-                        } catch (error) {
-                            console.error('导入广告遮蔽设置失败:', error);
-                            importInfo.push('广告遮蔽设置(失败)');
-                        }
-                    }
-
                     // 处理鸡腿统计数据
                     if (json.chickenLegStats && typeof json.chickenLegStats === 'object') {
                         try {
@@ -4160,7 +4130,7 @@
                         }
                     }
 
-                    if (!json.blacklist && !json.friends && !json.logs && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData && !json.adFilterSettings) {
+                    if (!json.blacklist && !json.friends && !json.logs && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData) {
                         // 旧格式，直接作为黑名单
                         setBlacklist(json);
                         importInfo.push("旧格式黑名单");
@@ -4170,13 +4140,11 @@
                     const hasChickenLegStatsLog = json.chickenLegStats && typeof json.chickenLegStats === 'object' && Object.keys(json.chickenLegStats).length > 0;
                     const hasFilterDataLog = json.filterData && typeof json.filterData === 'object' && Object.keys(json.filterData).length > 0;
                     const hasNotesDataLog = json.notesData && typeof json.notesData === 'object' && Object.keys(json.notesData).length > 0;
-                    const hasAdFilterSettingsLog = json.adFilterSettings && typeof json.adFilterSettings === 'object' && Object.keys(json.adFilterSettings).length > 0;
                     let importDesc = '导入数据备份 (黑名单、好友、操作日志、浏览历史';
                     if (hasQuickRepliesLog) importDesc += '、快捷回复';
                     if (hasChickenLegStatsLog) importDesc += '、鸡腿统计';
                     if (hasFilterDataLog) importDesc += '、关键词过滤';
                     if (hasNotesDataLog) importDesc += '、笔记';
-                    if (hasAdFilterSettingsLog) importDesc += '、广告遮蔽';
                     // 始终包含备份设置
                     if (json.backupLimit) importDesc += '、设置';
                     importDesc += ')';
@@ -4199,16 +4167,10 @@
     }
 
     function normalizeWebdavSyncFields(fields) {
-        const defaults = getDefaultWebdavSyncFields();
-        const allowed = new Set(defaults);
+        const allowed = new Set(getDefaultWebdavSyncFields());
         if (!Array.isArray(fields)) return getDefaultWebdavSyncFields();
         const list = fields.filter(key => allowed.has(key));
-        const selected = new Set(list);
-        const allOldDefaultFieldsSelected = defaults
-            .filter(key => key !== 'adFilterSettings')
-            .every(key => selected.has(key));
-        if (allOldDefaultFieldsSelected) selected.add('adFilterSettings');
-        return Array.from(selected);
+        return Array.from(new Set(list));
     }
 
     function filterNodeSeekBackupData(data, fields) {
@@ -4367,13 +4329,6 @@
             console.error('读取新标签页打开帖子设置失败:', error);
         }
 
-        let adFilterSettings = {};
-        try {
-            adFilterSettings.enabled = getAdFilterEnabled();
-        } catch (error) {
-            console.error('读取广告遮蔽设置失败:', error);
-        }
-
         const data = {
             blacklist: blacklist,
             friends: friends,
@@ -4385,7 +4340,6 @@
             userInfoSettings: userInfoSettings,
             skipJumpSettings: skipJumpSettings,
             openPostNewTabSettings: openPostNewTabSettings,
-            adFilterSettings: adFilterSettings,
             chickenLegStats: chickenLegStats,
             filterData: filterData,
             notesData: notesData,
@@ -4434,13 +4388,6 @@
 
             if (json.openPostNewTabSettings && typeof json.openPostNewTabSettings === 'object' && typeof json.openPostNewTabSettings.enabled !== 'undefined') {
                 setOpenPostNewTabEnabled(json.openPostNewTabSettings.enabled);
-            }
-
-            if (json.adFilterSettings && typeof json.adFilterSettings === 'object' && typeof json.adFilterSettings.enabled !== 'undefined') {
-                setAdFilterEnabled(json.adFilterSettings.enabled);
-                if (window.NodeSeekAdFilter && typeof window.NodeSeekAdFilter.refresh === 'function') {
-                    window.NodeSeekAdFilter.refresh();
-                }
             }
 
             if (json.chickenLegStats && typeof json.chickenLegStats === 'object') {
@@ -6484,6 +6431,9 @@
             refresh: function () {
                 renderCollapsedActions();
                 updateCollapsedHighlightCount();
+            },
+            updateHighlightCount: function () {
+                updateCollapsedHighlightCount();
             }
         };
 
@@ -6988,6 +6938,7 @@
             let lastStats = { hidden: 0, highlighted: 0 };
             let profileFilterSignature = '';
             let selectedFilterMode = '';
+            const profileFilterState = new WeakMap();
 
             const TOKEN_COLORS = ['#22c55e', '#14b8a6', '#38bdf8', '#8b5cf6', '#f97316', '#ec4899', '#64748b'];
             const PLUGIN_SELECTOR = '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #favorites-dialog, #friends-dialog';
@@ -7116,9 +7067,14 @@
                 }
             }
 
-            function textHas(text, words) {
+            function prepareWords(words) {
+                return uniqueWords(words || []).map(word => String(word).toLowerCase());
+            }
+
+            function textHasPrepared(text, preparedWords) {
+                if (!preparedWords || preparedWords.length === 0) return false;
                 const source = String(text || '').toLowerCase();
-                return (words || []).some(word => source.includes(String(word).toLowerCase()));
+                return preparedWords.some(word => source.includes(word));
             }
 
             function isPluginNode(node) {
@@ -7204,6 +7160,14 @@
                 return levelMatched || daysMatched;
             }
 
+            function hideMatchedNode(node) {
+                if (!node.hasAttribute('data-ns-filter-old-display')) {
+                    node.setAttribute('data-ns-filter-old-display', node.style.display || '');
+                }
+                node.style.display = 'none';
+                node.setAttribute('data-ns-filter-hit', 'hidden');
+            }
+
             function getProfileFilterSignature(settings, whitelist) {
                 return JSON.stringify({
                     enabled: !!settings.profileFilterEnabled,
@@ -7267,7 +7231,9 @@
                 selectedFilterMode = mode || '';
                 if (!selectedFilterMode) {
                     renderHighlightStatsToContainer();
-                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.updateHighlightCount === 'function') {
+                        window.NodeSeekCollapsedActions.updateHighlightCount();
+                    } else if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
                         window.NodeSeekCollapsedActions.refresh();
                     }
                     return;
@@ -7282,7 +7248,9 @@
                     else hideNodeForSelectedView(node);
                 });
                 renderHighlightStatsToContainer();
-                if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.updateHighlightCount === 'function') {
+                    window.NodeSeekCollapsedActions.updateHighlightCount();
+                } else if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
                     window.NodeSeekCollapsedActions.refresh();
                 }
             }
@@ -7295,6 +7263,8 @@
                 const settings = getSettings();
                 const hideWords = uniqueWords(settings.displayKeywords);
                 const highlightWords = uniqueWords(settings.highlightKeywords);
+                const hideMatchers = prepareWords(hideWords);
+                const highlightMatchers = prepareWords(highlightWords);
                 const whitelist = new Set(uniqueWords(settings.whitelistUsers).map(name => name.toLowerCase()));
                 const currentProfileFilterSignature = getProfileFilterSignature(settings, whitelist);
                 profileFilterSignature = currentProfileFilterSignature;
@@ -7303,18 +7273,16 @@
 
                 resetFilters();
 
-                getContentCandidates().forEach(node => {
-                    const author = getAuthorName(node).toLowerCase();
-                    if (author && whitelist.has(author)) return;
-                    if (textHas(node.textContent || '', hideWords)) {
-                        if (!node.hasAttribute('data-ns-filter-old-display')) {
-                            node.setAttribute('data-ns-filter-old-display', node.style.display || '');
+                if (hideMatchers.length > 0) {
+                    getContentCandidates().forEach(node => {
+                        const author = getAuthorName(node).toLowerCase();
+                        if (author && whitelist.has(author)) return;
+                        if (textHasPrepared(node.textContent || '', hideMatchers)) {
+                            hideMatchedNode(node);
+                            hidden += 1;
                         }
-                        node.style.display = 'none';
-                        node.setAttribute('data-ns-filter-hit', 'hidden');
-                        hidden += 1;
-                    }
-                });
+                    });
+                }
 
                 if (settings.profileFilterEnabled && typeof fetchUserData === 'function') {
                     getPostListCandidates().forEach(node => {
@@ -7324,34 +7292,48 @@
                         if (author && whitelist.has(author)) return;
                         const userId = getUserIdFromLink(authorLink);
                         if (!userId) return;
+                        const requestKey = currentProfileFilterSignature + ':' + userId;
+                        const state = profileFilterState.get(node);
+                        if (state && state.key === requestKey) {
+                            if (state.status === 'matched') {
+                                hideMatchedNode(node);
+                                hidden += 1;
+                            }
+                            if (state.status === 'matched' || state.status === 'miss' || state.status === 'pending') return;
+                        }
+                        profileFilterState.set(node, { key: requestKey, status: 'pending' });
                         fetchUserData(userId).then(userData => {
                             if (currentProfileFilterSignature !== profileFilterSignature) return;
                             if (!userData || node.getAttribute('data-ns-filter-hit') === 'hidden') return;
-                            if (!isProfileMatched(userData, settings)) return;
-                            if (!node.hasAttribute('data-ns-filter-old-display')) {
-                                node.setAttribute('data-ns-filter-old-display', node.style.display || '');
+                            if (!isProfileMatched(userData, settings)) {
+                                profileFilterState.set(node, { key: requestKey, status: 'miss' });
+                                return;
                             }
-                            node.style.display = 'none';
-                            node.setAttribute('data-ns-filter-hit', 'hidden');
+                            profileFilterState.set(node, { key: requestKey, status: 'matched' });
+                            hideMatchedNode(node);
                             lastStats.hidden += 1;
                             if (selectedFilterMode) applySelectedFilterView(selectedFilterMode);
                             renderHighlightStatsToContainer();
-                        }).catch(function () { });
+                        }).catch(function () {
+                            profileFilterState.set(node, { key: requestKey, status: 'error' });
+                        });
                     });
                 }
 
-                getTitleElements().forEach(node => {
-                    const container = getContainer(node);
-                    if (container?.getAttribute('data-ns-filter-hit') === 'hidden') return;
-                    const author = container ? getAuthorName(container).toLowerCase() : '';
-                    if (author && whitelist.has(author)) return;
-                    const authorMatched = settings.highlightAuthorEnabled && author && textHas(author, highlightWords);
-                    if (textHas(node.textContent || '', highlightWords) || authorMatched) {
-                        node.style.setProperty('--ns-filter-highlight-color', settings.highlightColor || '#38bdf8');
-                        node.classList.add('ns-filter-highlighted');
-                        highlighted += 1;
-                    }
-                });
+                if (highlightMatchers.length > 0) {
+                    getTitleElements().forEach(node => {
+                        const container = getContainer(node);
+                        if (container?.getAttribute('data-ns-filter-hit') === 'hidden') return;
+                        const author = container ? getAuthorName(container).toLowerCase() : '';
+                        if (author && whitelist.has(author)) return;
+                        const authorMatched = settings.highlightAuthorEnabled && author && textHasPrepared(author, highlightMatchers);
+                        if (textHasPrepared(node.textContent || '', highlightMatchers) || authorMatched) {
+                            node.style.setProperty('--ns-filter-highlight-color', settings.highlightColor || '#38bdf8');
+                            node.classList.add('ns-filter-highlighted');
+                            highlighted += 1;
+                        }
+                    });
+                }
 
                 lastStats = { hidden, highlighted };
                 if (selectedFilterMode) applySelectedFilterView(selectedFilterMode);
@@ -7366,17 +7348,34 @@
                 }, 200);
             }
 
+            function nodeCanAffectFilters(node) {
+                if (!(node instanceof Element) || isPluginNode(node)) return false;
+                if (node.matches?.('article, .nsk-content, .card, .post, .topic, .reply, li, tr, a[href*="/post"], a[href*="/topic"], a[href*="/article"], .post-list-item, .thread-title, .topic-title, .post-title, .article-title, .content-title, h1, h2, h3')) return true;
+                return !!node.querySelector?.('article, .nsk-content, .card, .post, .topic, .reply, li, tr, a[href*="/post"], a[href*="/topic"], a[href*="/article"], .post-list-item, .thread-title, .topic-title, .post-title, .article-title, .content-title, h1, h2, h3');
+            }
+
             function initFilterObserver() {
                 applyFilters();
                 if (observer) return;
-                observer = new MutationObserver(scheduleApplyFilters);
+                observer = new MutationObserver(function (mutations) {
+                    for (const mutation of mutations) {
+                        for (const node of mutation.addedNodes) {
+                            if (nodeCanAffectFilters(node)) {
+                                scheduleApplyFilters();
+                                return;
+                            }
+                        }
+                    }
+                });
                 observer.observe(document.body, { childList: true, subtree: true });
             }
 
             function renderHighlightStatsToContainer() {
                 const box = document.getElementById('ns-highlight-stats-container');
                 if (!box) {
-                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.updateHighlightCount === 'function') {
+                        window.NodeSeekCollapsedActions.updateHighlightCount();
+                    } else if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
                         window.NodeSeekCollapsedActions.refresh();
                     }
                     return;
@@ -7416,7 +7415,9 @@
                         tags.appendChild(tag);
                     });
                     box.appendChild(tags);
-                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
+                    if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.updateHighlightCount === 'function') {
+                        window.NodeSeekCollapsedActions.updateHighlightCount();
+                    } else if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
                         window.NodeSeekCollapsedActions.refresh();
                     }
                     return;
@@ -7767,185 +7768,6 @@
                 showOnlyHidden: function () { applySelectedFilterView('hidden'); },
                 toggleHidden: function () { toggleSelectedFilterView('hidden'); },
                 showAllFiltered: function () { applySelectedFilterView(''); }
-            };
-        })();
-    }
-
-    if (!window.NodeSeekAdFilter) {
-        window.NodeSeekAdFilter = (function () {
-            const HIDDEN_ATTR = 'data-ns-ad-hidden';
-            const DISPLAY_ATTR = 'data-ns-ad-old-display';
-            const PLUGIN_SELECTOR = '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #friends-dialog, #nodeimage-dialog, .ns-modal, .ns-dialog';
-            const CONTENT_SELECTOR = 'li.post-list-item, .post-list-item, .post-content, .reply-item, .comment-item, .markdown-body, article, main';
-            const AD_TEXT_RE = /(?:^|\s|[【[（(])(?:广告|推广|赞助|sponsored|promotion)(?:\s|[】\]）)]|$)/i;
-            const AD_TOKEN_RE = /(?:^|[-_\s])(?:sponsor|sponsored|promotion|promoted|advert|advertise|advertisement|banner)(?:[-_\s]|$)/i;
-            const AD_HOST_RE = /(?:doubleclick|googlesyndication|googleadservices|adservice|adsystem|adnxs|sponsor|promotion|advert)/i;
-            let observer = null;
-            let scanTimer = null;
-
-            function isEnabled() {
-                if (typeof getAdFilterEnabled === 'function') return getAdFilterEnabled();
-                return localStorage.getItem('nodeseek_ad_filter_enabled') === 'true';
-            }
-
-            function isPluginNode(node) {
-                return !!(node && node.closest && node.closest(PLUGIN_SELECTOR));
-            }
-
-            function isContentNode(node) {
-                return !!(node && node.closest && node.closest(CONTENT_SELECTOR));
-            }
-
-            function getNodeTokenText(node) {
-                return [
-                    node.id || '',
-                    node.className && typeof node.className === 'string' ? node.className : '',
-                    node.getAttribute?.('aria-label') || '',
-                    node.getAttribute?.('title') || ''
-                ].join(' ');
-            }
-
-            function queryWithRoot(root, selector) {
-                const scope = root && root.querySelectorAll ? root : document;
-                const nodes = Array.from(scope.querySelectorAll(selector));
-                if (root instanceof Element && root.matches(selector)) nodes.unshift(root);
-                return nodes;
-            }
-
-            function isVisible(node) {
-                if (!(node instanceof HTMLElement)) return false;
-                const rect = node.getBoundingClientRect();
-                return rect.width > 0 && rect.height > 0;
-            }
-
-            function hideNode(node) {
-                if (!(node instanceof HTMLElement) || isPluginNode(node) || isContentNode(node)) return;
-                if (!node.hasAttribute(HIDDEN_ATTR)) {
-                    node.setAttribute(DISPLAY_ATTR, node.style.display || '');
-                }
-                node.style.display = 'none';
-                node.setAttribute(HIDDEN_ATTR, 'true');
-            }
-
-            function restoreAll() {
-                document.querySelectorAll('[' + HIDDEN_ATTR + '="true"]').forEach(node => {
-                    if (!(node instanceof HTMLElement)) return;
-                    node.style.display = node.getAttribute(DISPLAY_ATTR) || '';
-                    node.removeAttribute(HIDDEN_ATTR);
-                    node.removeAttribute(DISPLAY_ATTR);
-                });
-            }
-
-            function getSafeAdContainer(node) {
-                if (!(node instanceof HTMLElement) || isPluginNode(node) || isContentNode(node)) return null;
-                const container = node.closest('aside, section, [class*="sidebar"], [class*="widget"], [class*="card"], [class*="panel"], [class*="box"], [class*="banner"], [class*="sponsor"], [class*="promotion"]');
-                if (!(container instanceof HTMLElement) || isPluginNode(container) || isContentNode(container)) return null;
-                const text = (container.textContent || '').replace(/\s+/g, ' ').trim();
-                if (text.length > 320) return null;
-                return container;
-            }
-
-            function hideClassifiedBlocks(root) {
-                const selector = 'aside, [id*="sponsor"], [class*="sponsor"], [id*="promotion"], [class*="promotion"], [id*="banner"], [class*="banner"]';
-                queryWithRoot(root, selector).forEach(node => {
-                    if (!(node instanceof HTMLElement) || isPluginNode(node) || isContentNode(node)) return;
-                    const tokenText = getNodeTokenText(node);
-                    const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
-                    if (AD_TOKEN_RE.test(tokenText) || (text.length <= 320 && AD_TEXT_RE.test(text))) {
-                        hideNode(node);
-                    }
-                });
-            }
-
-            function hideTextMarkedBlocks(root) {
-                queryWithRoot(root, 'aside, section, div, span, a').forEach(node => {
-                    if (!(node instanceof HTMLElement) || isPluginNode(node) || isContentNode(node) || !isVisible(node)) return;
-                    const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
-                    if (!text || text.length > 80 || !AD_TEXT_RE.test(text)) return;
-                    const container = getSafeAdContainer(node);
-                    if (container) hideNode(container);
-                });
-            }
-
-            function hideAdIframes(root) {
-                queryWithRoot(root, 'iframe').forEach(node => {
-                    if (!(node instanceof HTMLIFrameElement) || isPluginNode(node) || isContentNode(node)) return;
-                    const tokenText = getNodeTokenText(node) + ' ' + (node.src || '');
-                    if (!AD_HOST_RE.test(tokenText)) return;
-                    hideNode(node);
-                });
-            }
-
-            function scan(root) {
-                if (!isEnabled()) {
-                    restoreAll();
-                    stopObserver();
-                    return;
-                }
-                hideClassifiedBlocks(root);
-                hideTextMarkedBlocks(root);
-                hideAdIframes(root);
-            }
-
-            function scheduleScan(root) {
-                if (scanTimer) clearTimeout(scanTimer);
-                scanTimer = setTimeout(function () {
-                    scanTimer = null;
-                    scan(root || document);
-                }, 180);
-            }
-
-            function startObserver() {
-                if (observer || !document.body) return;
-                observer = new MutationObserver(function (mutations) {
-                    for (const mutation of mutations) {
-                        for (const node of mutation.addedNodes) {
-                            if (node instanceof Element) {
-                                scheduleScan(node);
-                                return;
-                            }
-                        }
-                    }
-                });
-                observer.observe(document.body, { childList: true, subtree: true });
-            }
-
-            function stopObserver() {
-                if (!observer) return;
-                observer.disconnect();
-                observer = null;
-            }
-
-            function refresh() {
-                if (isEnabled()) {
-                    scan(document);
-                    startObserver();
-                } else {
-                    restoreAll();
-                    stopObserver();
-                }
-            }
-
-            function setEnabled(enabled) {
-                if (typeof setAdFilterEnabled === 'function') setAdFilterEnabled(!!enabled);
-                else localStorage.setItem('nodeseek_ad_filter_enabled', enabled ? 'true' : 'false');
-                refresh();
-            }
-
-            function init() {
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', refresh, { once: true });
-                } else {
-                    refresh();
-                }
-            }
-
-            init();
-
-            return {
-                isEnabled,
-                setEnabled,
-                refresh
             };
         })();
     }
@@ -9944,35 +9766,6 @@
         openPostNewTabRow.appendChild(openPostNewTabLabel);
         openPostNewTabRow.appendChild(openPostNewTabSwitch);
         content.appendChild(openPostNewTabRow);
-
-        const adFilterRow = document.createElement('div');
-        adFilterRow.style.display = 'flex';
-        adFilterRow.style.justifyContent = 'space-between';
-        adFilterRow.style.alignItems = 'center';
-        adFilterRow.style.gap = '8px';
-
-        const adFilterLabel = document.createElement('label');
-        adFilterLabel.textContent = '隐藏广告/推广位';
-        adFilterLabel.style.fontWeight = '500';
-        adFilterLabel.style.color = '#555';
-
-        const adFilterSwitch = document.createElement('input');
-        adFilterSwitch.type = 'checkbox';
-        adFilterSwitch.checked = getAdFilterEnabled();
-        adFilterSwitch.style.transform = 'scale(1.2)';
-        adFilterSwitch.onchange = function () {
-            const newState = this.checked;
-            if (window.NodeSeekAdFilter && typeof window.NodeSeekAdFilter.setEnabled === 'function') {
-                window.NodeSeekAdFilter.setEnabled(newState);
-            } else {
-                setAdFilterEnabled(newState);
-            }
-            addLog('广告遮蔽：' + (newState ? '开启' : '关闭'));
-        };
-
-        adFilterRow.appendChild(adFilterLabel);
-        adFilterRow.appendChild(adFilterSwitch);
-        content.appendChild(adFilterRow);
 
         // 4. 跳过跳转页面开关 -> 改为 屏蔽URL跳转提醒
         const skipJumpRow = document.createElement('div');
