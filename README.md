@@ -119,6 +119,7 @@ https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
 位置：WebDAV 同步。
 动作：配置地址、账号、密码、间隔和字段。
 结果：数据保存到 WebDAV 地址内的 `nodeseek_data.json`；密码优先保存到油猴脚本存储。
+结果：仓库不内置个人 WebDAV 地址，用户在设置中填写自己的 WebDAV 地址即可。
 
 位置：WebDAV 同步。
 动作：检测本地和远端修改时间。
