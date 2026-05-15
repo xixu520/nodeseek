@@ -891,6 +891,7 @@
         setBlacklist(list);
         // 记录操作日志
         addLog(`将用户 ${username} 加入黑名单${remark ? ` (备注: ${remark})` : ''}${postId ? ` (楼层ID: ${postId})` : ''}`);
+        syncOfficialBlockUser(username);
         // 新增：拉黑时自动移除好友
         removeFriend(username, true);
     }
@@ -941,6 +942,33 @@
             }
         }
         return null;
+    }
+
+    async function syncOfficialBlockUser(username) {
+        const name = String(username || '').trim();
+        if (!name) return false;
+        try {
+            const response = await fetch('/api/block-list/add', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ block_member_name: name })
+            });
+            let data = null;
+            try {
+                data = await response.json();
+            } catch (e) { }
+            if (response.ok && data && data.success) {
+                addLog('官方屏蔽用户：已同步 ' + name);
+                return true;
+            }
+            const message = data && data.message ? String(data.message) : ('HTTP ' + response.status);
+            addLog('官方屏蔽用户：同步 ' + name + ' 失败，' + message);
+            return false;
+        } catch (error) {
+            addLog('官方屏蔽用户：同步 ' + name + ' 失败，' + (error && error.message ? error.message : String(error)));
+            return false;
+        }
     }
 
     function getHashQueryParam(name) {
