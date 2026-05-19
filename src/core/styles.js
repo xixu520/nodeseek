@@ -238,7 +238,7 @@
             bottom: 40px !important;
         }
 
-        #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
+        #logs-dialog, #blacklist-dialog, #friends-dialog, #browse-history-dialog,
         #settings-dialog, #webdav-sync-dialog, #jump-list-dialog, #ns-nodeimage-safari-dialog {
             position: fixed !important;
             width: calc(100vw - 20px) !important;
@@ -267,7 +267,7 @@
 
         /* 弹窗关闭按钮适配 */
         #logs-dialog .close-btn, #blacklist-dialog .close-btn,
-        #friends-dialog .close-btn, #favorites-dialog .close-btn, #browse-history-dialog .close-btn {
+        #friends-dialog .close-btn, #browse-history-dialog .close-btn {
             right: 8px !important;
             top: 5px !important;
             font-size: 24px !important;
@@ -300,14 +300,14 @@
         }
 
         /* 表格容器适配 - 移动端纵向布局 */
-        #blacklist-dialog table, #friends-dialog table, #favorites-dialog table, #browse-history-dialog table,
-        #blacklist-dialog tbody, #friends-dialog tbody, #favorites-dialog tbody, #browse-history-dialog tbody {
+        #blacklist-dialog table, #friends-dialog table, #browse-history-dialog table,
+        #blacklist-dialog tbody, #friends-dialog tbody, #browse-history-dialog tbody {
             width: 100% !important;
             display: block !important;
         }
 
         /* 移动端表格行转为卡片式布局 */
-        #blacklist-dialog tr, #friends-dialog tr, #favorites-dialog tr, #browse-history-dialog tr {
+        #blacklist-dialog tr, #friends-dialog tr, #browse-history-dialog tr {
             display: block !important;
             border: 1px solid #e0e0e0 !important;
             border-radius: 8px !important;
@@ -317,12 +317,12 @@
         }
 
         /* 移动端表头隐藏 */
-        #blacklist-dialog thead, #friends-dialog thead, #favorites-dialog thead, #browse-history-dialog thead {
+        #blacklist-dialog thead, #friends-dialog thead, #browse-history-dialog thead {
             display: none !important;
         }
 
         /* 表格单元格纵向排列 */
-        #blacklist-dialog td, #friends-dialog td, #favorites-dialog td, #browse-history-dialog td {
+        #blacklist-dialog td, #friends-dialog td, #browse-history-dialog td {
             display: block !important;
             width: 100% !important;
             max-width: 100% !important;
@@ -337,7 +337,7 @@
         }
 
         /* 用户名和标题样式特殊处理 */
-        #blacklist-dialog td:first-child, #friends-dialog td:first-child, #favorites-dialog td:first-child, #browse-history-dialog td:first-child {
+        #blacklist-dialog td:first-child, #friends-dialog td:first-child, #browse-history-dialog td:first-child {
             font-size: 15px !important;
             font-weight: bold !important;
             border-bottom: 1px solid #eaeaea !important;
@@ -347,8 +347,7 @@
 
         /* 备注特殊处理 - 显示为单独一行带前缀 */
         #blacklist-dialog td:nth-child(2)::before,
-        #friends-dialog td:nth-child(2)::before,
-        #favorites-dialog td:nth-child(2)::before {
+        #friends-dialog td:nth-child(2)::before {
             content: "备注：" !important;
             font-weight: bold !important;
             color: #666 !important;
@@ -357,8 +356,7 @@
 
         /* 备注行样式 */
         #blacklist-dialog td:nth-child(2),
-        #friends-dialog td:nth-child(2),
-        #favorites-dialog td:nth-child(2) {
+        #friends-dialog td:nth-child(2) {
             white-space: normal !important; /* 允许备注内容换行 */
             line-height: 1.3 !important; /* 减少行高 */
             max-height: 50px !important; /* 减少最大高度 */
@@ -369,8 +367,7 @@
 
         /* 时间特殊处理 */
         #blacklist-dialog td:nth-child(3)::before,
-        #friends-dialog td:nth-child(3)::before,
-        #favorites-dialog td:nth-child(4)::before {
+        #friends-dialog td:nth-child(3)::before {
             content: "时间：" !important;
             font-weight: bold !important;
             color: #666 !important;
@@ -388,7 +385,6 @@
         /* 操作按钮放在底部，居中显示 */
         #blacklist-dialog td:last-child,
         #friends-dialog td:last-child,
-        #favorites-dialog td:last-child,
         #browse-history-dialog td:last-child {
             text-align: center !important;
             padding-top: 4px !important; /* 减少上填充 */
@@ -399,7 +395,6 @@
         /* 移除按钮在移动端内更显眼 */
         #blacklist-dialog td:last-child button,
         #friends-dialog td:last-child button,
-        #favorites-dialog td:last-child button,
         #browse-history-dialog td:last-child button {
             width: 65px !important; /* 稍微减少按钮宽度 */
             padding: 3px 0 !important; /* 减少按钮内部填充 */
@@ -407,15 +402,14 @@
         }
 
         /* 弹窗内部滚动区域 */
-        #logs-dialog pre, #blacklist-dialog div, #friends-dialog div, #favorites-dialog div, #browse-history-dialog div {
+        #logs-dialog pre, #blacklist-dialog div, #friends-dialog div, #browse-history-dialog div {
             max-height: 65vh !important;
             overflow-y: auto !important;
         }
 
         /* 当备注为空时显示提示文本 */
         #blacklist-dialog td:nth-child(2):empty::after,
-        #friends-dialog td:nth-child(2):empty::after,
-        #favorites-dialog td:nth-child(2):empty::after {
+        #friends-dialog td:nth-child(2):empty::after {
             content: "无" !important;
             color: #999 !important;
             font-style: italic !important;
@@ -880,9 +874,9 @@
             color: #0f766e !important;
         }
 
-        #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
+        #logs-dialog, #blacklist-dialog, #friends-dialog, #browse-history-dialog,
         #settings-dialog, #webdav-sync-dialog, #jump-list-dialog, #ns-nodeimage-safari-dialog,
-        #favorite-add-dialog, #chicken-leg-stats-dialog, #hot-topics-dialog, #vps-calculator-dialog,
+        #chicken-leg-stats-dialog, #hot-topics-dialog, #vps-calculator-dialog,
         #notes-dialog, #ns-filter-dialog, #quick-reply-dialog {
             font-family: var(--ns-ui-font) !important;
             color: var(--ns-ui-text) !important;
@@ -892,23 +886,23 @@
             box-shadow: var(--ns-ui-shadow) !important;
         }
 
-        #logs-dialog button, #blacklist-dialog button, #friends-dialog button, #favorites-dialog button,
+        #logs-dialog button, #blacklist-dialog button, #friends-dialog button,
         #browse-history-dialog button, #settings-dialog button, #webdav-sync-dialog button,
-        #jump-list-dialog button, #ns-nodeimage-safari-dialog button, #favorite-add-dialog button,
+        #jump-list-dialog button, #ns-nodeimage-safari-dialog button,
         #chicken-leg-stats-dialog button, #hot-topics-dialog button, #vps-calculator-dialog button,
         #notes-dialog button, #ns-filter-dialog button, #quick-reply-dialog button {
             border-radius: 6px !important;
             min-height: 26px !important;
         }
 
-        #logs-dialog input, #blacklist-dialog input, #friends-dialog input, #favorites-dialog input,
+        #logs-dialog input, #blacklist-dialog input, #friends-dialog input,
         #browse-history-dialog input, #settings-dialog input, #webdav-sync-dialog input,
-        #jump-list-dialog input, #ns-nodeimage-safari-dialog input, #favorite-add-dialog input,
+        #jump-list-dialog input, #ns-nodeimage-safari-dialog input,
         #chicken-leg-stats-dialog input, #hot-topics-dialog input, #vps-calculator-dialog input,
         #notes-dialog input, #ns-filter-dialog input, #quick-reply-dialog input,
-        #logs-dialog textarea, #blacklist-dialog textarea, #friends-dialog textarea, #favorites-dialog textarea,
+        #logs-dialog textarea, #blacklist-dialog textarea, #friends-dialog textarea,
         #browse-history-dialog textarea, #settings-dialog textarea, #webdav-sync-dialog textarea,
-        #jump-list-dialog textarea, #ns-nodeimage-safari-dialog textarea, #favorite-add-dialog textarea,
+        #jump-list-dialog textarea, #ns-nodeimage-safari-dialog textarea,
         #notes-dialog textarea, #ns-filter-dialog textarea, #quick-reply-dialog textarea,
         #settings-dialog select, #webdav-sync-dialog select, #jump-list-dialog select {
             border: 1px solid var(--ns-ui-line) !important;
@@ -926,9 +920,9 @@
         }
 
         #logs-dialog input:focus, #blacklist-dialog input:focus, #friends-dialog input:focus,
-        #favorites-dialog input:focus, #browse-history-dialog input:focus, #settings-dialog input:focus,
+        #browse-history-dialog input:focus, #settings-dialog input:focus,
         #webdav-sync-dialog input:focus, #jump-list-dialog input:focus, #ns-nodeimage-safari-dialog input:focus,
-        #favorite-add-dialog input:focus, #notes-dialog input:focus, #ns-filter-dialog input:focus,
+        #notes-dialog input:focus, #ns-filter-dialog input:focus,
         #quick-reply-dialog input:focus, #notes-dialog textarea:focus, #ns-filter-dialog textarea:focus,
         #quick-reply-dialog textarea:focus {
             border-color: rgba(37, 99, 235, .65) !important;
@@ -1069,24 +1063,24 @@
             color: #ffffff !important;
         }
 
-        #blacklist-dialog table, #friends-dialog table, #favorites-dialog table, #browse-history-dialog table {
+        #blacklist-dialog table, #friends-dialog table, #browse-history-dialog table {
             border-collapse: separate !important;
             border-spacing: 0 !important;
             overflow: hidden !important;
         }
 
-        #blacklist-dialog th, #friends-dialog th, #favorites-dialog th, #browse-history-dialog th {
+        #blacklist-dialog th, #friends-dialog th, #browse-history-dialog th {
             padding: 8px 6px !important;
             color: var(--ns-ui-muted) !important;
             background: var(--ns-ui-soft) !important;
             border-bottom: 1px solid var(--ns-ui-line) !important;
         }
 
-        #blacklist-dialog td, #friends-dialog td, #favorites-dialog td, #browse-history-dialog td {
+        #blacklist-dialog td, #friends-dialog td, #browse-history-dialog td {
             border-bottom: 1px solid var(--ns-ui-line) !important;
         }
 
-        #blacklist-dialog tr:hover, #friends-dialog tr:hover, #favorites-dialog tr:hover, #browse-history-dialog tr:hover {
+        #blacklist-dialog tr:hover, #friends-dialog tr:hover, #browse-history-dialog tr:hover {
             background: var(--ns-ui-hover) !important;
         }
 
@@ -1317,9 +1311,9 @@
                 gap: 10px !important;
             }
 
-            #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
+            #logs-dialog, #blacklist-dialog, #friends-dialog, #browse-history-dialog,
             #settings-dialog, #webdav-sync-dialog, #jump-list-dialog, #ns-nodeimage-safari-dialog,
-            #favorite-add-dialog, #chicken-leg-stats-dialog, #hot-topics-dialog, #vps-calculator-dialog,
+            #chicken-leg-stats-dialog, #hot-topics-dialog, #vps-calculator-dialog,
             #notes-dialog, #ns-filter-dialog, #quick-reply-dialog {
                 left: 10px !important;
                 right: 10px !important;
@@ -1340,21 +1334,20 @@
                 border-radius: 10px !important;
             }
 
-            #blacklist-dialog tr, #friends-dialog tr, #favorites-dialog tr, #browse-history-dialog tr {
+            #blacklist-dialog tr, #friends-dialog tr, #browse-history-dialog tr {
                 background: var(--ns-ui-soft) !important;
                 border: 1px solid var(--ns-ui-line) !important;
                 border-radius: 10px !important;
                 padding: 8px !important;
             }
 
-            #blacklist-dialog td, #friends-dialog td, #favorites-dialog td, #browse-history-dialog td {
+            #blacklist-dialog td, #friends-dialog td, #browse-history-dialog td {
                 border: 0 !important;
                 line-height: 1.45 !important;
             }
 
             #blacklist-dialog td:last-child button,
             #friends-dialog td:last-child button,
-            #favorites-dialog td:last-child button,
             #browse-history-dialog td:last-child button {
                 width: 100% !important;
                 min-height: 34px !important;

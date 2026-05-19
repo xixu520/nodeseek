@@ -1,6 +1,6 @@
 {
   "name": "nodeseek-userscript",
-  "version": "2026.05.15.1",
+  "version": "2026.05.19.1",
   "private": true,
   "scripts": {
     "build": "node scripts/build.js",

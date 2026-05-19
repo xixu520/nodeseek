@@ -1561,6 +1561,105 @@
         });
     }
 
+    const NODEIMAGE_CDN_ORIGIN = 'https://cdn.nodeimage.com';
+    const NODEIMAGE_IMAGE_ATTR = 'data-ns-nodeimage-optimized';
+    let nodeImageOptimizeTimer = null;
+
+    function ensureNodeImageConnectionHints() {
+        const head = document.head || document.documentElement;
+        if (!head || document.getElementById('ns-nodeimage-cdn-preconnect')) return;
+
+        const preconnect = document.createElement('link');
+        preconnect.id = 'ns-nodeimage-cdn-preconnect';
+        preconnect.rel = 'preconnect';
+        preconnect.href = NODEIMAGE_CDN_ORIGIN;
+        preconnect.crossOrigin = 'anonymous';
+        head.appendChild(preconnect);
+
+        const dnsPrefetch = document.createElement('link');
+        dnsPrefetch.id = 'ns-nodeimage-cdn-dns-prefetch';
+        dnsPrefetch.rel = 'dns-prefetch';
+        dnsPrefetch.href = NODEIMAGE_CDN_ORIGIN;
+        head.appendChild(dnsPrefetch);
+    }
+
+    function isNodeImageCdnUrl(value) {
+        if (!value) return false;
+        try {
+            return new URL(value, window.location.href).hostname === 'cdn.nodeimage.com';
+        } catch (e) {
+            return String(value).indexOf('cdn.nodeimage.com') !== -1;
+        }
+    }
+
+    function imageUsesNodeImageCdn(img) {
+        if (!(img instanceof HTMLImageElement)) return false;
+        return isNodeImageCdnUrl(img.currentSrc)
+            || isNodeImageCdnUrl(img.src)
+            || isNodeImageCdnUrl(img.getAttribute('data-src'))
+            || isNodeImageCdnUrl(img.getAttribute('data-original'))
+            || isNodeImageCdnUrl(img.getAttribute('srcset'))
+            || isNodeImageCdnUrl(img.getAttribute('data-srcset'));
+    }
+
+    function isNearViewport(el) {
+        try {
+            const rect = el.getBoundingClientRect();
+            const height = window.innerHeight || document.documentElement.clientHeight || 800;
+            return rect.top < height * 1.25 && rect.bottom > -height * 0.25;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function optimizeNodeImage(img) {
+        if (!imageUsesNodeImageCdn(img)) return;
+        if (img.getAttribute(NODEIMAGE_IMAGE_ATTR) === 'true') return;
+        img.setAttribute(NODEIMAGE_IMAGE_ATTR, 'true');
+        img.decoding = 'async';
+        if (isNearViewport(img)) {
+            img.loading = 'eager';
+            try { img.fetchPriority = 'high'; } catch (e) { }
+        } else {
+            img.loading = 'lazy';
+            try { img.fetchPriority = 'low'; } catch (e) { }
+        }
+    }
+
+    function optimizeNodeImageCdnImages(root) {
+        ensureNodeImageConnectionHints();
+        const scope = root && root.querySelectorAll ? root : document;
+        if (scope instanceof HTMLImageElement) optimizeNodeImage(scope);
+        scope.querySelectorAll?.('img').forEach(optimizeNodeImage);
+    }
+
+    function scheduleNodeImageCdnOptimize(root) {
+        if (nodeImageOptimizeTimer) clearTimeout(nodeImageOptimizeTimer);
+        nodeImageOptimizeTimer = setTimeout(function () {
+            nodeImageOptimizeTimer = null;
+            optimizeNodeImageCdnImages(root || document);
+        }, 120);
+    }
+
+    function startNodeImageCdnOptimize() {
+        optimizeNodeImageCdnImages(document);
+        window.addEventListener('load', function () {
+            optimizeNodeImageCdnImages(document);
+        }, { once: true });
+        try {
+            new MutationObserver(function (mutations) {
+                for (const mutation of mutations) {
+                    for (const node of mutation.addedNodes) {
+                        if (node instanceof Element && (node.matches?.('img') || node.querySelector?.('img'))) {
+                            scheduleNodeImageCdnOptimize(node);
+                            return;
+                        }
+                    }
+                }
+            }).observe(document.body || document.documentElement, { childList: true, subtree: true });
+        } catch (e) { }
+    }
+
     let nsBlacklistNavTimer = null;
     function scheduleEnsureBlacklistNav() {
         if (nsBlacklistNavTimer) return;
@@ -1582,6 +1681,7 @@
     window.addEventListener('hashchange', scheduleEnsureBlacklistNav);
     setTimeout(scheduleEnsureBlacklistNav, 300);
     setTimeout(scheduleEnsureBlacklistNav, 1500);
+    startNodeImageCdnOptimize();
     restartWebdavSyncTimer();
     bindSafariNodeImageToolbar();
     setTimeout(bindSafariNodeImageToolbar, 800);

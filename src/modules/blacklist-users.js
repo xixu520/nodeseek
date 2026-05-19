@@ -597,7 +597,7 @@
         if (!/\/post-\d+|\/topic\/|\/article\//.test(href) && !/\/post-\d+|\/topic\/|\/article\//.test(a.href)) return;
         const text = (a.textContent || '').trim();
         if (text.length < 1) return;
-        if (a.closest('#nodeseek-plugin-container, #browse-history-dialog, #favorites-dialog, #blacklist-dialog, #friends-dialog, #logs-dialog, footer')) return;
+        if (a.closest('#nodeseek-plugin-container, #browse-history-dialog, #blacklist-dialog, #friends-dialog, #logs-dialog, footer')) return;
 
         // 立即记录到已读历史（任意进帖链接均可记录）；仅标题链接触发阅读记忆颜色（帖子详情页不着色）
         if (getViewedHistoryEnabled()) {
@@ -725,7 +725,7 @@
     function isLikelyTitleLink(a) {
         if (!(a instanceof HTMLAnchorElement)) return false;
         if (!a.href) return false;
-        if (a.closest('#nodeseek-plugin-container, #browse-history-dialog, #favorites-dialog, #blacklist-dialog, #friends-dialog, #logs-dialog')) return false;
+        if (a.closest('#nodeseek-plugin-container, #browse-history-dialog, #blacklist-dialog, #friends-dialog, #logs-dialog')) return false;
         if (a.closest('footer')) return false;
         if (a.closest('.floor-link-wrapper')) return false;
         // 列表项底部元信息行（作者、浏览、回复、最后回复时间等）内的帖子链不是标题
@@ -810,8 +810,8 @@
                 if (m.type !== 'childList' || m.addedNodes.length === 0) continue;
                 for (const node of m.addedNodes) {
                     if (node.nodeType !== Node.ELEMENT_NODE) continue;
-                    if (node.id && /^nodeseek-plugin|blacklist-dialog|friends-dialog|favorites-dialog|browse-history-dialog|logs-dialog|quick-reply-dialog/.test(node.id)) continue;
-                    if (node.closest && node.closest('#nodeseek-plugin-main-container, #nodeseek-plugin-buttons-container, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog, #logs-dialog, #quick-reply-dialog')) continue;
+                    if (node.id && /^nodeseek-plugin|blacklist-dialog|friends-dialog|browse-history-dialog|logs-dialog|quick-reply-dialog/.test(node.id)) continue;
+                    if (node.closest && node.closest('#nodeseek-plugin-main-container, #nodeseek-plugin-buttons-container, #blacklist-dialog, #friends-dialog, #browse-history-dialog, #logs-dialog, #quick-reply-dialog')) continue;
                     scheduleUpdateAll(180);
                     return;
                 }

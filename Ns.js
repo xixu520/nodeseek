@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.05.15.1
+// @version      2026.05.19.1
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -15,6 +15,7 @@
 
 // @connect      api.nodeimage.com
 // @connect      www.nodeimage.com
+// @connect      cdn.nodeimage.com
 // @connect      *
 // @run-at       document-end
 // ==/UserScript==
@@ -1325,7 +1326,7 @@
             bottom: 40px !important;
         }
 
-        #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
+        #logs-dialog, #blacklist-dialog, #friends-dialog, #browse-history-dialog,
         #settings-dialog, #webdav-sync-dialog, #jump-list-dialog, #ns-nodeimage-safari-dialog {
             position: fixed !important;
             width: calc(100vw - 20px) !important;
@@ -1354,7 +1355,7 @@
 
         /* 弹窗关闭按钮适配 */
         #logs-dialog .close-btn, #blacklist-dialog .close-btn,
-        #friends-dialog .close-btn, #favorites-dialog .close-btn, #browse-history-dialog .close-btn {
+        #friends-dialog .close-btn, #browse-history-dialog .close-btn {
             right: 8px !important;
             top: 5px !important;
             font-size: 24px !important;
@@ -1387,14 +1388,14 @@
         }
 
         /* 表格容器适配 - 移动端纵向布局 */
-        #blacklist-dialog table, #friends-dialog table, #favorites-dialog table, #browse-history-dialog table,
-        #blacklist-dialog tbody, #friends-dialog tbody, #favorites-dialog tbody, #browse-history-dialog tbody {
+        #blacklist-dialog table, #friends-dialog table, #browse-history-dialog table,
+        #blacklist-dialog tbody, #friends-dialog tbody, #browse-history-dialog tbody {
             width: 100% !important;
             display: block !important;
         }
 
         /* 移动端表格行转为卡片式布局 */
-        #blacklist-dialog tr, #friends-dialog tr, #favorites-dialog tr, #browse-history-dialog tr {
+        #blacklist-dialog tr, #friends-dialog tr, #browse-history-dialog tr {
             display: block !important;
             border: 1px solid #e0e0e0 !important;
             border-radius: 8px !important;
@@ -1404,12 +1405,12 @@
         }
 
         /* 移动端表头隐藏 */
-        #blacklist-dialog thead, #friends-dialog thead, #favorites-dialog thead, #browse-history-dialog thead {
+        #blacklist-dialog thead, #friends-dialog thead, #browse-history-dialog thead {
             display: none !important;
         }
 
         /* 表格单元格纵向排列 */
-        #blacklist-dialog td, #friends-dialog td, #favorites-dialog td, #browse-history-dialog td {
+        #blacklist-dialog td, #friends-dialog td, #browse-history-dialog td {
             display: block !important;
             width: 100% !important;
             max-width: 100% !important;
@@ -1424,7 +1425,7 @@
         }
 
         /* 用户名和标题样式特殊处理 */
-        #blacklist-dialog td:first-child, #friends-dialog td:first-child, #favorites-dialog td:first-child, #browse-history-dialog td:first-child {
+        #blacklist-dialog td:first-child, #friends-dialog td:first-child, #browse-history-dialog td:first-child {
             font-size: 15px !important;
             font-weight: bold !important;
             border-bottom: 1px solid #eaeaea !important;
@@ -1434,8 +1435,7 @@
 
         /* 备注特殊处理 - 显示为单独一行带前缀 */
         #blacklist-dialog td:nth-child(2)::before,
-        #friends-dialog td:nth-child(2)::before,
-        #favorites-dialog td:nth-child(2)::before {
+        #friends-dialog td:nth-child(2)::before {
             content: "备注：" !important;
             font-weight: bold !important;
             color: #666 !important;
@@ -1444,8 +1444,7 @@
 
         /* 备注行样式 */
         #blacklist-dialog td:nth-child(2),
-        #friends-dialog td:nth-child(2),
-        #favorites-dialog td:nth-child(2) {
+        #friends-dialog td:nth-child(2) {
             white-space: normal !important; /* 允许备注内容换行 */
             line-height: 1.3 !important; /* 减少行高 */
             max-height: 50px !important; /* 减少最大高度 */
@@ -1456,8 +1455,7 @@
 
         /* 时间特殊处理 */
         #blacklist-dialog td:nth-child(3)::before,
-        #friends-dialog td:nth-child(3)::before,
-        #favorites-dialog td:nth-child(4)::before {
+        #friends-dialog td:nth-child(3)::before {
             content: "时间：" !important;
             font-weight: bold !important;
             color: #666 !important;
@@ -1475,7 +1473,6 @@
         /* 操作按钮放在底部，居中显示 */
         #blacklist-dialog td:last-child,
         #friends-dialog td:last-child,
-        #favorites-dialog td:last-child,
         #browse-history-dialog td:last-child {
             text-align: center !important;
             padding-top: 4px !important; /* 减少上填充 */
@@ -1486,7 +1483,6 @@
         /* 移除按钮在移动端内更显眼 */
         #blacklist-dialog td:last-child button,
         #friends-dialog td:last-child button,
-        #favorites-dialog td:last-child button,
         #browse-history-dialog td:last-child button {
             width: 65px !important; /* 稍微减少按钮宽度 */
             padding: 3px 0 !important; /* 减少按钮内部填充 */
@@ -1494,15 +1490,14 @@
         }
 
         /* 弹窗内部滚动区域 */
-        #logs-dialog pre, #blacklist-dialog div, #friends-dialog div, #favorites-dialog div, #browse-history-dialog div {
+        #logs-dialog pre, #blacklist-dialog div, #friends-dialog div, #browse-history-dialog div {
             max-height: 65vh !important;
             overflow-y: auto !important;
         }
 
         /* 当备注为空时显示提示文本 */
         #blacklist-dialog td:nth-child(2):empty::after,
-        #friends-dialog td:nth-child(2):empty::after,
-        #favorites-dialog td:nth-child(2):empty::after {
+        #friends-dialog td:nth-child(2):empty::after {
             content: "无" !important;
             color: #999 !important;
             font-style: italic !important;
@@ -1967,9 +1962,9 @@
             color: #0f766e !important;
         }
 
-        #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
+        #logs-dialog, #blacklist-dialog, #friends-dialog, #browse-history-dialog,
         #settings-dialog, #webdav-sync-dialog, #jump-list-dialog, #ns-nodeimage-safari-dialog,
-        #favorite-add-dialog, #chicken-leg-stats-dialog, #hot-topics-dialog, #vps-calculator-dialog,
+        #chicken-leg-stats-dialog, #hot-topics-dialog, #vps-calculator-dialog,
         #notes-dialog, #ns-filter-dialog, #quick-reply-dialog {
             font-family: var(--ns-ui-font) !important;
             color: var(--ns-ui-text) !important;
@@ -1979,23 +1974,23 @@
             box-shadow: var(--ns-ui-shadow) !important;
         }
 
-        #logs-dialog button, #blacklist-dialog button, #friends-dialog button, #favorites-dialog button,
+        #logs-dialog button, #blacklist-dialog button, #friends-dialog button,
         #browse-history-dialog button, #settings-dialog button, #webdav-sync-dialog button,
-        #jump-list-dialog button, #ns-nodeimage-safari-dialog button, #favorite-add-dialog button,
+        #jump-list-dialog button, #ns-nodeimage-safari-dialog button,
         #chicken-leg-stats-dialog button, #hot-topics-dialog button, #vps-calculator-dialog button,
         #notes-dialog button, #ns-filter-dialog button, #quick-reply-dialog button {
             border-radius: 6px !important;
             min-height: 26px !important;
         }
 
-        #logs-dialog input, #blacklist-dialog input, #friends-dialog input, #favorites-dialog input,
+        #logs-dialog input, #blacklist-dialog input, #friends-dialog input,
         #browse-history-dialog input, #settings-dialog input, #webdav-sync-dialog input,
-        #jump-list-dialog input, #ns-nodeimage-safari-dialog input, #favorite-add-dialog input,
+        #jump-list-dialog input, #ns-nodeimage-safari-dialog input,
         #chicken-leg-stats-dialog input, #hot-topics-dialog input, #vps-calculator-dialog input,
         #notes-dialog input, #ns-filter-dialog input, #quick-reply-dialog input,
-        #logs-dialog textarea, #blacklist-dialog textarea, #friends-dialog textarea, #favorites-dialog textarea,
+        #logs-dialog textarea, #blacklist-dialog textarea, #friends-dialog textarea,
         #browse-history-dialog textarea, #settings-dialog textarea, #webdav-sync-dialog textarea,
-        #jump-list-dialog textarea, #ns-nodeimage-safari-dialog textarea, #favorite-add-dialog textarea,
+        #jump-list-dialog textarea, #ns-nodeimage-safari-dialog textarea,
         #notes-dialog textarea, #ns-filter-dialog textarea, #quick-reply-dialog textarea,
         #settings-dialog select, #webdav-sync-dialog select, #jump-list-dialog select {
             border: 1px solid var(--ns-ui-line) !important;
@@ -2013,9 +2008,9 @@
         }
 
         #logs-dialog input:focus, #blacklist-dialog input:focus, #friends-dialog input:focus,
-        #favorites-dialog input:focus, #browse-history-dialog input:focus, #settings-dialog input:focus,
+        #browse-history-dialog input:focus, #settings-dialog input:focus,
         #webdav-sync-dialog input:focus, #jump-list-dialog input:focus, #ns-nodeimage-safari-dialog input:focus,
-        #favorite-add-dialog input:focus, #notes-dialog input:focus, #ns-filter-dialog input:focus,
+        #notes-dialog input:focus, #ns-filter-dialog input:focus,
         #quick-reply-dialog input:focus, #notes-dialog textarea:focus, #ns-filter-dialog textarea:focus,
         #quick-reply-dialog textarea:focus {
             border-color: rgba(37, 99, 235, .65) !important;
@@ -2156,24 +2151,24 @@
             color: #ffffff !important;
         }
 
-        #blacklist-dialog table, #friends-dialog table, #favorites-dialog table, #browse-history-dialog table {
+        #blacklist-dialog table, #friends-dialog table, #browse-history-dialog table {
             border-collapse: separate !important;
             border-spacing: 0 !important;
             overflow: hidden !important;
         }
 
-        #blacklist-dialog th, #friends-dialog th, #favorites-dialog th, #browse-history-dialog th {
+        #blacklist-dialog th, #friends-dialog th, #browse-history-dialog th {
             padding: 8px 6px !important;
             color: var(--ns-ui-muted) !important;
             background: var(--ns-ui-soft) !important;
             border-bottom: 1px solid var(--ns-ui-line) !important;
         }
 
-        #blacklist-dialog td, #friends-dialog td, #favorites-dialog td, #browse-history-dialog td {
+        #blacklist-dialog td, #friends-dialog td, #browse-history-dialog td {
             border-bottom: 1px solid var(--ns-ui-line) !important;
         }
 
-        #blacklist-dialog tr:hover, #friends-dialog tr:hover, #favorites-dialog tr:hover, #browse-history-dialog tr:hover {
+        #blacklist-dialog tr:hover, #friends-dialog tr:hover, #browse-history-dialog tr:hover {
             background: var(--ns-ui-hover) !important;
         }
 
@@ -2404,9 +2399,9 @@
                 gap: 10px !important;
             }
 
-            #logs-dialog, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog,
+            #logs-dialog, #blacklist-dialog, #friends-dialog, #browse-history-dialog,
             #settings-dialog, #webdav-sync-dialog, #jump-list-dialog, #ns-nodeimage-safari-dialog,
-            #favorite-add-dialog, #chicken-leg-stats-dialog, #hot-topics-dialog, #vps-calculator-dialog,
+            #chicken-leg-stats-dialog, #hot-topics-dialog, #vps-calculator-dialog,
             #notes-dialog, #ns-filter-dialog, #quick-reply-dialog {
                 left: 10px !important;
                 right: 10px !important;
@@ -2427,21 +2422,20 @@
                 border-radius: 10px !important;
             }
 
-            #blacklist-dialog tr, #friends-dialog tr, #favorites-dialog tr, #browse-history-dialog tr {
+            #blacklist-dialog tr, #friends-dialog tr, #browse-history-dialog tr {
                 background: var(--ns-ui-soft) !important;
                 border: 1px solid var(--ns-ui-line) !important;
                 border-radius: 10px !important;
                 padding: 8px !important;
             }
 
-            #blacklist-dialog td, #friends-dialog td, #favorites-dialog td, #browse-history-dialog td {
+            #blacklist-dialog td, #friends-dialog td, #browse-history-dialog td {
                 border: 0 !important;
                 line-height: 1.45 !important;
             }
 
             #blacklist-dialog td:last-child button,
             #friends-dialog td:last-child button,
-            #favorites-dialog td:last-child button,
             #browse-history-dialog td:last-child button {
                 width: 100% !important;
                 min-height: 34px !important;
@@ -3051,7 +3045,7 @@
         if (!/\/post-\d+|\/topic\/|\/article\//.test(href) && !/\/post-\d+|\/topic\/|\/article\//.test(a.href)) return;
         const text = (a.textContent || '').trim();
         if (text.length < 1) return;
-        if (a.closest('#nodeseek-plugin-container, #browse-history-dialog, #favorites-dialog, #blacklist-dialog, #friends-dialog, #logs-dialog, footer')) return;
+        if (a.closest('#nodeseek-plugin-container, #browse-history-dialog, #blacklist-dialog, #friends-dialog, #logs-dialog, footer')) return;
 
         // 立即记录到已读历史（任意进帖链接均可记录）；仅标题链接触发阅读记忆颜色（帖子详情页不着色）
         if (getViewedHistoryEnabled()) {
@@ -3179,7 +3173,7 @@
     function isLikelyTitleLink(a) {
         if (!(a instanceof HTMLAnchorElement)) return false;
         if (!a.href) return false;
-        if (a.closest('#nodeseek-plugin-container, #browse-history-dialog, #favorites-dialog, #blacklist-dialog, #friends-dialog, #logs-dialog')) return false;
+        if (a.closest('#nodeseek-plugin-container, #browse-history-dialog, #blacklist-dialog, #friends-dialog, #logs-dialog')) return false;
         if (a.closest('footer')) return false;
         if (a.closest('.floor-link-wrapper')) return false;
         // 列表项底部元信息行（作者、浏览、回复、最后回复时间等）内的帖子链不是标题
@@ -3264,8 +3258,8 @@
                 if (m.type !== 'childList' || m.addedNodes.length === 0) continue;
                 for (const node of m.addedNodes) {
                     if (node.nodeType !== Node.ELEMENT_NODE) continue;
-                    if (node.id && /^nodeseek-plugin|blacklist-dialog|friends-dialog|favorites-dialog|browse-history-dialog|logs-dialog|quick-reply-dialog/.test(node.id)) continue;
-                    if (node.closest && node.closest('#nodeseek-plugin-main-container, #nodeseek-plugin-buttons-container, #blacklist-dialog, #friends-dialog, #favorites-dialog, #browse-history-dialog, #logs-dialog, #quick-reply-dialog')) continue;
+                    if (node.id && /^nodeseek-plugin|blacklist-dialog|friends-dialog|browse-history-dialog|logs-dialog|quick-reply-dialog/.test(node.id)) continue;
+                    if (node.closest && node.closest('#nodeseek-plugin-main-container, #nodeseek-plugin-buttons-container, #blacklist-dialog, #friends-dialog, #browse-history-dialog, #logs-dialog, #quick-reply-dialog')) continue;
                     scheduleUpdateAll(180);
                     return;
                 }
@@ -5290,7 +5284,7 @@
 
     function isNsPluginElement(node) {
         return !!(node && node.closest && node.closest(
-            '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #favorites-dialog, #friends-dialog, #nodeimage-dialog, .ns-modal, .ns-dialog'
+            '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #friends-dialog, #nodeimage-dialog, .ns-modal, .ns-dialog'
         ));
     }
 
@@ -5880,13 +5874,6 @@
                 openNodeImagePanel();
             };
         });
-    }
-
-    // 显示历史浏览记录弹窗
-    function showBrowseHistoryDialog() {
-        if (window.NodeSeekHistory && window.NodeSeekHistory.showDialog) {
-            return window.NodeSeekHistory.showDialog();
-        }
     }
 
     // 新增：显示跳转名单设置弹窗
@@ -6968,7 +6955,7 @@
             const profileFilterState = new WeakMap();
 
             const TOKEN_COLORS = ['#22c55e', '#14b8a6', '#38bdf8', '#8b5cf6', '#f97316', '#ec4899', '#64748b'];
-            const PLUGIN_SELECTOR = '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #favorites-dialog, #friends-dialog';
+            const PLUGIN_SELECTOR = '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #friends-dialog';
             const LEVEL_OPTIONS = ['0', '1', '2', '3', '4', '5', '6'];
             const TITLE_SELECTORS = [
                 'a.post-title',
@@ -8776,15 +8763,6 @@
                 }
             };
         }
-
-        if (!window.NodeSeekNodeImage) {
-            window.NodeSeekNodeImage = {
-                open: () => showSafariNodeImageDialog(),
-                insertIntoForumEditor: text => {
-                    return typeof insertTextToNodeSeekEditor === 'function' ? insertTextToNodeSeekEditor(text) : false;
-                }
-            };
-        }
     }
 
     // 防止重复记录的变量
@@ -10350,6 +10328,105 @@
         });
     }
 
+    const NODEIMAGE_CDN_ORIGIN = 'https://cdn.nodeimage.com';
+    const NODEIMAGE_IMAGE_ATTR = 'data-ns-nodeimage-optimized';
+    let nodeImageOptimizeTimer = null;
+
+    function ensureNodeImageConnectionHints() {
+        const head = document.head || document.documentElement;
+        if (!head || document.getElementById('ns-nodeimage-cdn-preconnect')) return;
+
+        const preconnect = document.createElement('link');
+        preconnect.id = 'ns-nodeimage-cdn-preconnect';
+        preconnect.rel = 'preconnect';
+        preconnect.href = NODEIMAGE_CDN_ORIGIN;
+        preconnect.crossOrigin = 'anonymous';
+        head.appendChild(preconnect);
+
+        const dnsPrefetch = document.createElement('link');
+        dnsPrefetch.id = 'ns-nodeimage-cdn-dns-prefetch';
+        dnsPrefetch.rel = 'dns-prefetch';
+        dnsPrefetch.href = NODEIMAGE_CDN_ORIGIN;
+        head.appendChild(dnsPrefetch);
+    }
+
+    function isNodeImageCdnUrl(value) {
+        if (!value) return false;
+        try {
+            return new URL(value, window.location.href).hostname === 'cdn.nodeimage.com';
+        } catch (e) {
+            return String(value).indexOf('cdn.nodeimage.com') !== -1;
+        }
+    }
+
+    function imageUsesNodeImageCdn(img) {
+        if (!(img instanceof HTMLImageElement)) return false;
+        return isNodeImageCdnUrl(img.currentSrc)
+            || isNodeImageCdnUrl(img.src)
+            || isNodeImageCdnUrl(img.getAttribute('data-src'))
+            || isNodeImageCdnUrl(img.getAttribute('data-original'))
+            || isNodeImageCdnUrl(img.getAttribute('srcset'))
+            || isNodeImageCdnUrl(img.getAttribute('data-srcset'));
+    }
+
+    function isNearViewport(el) {
+        try {
+            const rect = el.getBoundingClientRect();
+            const height = window.innerHeight || document.documentElement.clientHeight || 800;
+            return rect.top < height * 1.25 && rect.bottom > -height * 0.25;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function optimizeNodeImage(img) {
+        if (!imageUsesNodeImageCdn(img)) return;
+        if (img.getAttribute(NODEIMAGE_IMAGE_ATTR) === 'true') return;
+        img.setAttribute(NODEIMAGE_IMAGE_ATTR, 'true');
+        img.decoding = 'async';
+        if (isNearViewport(img)) {
+            img.loading = 'eager';
+            try { img.fetchPriority = 'high'; } catch (e) { }
+        } else {
+            img.loading = 'lazy';
+            try { img.fetchPriority = 'low'; } catch (e) { }
+        }
+    }
+
+    function optimizeNodeImageCdnImages(root) {
+        ensureNodeImageConnectionHints();
+        const scope = root && root.querySelectorAll ? root : document;
+        if (scope instanceof HTMLImageElement) optimizeNodeImage(scope);
+        scope.querySelectorAll?.('img').forEach(optimizeNodeImage);
+    }
+
+    function scheduleNodeImageCdnOptimize(root) {
+        if (nodeImageOptimizeTimer) clearTimeout(nodeImageOptimizeTimer);
+        nodeImageOptimizeTimer = setTimeout(function () {
+            nodeImageOptimizeTimer = null;
+            optimizeNodeImageCdnImages(root || document);
+        }, 120);
+    }
+
+    function startNodeImageCdnOptimize() {
+        optimizeNodeImageCdnImages(document);
+        window.addEventListener('load', function () {
+            optimizeNodeImageCdnImages(document);
+        }, { once: true });
+        try {
+            new MutationObserver(function (mutations) {
+                for (const mutation of mutations) {
+                    for (const node of mutation.addedNodes) {
+                        if (node instanceof Element && (node.matches?.('img') || node.querySelector?.('img'))) {
+                            scheduleNodeImageCdnOptimize(node);
+                            return;
+                        }
+                    }
+                }
+            }).observe(document.body || document.documentElement, { childList: true, subtree: true });
+        } catch (e) { }
+    }
+
     let nsBlacklistNavTimer = null;
     function scheduleEnsureBlacklistNav() {
         if (nsBlacklistNavTimer) return;
@@ -10371,6 +10448,7 @@
     window.addEventListener('hashchange', scheduleEnsureBlacklistNav);
     setTimeout(scheduleEnsureBlacklistNav, 300);
     setTimeout(scheduleEnsureBlacklistNav, 1500);
+    startNodeImageCdnOptimize();
     restartWebdavSyncTimer();
     bindSafariNodeImageToolbar();
     setTimeout(bindSafariNodeImageToolbar, 800);

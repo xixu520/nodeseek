@@ -508,13 +508,4 @@
                 }
             };
         }
-
-        if (!window.NodeSeekNodeImage) {
-            window.NodeSeekNodeImage = {
-                open: () => showSafariNodeImageDialog(),
-                insertIntoForumEditor: text => {
-                    return typeof insertTextToNodeSeekEditor === 'function' ? insertTextToNodeSeekEditor(text) : false;
-                }
-            };
-        }
     }

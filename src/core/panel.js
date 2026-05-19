@@ -1,10 +1,3 @@
-    // 显示历史浏览记录弹窗
-    function showBrowseHistoryDialog() {
-        if (window.NodeSeekHistory && window.NodeSeekHistory.showDialog) {
-            return window.NodeSeekHistory.showDialog();
-        }
-    }
-
     // 新增：显示跳转名单设置弹窗
     function showJumpListDialog() {
         const existing = document.getElementById('jump-list-dialog');

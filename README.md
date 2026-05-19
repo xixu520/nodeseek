@@ -89,6 +89,10 @@ https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
 动作：打开 NodeImage 面板。
 结果：支持获取和保存 API Key、上传图片、生成 Markdown，并插入论坛编辑器。
 
+位置：NodeImage 图片。
+动作：访问论坛时优化 `cdn.nodeimage.com` 图片。
+结果：提前建立连接，并按视口位置设置图片加载优先级。
+
 位置：阅读记忆。
 动作：记录已打开的帖子。
 结果：帖子标题会按设置颜色显示为已读，可清除记录。

@@ -151,7 +151,7 @@
 
     function isNsPluginElement(node) {
         return !!(node && node.closest && node.closest(
-            '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #favorites-dialog, #friends-dialog, #nodeimage-dialog, .ns-modal, .ns-dialog'
+            '#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #friends-dialog, #nodeimage-dialog, .ns-modal, .ns-dialog'
         ));
     }
 
