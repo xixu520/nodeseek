@@ -368,6 +368,7 @@
     let commentAutoLoadReady = false;
     let commentAutoLoadTimer = null;
     let commentAutoLoadCooldownUntil = 0;
+    let commentAutoLoadObserver = null;
 
     function isCommentDetailPage() {
         const path = window.location.pathname || '';
@@ -408,7 +409,11 @@
         if (!isCommentDetailPage()) return;
         if (Date.now() < commentAutoLoadCooldownUntil) return;
 
-        const candidates = Array.from(document.querySelectorAll('button, a, [role="button"], .btn, [class*="load"], [class*="more"]'));
+        const bottom = window.innerHeight + 260;
+        const candidates = Array.from(document.querySelectorAll('button, a, [role="button"]')).filter(function (el) {
+            const rect = el.getBoundingClientRect();
+            return rect.top < bottom && rect.bottom > -40;
+        });
         const target = candidates.find(isCommentLoadMoreCandidate);
         if (!target) return;
 
@@ -426,11 +431,32 @@
     }
 
     function ensureCommentAutoLoadMore() {
-        if (commentAutoLoadReady) return;
+        if (!getCommentAutoLoadMoreEnabled() || !isCommentDetailPage()) {
+            if (commentAutoLoadObserver) {
+                commentAutoLoadObserver.disconnect();
+                commentAutoLoadObserver = null;
+            }
+            return;
+        }
+        if (commentAutoLoadReady && commentAutoLoadObserver) return;
         commentAutoLoadReady = true;
-        window.addEventListener('scroll', function () { scheduleCommentAutoLoadMore(120); }, { passive: true });
-        window.addEventListener('resize', function () { scheduleCommentAutoLoadMore(180); });
-        new MutationObserver(function () { scheduleCommentAutoLoadMore(260); }).observe(document.body, { childList: true, subtree: true });
+        if (!window.__nsCommentAutoLoadEventsBound) {
+            window.__nsCommentAutoLoadEventsBound = true;
+            window.addEventListener('scroll', function () { scheduleCommentAutoLoadMore(160); }, { passive: true });
+            window.addEventListener('resize', function () { scheduleCommentAutoLoadMore(240); });
+        }
+        commentAutoLoadObserver = new MutationObserver(function (mutations) {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (!(node instanceof Element)) continue;
+                    if (isCommentLoadMoreCandidate(node) || node.querySelector?.('button, a, [role="button"]')) {
+                        scheduleCommentAutoLoadMore(320);
+                        return;
+                    }
+                }
+            }
+        });
+        commentAutoLoadObserver.observe(document.body, { childList: true, subtree: true });
         scheduleCommentAutoLoadMore(800);
     }
 
@@ -1198,7 +1224,6 @@
         processUsernames();
         processHomepageAuthorMetaBadges();
         ensureCommentAutoLoadMore();
-        scheduleCommentAutoLoadMore(400);
         highlightBlacklisted();
         highlightFriends(); // 新增调用
         replaceRelativeTimeWithAbsolute(); // 新增：替换相对时间为完整时间

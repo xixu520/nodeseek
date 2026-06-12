@@ -1719,8 +1719,16 @@
         }, 200);
     }
 
-    const blacklistEntryObserver = new MutationObserver(() => {
-        scheduleEnsureBlacklistNav();
+    const blacklistEntryObserver = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+                if (!(node instanceof Element)) continue;
+                if (node.matches?.('.app-switch, a[href*="/jump"][href*="to="]') || node.querySelector?.('.app-switch, a[href*="/jump"][href*="to="]')) {
+                    scheduleEnsureBlacklistNav();
+                    return;
+                }
+            }
+        }
     });
 
     try {
@@ -1735,5 +1743,20 @@
     bindSafariNodeImageToolbar();
     setTimeout(bindSafariNodeImageToolbar, 800);
     try {
-        new MutationObserver(bindSafariNodeImageToolbar).observe(document.documentElement, { childList: true, subtree: true });
+        let safariNodeImageToolbarTimer = null;
+        new MutationObserver(function (mutations) {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (!(node instanceof Element)) continue;
+                    if (node.matches?.('textarea, .CodeMirror, .vditor, .mde, [contenteditable="true"]') || node.querySelector?.('textarea, .CodeMirror, .vditor, .mde, [contenteditable="true"]')) {
+                        if (safariNodeImageToolbarTimer) clearTimeout(safariNodeImageToolbarTimer);
+                        safariNodeImageToolbarTimer = setTimeout(function () {
+                            safariNodeImageToolbarTimer = null;
+                            bindSafariNodeImageToolbar();
+                        }, 220);
+                        return;
+                    }
+                }
+            }
+        }).observe(document.documentElement, { childList: true, subtree: true });
     } catch (e) { }
