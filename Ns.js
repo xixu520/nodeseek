@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.12.8
+// @version      2026.06.12.9
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -6508,6 +6508,7 @@
         mainContainer.appendChild(container);
 
         function applyCollapsedLayout(collapsed) {
+            const positionBeforeLayout = mainContainer.getBoundingClientRect();
             mainContainer.classList.toggle('nodeseek-plugin-main-collapsed', !!collapsed);
             if (collapsed) {
                 mainContainer.style.flexDirection = 'column';
@@ -6539,7 +6540,25 @@
                 mainContainer.style.top = expandedPosition.top;
                 mainContainer.style.right = expandedPosition.right;
                 mainContainer.style.bottom = expandedPosition.bottom;
+                requestAnimationFrame(function () {
+                    setExpandedPanelPositionNear(positionBeforeLayout);
+                });
             }
+        }
+
+        function setExpandedPanelPositionNear(anchorRect) {
+            if (!anchorRect) return;
+            const rect = mainContainer.getBoundingClientRect();
+            const maxLeft = Math.max(0, window.innerWidth - rect.width);
+            const maxTop = Math.max(0, window.innerHeight - rect.height);
+            const openFromRight = anchorRect.left > window.innerWidth / 2;
+            const wantedLeft = openFromRight ? anchorRect.right - rect.width : anchorRect.left;
+            const left = Math.min(maxLeft, Math.max(0, wantedLeft));
+            const top = Math.min(maxTop, Math.max(0, anchorRect.top));
+            mainContainer.style.setProperty('left', left + 'px', 'important');
+            mainContainer.style.setProperty('top', top + 'px', 'important');
+            mainContainer.style.setProperty('right', 'auto', 'important');
+            mainContainer.style.setProperty('bottom', 'auto', 'important');
         }
 
         function setCollapsedPanelPosition(position, save) {
