@@ -155,9 +155,8 @@
         position: static !important;
         width: 34px !important;
         height: 34px !important;
-        border-radius: 8px 0 0 8px !important;
+        border-radius: 8px !important;
         border: 1px solid var(--ns-panel-collapse-border) !important;
-        border-right: none !important;
         transform: none !important;
         opacity: .92 !important;
     }
@@ -1287,7 +1286,7 @@
                 min-height: 34px !important;
                 max-width: 34px !important;
                 max-height: 34px !important;
-                border-radius: 10px 0 0 10px !important;
+                border-radius: 10px !important;
             }
 
             .ns-collapsed-action-rail {
