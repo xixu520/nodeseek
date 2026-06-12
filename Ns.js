@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.12.6
+// @version      2026.06.12.7
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -28,6 +28,28 @@
     // 检查开关状态 (默认为 false)
     const skipJumpVal = localStorage.getItem('nodeseek_skip_jump_page');
     const isSkipJumpEnabled = skipJumpVal === null ? false : skipJumpVal === 'true';
+    function decodeJumpTarget(value) {
+        let text = String(value || '');
+        for (let i = 0; i < 2 && /%[0-9a-f]{2}/i.test(text); i++) {
+            try {
+                const next = decodeURIComponent(text);
+                if (next === text) break;
+                text = next;
+            } catch (e) {
+                break;
+            }
+        }
+        return text;
+    }
+
+    function isJumpTargetAllowed(targetDomain, mode, list) {
+        if (mode !== 'whitelist') return true;
+        const domains = Array.isArray(list) ? list.map(domain => String(domain || '').trim().toLowerCase().replace(/^\.+/, '')).filter(Boolean) : [];
+        if (!domains.length) return false;
+        const host = String(targetDomain || '').toLowerCase();
+        return domains.some(domain => host === domain || host.endsWith('.' + domain));
+    }
+
     if (isSkipJumpEnabled) {
         if (location.pathname === '/jump' && location.search.includes('to=')) {
             const params = new URLSearchParams(location.search);
@@ -35,8 +57,8 @@
                 const target = params.get('to');
                 if (target) {
                     try {
-                        const targetUrlStr = decodeURIComponent(target);
-                        const targetUrl = new URL(targetUrlStr);
+                        const targetUrlStr = decodeJumpTarget(target);
+                        const targetUrl = new URL(targetUrlStr, location.origin);
                         const targetDomain = targetUrl.hostname;
 
                         const modeRaw = localStorage.getItem('nodeseek_skip_jump_mode');
@@ -44,16 +66,7 @@
                         const listSaved = localStorage.getItem('nodeseek_skip_jump_list');
                         const list = listSaved ? JSON.parse(listSaved) : [];
 
-                        let shouldSkip = true;
-                        if (mode === 'whitelist') {
-                            // 如果是白名单模式，且名单为空，则不跳过（即显示跳转提醒）
-                            if (list.length === 0) {
-                                shouldSkip = false;
-                            } else {
-                                // 仅匹配域名本身或其子域名
-                                shouldSkip = list.some(domain => targetDomain === domain || targetDomain.endsWith('.' + domain));
-                            }
-                        }
+                        const shouldSkip = isJumpTargetAllowed(targetDomain, mode, list);
 
                         if (shouldSkip) {
                             // 立即跳转
@@ -62,7 +75,7 @@
                         }
                     } catch (e) {
                         // URL 解析失败，按原逻辑直接跳转
-                        window.location.replace(decodeURIComponent(target));
+                        window.location.replace(decodeJumpTarget(target));
                         return;
                     }
                 }
@@ -10325,51 +10338,69 @@
         meta.style.display = 'inline-flex';
     }
 
+    function decodeJumpTargetValue(value) {
+        let text = String(value || '');
+        for (let i = 0; i < 2 && /%[0-9a-f]{2}/i.test(text); i++) {
+            try {
+                const next = decodeURIComponent(text);
+                if (next === text) break;
+                text = next;
+            } catch (e) {
+                break;
+            }
+        }
+        return text;
+    }
+
+    function getJumpTargetUrl(link) {
+        if (!link || !link.href) return '';
+        try {
+            const url = new URL(link.href, location.origin);
+            if (url.pathname !== '/jump' || !url.searchParams.has('to')) return '';
+            return decodeJumpTargetValue(url.searchParams.get('to'));
+        } catch (e) {
+            return '';
+        }
+    }
+
+    function shouldSkipJumpTarget(targetUrlStr) {
+        if (!targetUrlStr) return false;
+        const mode = getSkipJumpMode();
+        const list = getSkipJumpList();
+        if (mode !== 'whitelist') return true;
+
+        try {
+            const targetUrl = new URL(targetUrlStr, location.origin);
+            const host = targetUrl.hostname.toLowerCase();
+            const domains = Array.isArray(list) ? list.map(domain => String(domain || '').trim().toLowerCase().replace(/^\.+/, '')).filter(Boolean) : [];
+            if (!domains.length) return false;
+            return domains.some(domain => host === domain || host.endsWith('.' + domain));
+        } catch (e) {
+            return false;
+        }
+    }
+
     function rewriteJumpLinks() {
         if (!getSkipJumpPageEnabled()) return;
 
-        const mode = getSkipJumpMode();
-        const list = getSkipJumpList();
-
-        document.querySelectorAll('a[href*="/jump?to="]').forEach(link => {
+        document.querySelectorAll('a[href*="/jump"][href*="to="]').forEach(link => {
             try {
-                if (link.href.includes('/jump?to=')) {
-                    const url = new URL(link.href);
-                    const target = url.searchParams.get('to');
-                    if (target) {
-                        const targetUrlStr = decodeURIComponent(target);
-                        let targetDomain = '';
-                        try {
-                            targetDomain = new URL(targetUrlStr).hostname;
-                        } catch (e) { }
-
-                        let shouldSkip = true;
-                        if (mode === 'whitelist') {
-                            // 如果是白名单模式，且名单为空，则不跳过（即显示跳转提醒）
-                            if (list.length === 0) {
-                                shouldSkip = false;
-                            } else {
-                                // 仅匹配域名本身或其子域名
-                                shouldSkip = list.some(domain => targetDomain === domain || targetDomain.endsWith('.' + domain));
-                            }
-                        }
-
-                        if (shouldSkip) {
-                            // 保存原始链接以便恢复
-                            if (!link.getAttribute('data-ns-jump-url')) {
-                                link.setAttribute('data-ns-jump-url', link.href);
-                            }
-                            link.href = targetUrlStr;
-                            if (!link.target) link.target = '_blank';
-                            link.rel = 'noopener noreferrer';
-                        } else {
-                            // 如果不应该跳过，但之前可能被重写过，则恢复
-                            const originalUrl = link.getAttribute('data-ns-jump-url');
-                            if (originalUrl) {
-                                link.href = originalUrl;
-                                link.removeAttribute('data-ns-jump-url');
-                            }
-                        }
+                const targetUrlStr = getJumpTargetUrl(link);
+                if (!targetUrlStr) return;
+                if (shouldSkipJumpTarget(targetUrlStr)) {
+                    // 保存原始链接以便恢复
+                    if (!link.getAttribute('data-ns-jump-url')) {
+                        link.setAttribute('data-ns-jump-url', link.href);
+                    }
+                    link.href = targetUrlStr;
+                    if (!link.target) link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                } else {
+                    // 如果不应该跳过，但之前可能被重写过，则恢复
+                    const originalUrl = link.getAttribute('data-ns-jump-url');
+                    if (originalUrl) {
+                        link.href = originalUrl;
+                        link.removeAttribute('data-ns-jump-url');
                     }
                 }
             } catch (e) {
@@ -10377,6 +10408,22 @@
             }
         });
     }
+
+    document.addEventListener('click', function (event) {
+        if (!getSkipJumpPageEnabled()) return;
+        const link = event.target.closest?.('a[href*="/jump"][href*="to="]');
+        if (!link) return;
+        const targetUrlStr = getJumpTargetUrl(link);
+        if (!shouldSkipJumpTarget(targetUrlStr)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        if (link.target === '_blank' || event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) {
+            window.open(targetUrlStr, '_blank', 'noopener,noreferrer');
+        } else {
+            window.location.href = targetUrlStr;
+        }
+    }, true);
 
     function restoreJumpLinks() {
         document.querySelectorAll('a[data-ns-jump-url]').forEach(link => {

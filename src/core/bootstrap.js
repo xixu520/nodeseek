@@ -3,6 +3,28 @@
     // 检查开关状态 (默认为 false)
     const skipJumpVal = localStorage.getItem('nodeseek_skip_jump_page');
     const isSkipJumpEnabled = skipJumpVal === null ? false : skipJumpVal === 'true';
+    function decodeJumpTarget(value) {
+        let text = String(value || '');
+        for (let i = 0; i < 2 && /%[0-9a-f]{2}/i.test(text); i++) {
+            try {
+                const next = decodeURIComponent(text);
+                if (next === text) break;
+                text = next;
+            } catch (e) {
+                break;
+            }
+        }
+        return text;
+    }
+
+    function isJumpTargetAllowed(targetDomain, mode, list) {
+        if (mode !== 'whitelist') return true;
+        const domains = Array.isArray(list) ? list.map(domain => String(domain || '').trim().toLowerCase().replace(/^\.+/, '')).filter(Boolean) : [];
+        if (!domains.length) return false;
+        const host = String(targetDomain || '').toLowerCase();
+        return domains.some(domain => host === domain || host.endsWith('.' + domain));
+    }
+
     if (isSkipJumpEnabled) {
         if (location.pathname === '/jump' && location.search.includes('to=')) {
             const params = new URLSearchParams(location.search);
@@ -10,8 +32,8 @@
                 const target = params.get('to');
                 if (target) {
                     try {
-                        const targetUrlStr = decodeURIComponent(target);
-                        const targetUrl = new URL(targetUrlStr);
+                        const targetUrlStr = decodeJumpTarget(target);
+                        const targetUrl = new URL(targetUrlStr, location.origin);
                         const targetDomain = targetUrl.hostname;
 
                         const modeRaw = localStorage.getItem('nodeseek_skip_jump_mode');
@@ -19,16 +41,7 @@
                         const listSaved = localStorage.getItem('nodeseek_skip_jump_list');
                         const list = listSaved ? JSON.parse(listSaved) : [];
 
-                        let shouldSkip = true;
-                        if (mode === 'whitelist') {
-                            // 如果是白名单模式，且名单为空，则不跳过（即显示跳转提醒）
-                            if (list.length === 0) {
-                                shouldSkip = false;
-                            } else {
-                                // 仅匹配域名本身或其子域名
-                                shouldSkip = list.some(domain => targetDomain === domain || targetDomain.endsWith('.' + domain));
-                            }
-                        }
+                        const shouldSkip = isJumpTargetAllowed(targetDomain, mode, list);
 
                         if (shouldSkip) {
                             // 立即跳转
@@ -37,7 +50,7 @@
                         }
                     } catch (e) {
                         // URL 解析失败，按原逻辑直接跳转
-                        window.location.replace(decodeURIComponent(target));
+                        window.location.replace(decodeJumpTarget(target));
                         return;
                     }
                 }
