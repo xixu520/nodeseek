@@ -1236,8 +1236,12 @@
                 max-width: calc(100vw - 24px) !important;
             }
 
+            #nodeseek-plugin-main-container:not(.nodeseek-plugin-main-collapsed) {
+                max-width: calc(100vw - 54px) !important;
+            }
+
             #nodeseek-plugin-buttons-container {
-                width: min(300px, calc(100vw - 60px)) !important;
+                width: min(300px, calc(100vw - 64px)) !important;
                 max-height: min(62vh, 500px) !important;
                 padding: 8px !important;
                 gap: 6px !important;
@@ -1264,7 +1268,7 @@
             }
 
             #collapse-btn, #theme-toggle-btn {
-                left: -40px !important;
+                left: -38px !important;
                 width: 34px !important;
                 height: 34px !important;
                 min-width: 34px !important;
@@ -1291,6 +1295,12 @@
             .ns-collapsed-action-rail {
                 gap: 6px !important;
                 margin-bottom: 6px !important;
+                align-items: center !important;
+            }
+
+            .ns-collapsed-action-btn {
+                border-radius: 9px !important;
+                border: 1px solid rgba(20, 184, 166, .24) !important;
             }
 
             .ns-filter-token-field {

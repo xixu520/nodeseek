@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.12.9
+// @version      2026.06.12.10
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -2157,8 +2157,12 @@
                 max-width: calc(100vw - 24px) !important;
             }
 
+            #nodeseek-plugin-main-container:not(.nodeseek-plugin-main-collapsed) {
+                max-width: calc(100vw - 54px) !important;
+            }
+
             #nodeseek-plugin-buttons-container {
-                width: min(300px, calc(100vw - 60px)) !important;
+                width: min(300px, calc(100vw - 64px)) !important;
                 max-height: min(62vh, 500px) !important;
                 padding: 8px !important;
                 gap: 6px !important;
@@ -2185,7 +2189,7 @@
             }
 
             #collapse-btn, #theme-toggle-btn {
-                left: -40px !important;
+                left: -38px !important;
                 width: 34px !important;
                 height: 34px !important;
                 min-width: 34px !important;
@@ -2212,6 +2216,12 @@
             .ns-collapsed-action-rail {
                 gap: 6px !important;
                 margin-bottom: 6px !important;
+                align-items: center !important;
+            }
+
+            .ns-collapsed-action-btn {
+                border-radius: 9px !important;
+                border: 1px solid rgba(20, 184, 166, .24) !important;
             }
 
             .ns-filter-token-field {
@@ -6549,12 +6559,18 @@
         function setExpandedPanelPositionNear(anchorRect) {
             if (!anchorRect) return;
             const rect = mainContainer.getBoundingClientRect();
-            const maxLeft = Math.max(0, window.innerWidth - rect.width);
-            const maxTop = Math.max(0, window.innerHeight - rect.height);
+            const isMobile = window.innerWidth <= 767;
+            const handleSpace = isMobile ? 42 : 0;
+            const edgeGap = isMobile ? 8 : 0;
+            const maxLeft = Math.max(handleSpace, window.innerWidth - rect.width - edgeGap);
+            const maxTop = Math.max(edgeGap, window.innerHeight - rect.height - edgeGap);
             const openFromRight = anchorRect.left > window.innerWidth / 2;
             const wantedLeft = openFromRight ? anchorRect.right - rect.width : anchorRect.left;
-            const left = Math.min(maxLeft, Math.max(0, wantedLeft));
-            const top = Math.min(maxTop, Math.max(0, anchorRect.top));
+            const wantedTop = isMobile && anchorRect.top > window.innerHeight / 2
+                ? anchorRect.bottom - rect.height
+                : anchorRect.top;
+            const left = Math.min(maxLeft, Math.max(handleSpace, wantedLeft));
+            const top = Math.min(maxTop, Math.max(edgeGap, wantedTop));
             mainContainer.style.setProperty('left', left + 'px', 'important');
             mainContainer.style.setProperty('top', top + 'px', 'important');
             mainContainer.style.setProperty('right', 'auto', 'important');

@@ -671,12 +671,18 @@
         function setExpandedPanelPositionNear(anchorRect) {
             if (!anchorRect) return;
             const rect = mainContainer.getBoundingClientRect();
-            const maxLeft = Math.max(0, window.innerWidth - rect.width);
-            const maxTop = Math.max(0, window.innerHeight - rect.height);
+            const isMobile = window.innerWidth <= 767;
+            const handleSpace = isMobile ? 42 : 0;
+            const edgeGap = isMobile ? 8 : 0;
+            const maxLeft = Math.max(handleSpace, window.innerWidth - rect.width - edgeGap);
+            const maxTop = Math.max(edgeGap, window.innerHeight - rect.height - edgeGap);
             const openFromRight = anchorRect.left > window.innerWidth / 2;
             const wantedLeft = openFromRight ? anchorRect.right - rect.width : anchorRect.left;
-            const left = Math.min(maxLeft, Math.max(0, wantedLeft));
-            const top = Math.min(maxTop, Math.max(0, anchorRect.top));
+            const wantedTop = isMobile && anchorRect.top > window.innerHeight / 2
+                ? anchorRect.bottom - rect.height
+                : anchorRect.top;
+            const left = Math.min(maxLeft, Math.max(handleSpace, wantedLeft));
+            const top = Math.min(maxTop, Math.max(edgeGap, wantedTop));
             mainContainer.style.setProperty('left', left + 'px', 'important');
             mainContainer.style.setProperty('top', top + 'px', 'important');
             mainContainer.style.setProperty('right', 'auto', 'important');
