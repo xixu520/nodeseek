@@ -307,31 +307,60 @@
             const link = item.querySelector('.info-author a[href*="/space/"], a.author-name[href*="/space/"], a[href^="/space/"]');
             if (!link || seen.has(link) || link.classList.contains('author-name')) return;
             seen.add(link);
-            links.push(link);
+            links.push({ item, link });
         });
         return links;
     }
 
-    function processHomepageAuthorMetaBadges() {
-        findHomepageAuthorLinks().forEach(function (authorLink) {
-            const userId = getUserIdFromAuthorLink(authorLink);
-            const parent = authorLink.parentNode;
-            if (!userId || !parent) return;
+    function findHomepageCategoryTarget(item) {
+        if (!item) return null;
+        const selectors = [
+            '.info-category',
+            '.post-category',
+            '.category',
+            '.category-info',
+            '.topic-category',
+            '.info-tags',
+            '.post-tags',
+            'a[href*="/categories/"]',
+            'a[href*="/category/"]',
+            'a[href*="/tag/"]',
+            'a[href*="category"]',
+            'a[href*="tag"]'
+        ];
+        for (const selector of selectors) {
+            const target = item.querySelector(selector);
+            if (target) return target;
+        }
+        return item.querySelector('.info-author') || null;
+    }
 
-            if (authorLink.dataset.nsHomepageMetaUserId === userId && parent.querySelector('.ns-homepage-author-meta')) {
+    function processHomepageAuthorMetaBadges() {
+        findHomepageAuthorLinks().forEach(function (entry) {
+            const item = entry.item;
+            const authorLink = entry.link;
+            const userId = getUserIdFromAuthorLink(authorLink);
+            const target = findHomepageCategoryTarget(item);
+            if (!userId || !target) return;
+
+            if (authorLink.dataset.nsHomepageMetaUserId === userId && item.querySelector('.ns-homepage-author-meta-wrapper')) {
                 return;
             }
             authorLink.dataset.nsHomepageMetaUserId = userId;
 
-            parent.querySelectorAll('.ns-homepage-author-meta').forEach(function (el) { el.remove(); });
+            item.querySelectorAll('.ns-homepage-author-meta-wrapper').forEach(function (el) { el.remove(); });
+
+            const wrapper = document.createElement('span');
+            wrapper.className = 'ns-homepage-author-meta-wrapper';
 
             const joinBadge = createUserMetaBadge('join');
             const rankBadge = createUserMetaBadge('rank');
             joinBadge.classList.add('ns-homepage-author-meta');
             rankBadge.classList.add('ns-homepage-author-meta');
 
-            authorLink.after(rankBadge);
-            authorLink.after(joinBadge);
+            wrapper.appendChild(joinBadge);
+            wrapper.appendChild(rankBadge);
+            target.after(wrapper);
             updateUserMetaBadges(authorLink, joinBadge, rankBadge);
         });
     }

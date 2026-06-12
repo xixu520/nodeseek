@@ -718,6 +718,19 @@
             color: #991b1b !important;
         }
 
+        .ns-homepage-author-meta-wrapper {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            margin-left: 6px !important;
+            vertical-align: middle !important;
+            flex-wrap: wrap !important;
+        }
+
+        .ns-homepage-author-meta-wrapper .userscript-nodeseek-interaction-btn.ns-user-meta-badge {
+            margin-left: 0 !important;
+        }
+
         #collapse-btn,
         #theme-toggle-btn {
             border-radius: 7px 0 0 7px !important;

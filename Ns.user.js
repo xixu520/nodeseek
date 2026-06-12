@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.12.1
+// @version      2026.06.12.2
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -1588,6 +1588,19 @@
             color: #991b1b !important;
         }
 
+        .ns-homepage-author-meta-wrapper {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            margin-left: 6px !important;
+            vertical-align: middle !important;
+            flex-wrap: wrap !important;
+        }
+
+        .ns-homepage-author-meta-wrapper .userscript-nodeseek-interaction-btn.ns-user-meta-badge {
+            margin-left: 0 !important;
+        }
+
         #collapse-btn,
         #theme-toggle-btn {
             border-radius: 7px 0 0 7px !important;
@@ -2536,31 +2549,60 @@
             const link = item.querySelector('.info-author a[href*="/space/"], a.author-name[href*="/space/"], a[href^="/space/"]');
             if (!link || seen.has(link) || link.classList.contains('author-name')) return;
             seen.add(link);
-            links.push(link);
+            links.push({ item, link });
         });
         return links;
     }
 
-    function processHomepageAuthorMetaBadges() {
-        findHomepageAuthorLinks().forEach(function (authorLink) {
-            const userId = getUserIdFromAuthorLink(authorLink);
-            const parent = authorLink.parentNode;
-            if (!userId || !parent) return;
+    function findHomepageCategoryTarget(item) {
+        if (!item) return null;
+        const selectors = [
+            '.info-category',
+            '.post-category',
+            '.category',
+            '.category-info',
+            '.topic-category',
+            '.info-tags',
+            '.post-tags',
+            'a[href*="/categories/"]',
+            'a[href*="/category/"]',
+            'a[href*="/tag/"]',
+            'a[href*="category"]',
+            'a[href*="tag"]'
+        ];
+        for (const selector of selectors) {
+            const target = item.querySelector(selector);
+            if (target) return target;
+        }
+        return item.querySelector('.info-author') || null;
+    }
 
-            if (authorLink.dataset.nsHomepageMetaUserId === userId && parent.querySelector('.ns-homepage-author-meta')) {
+    function processHomepageAuthorMetaBadges() {
+        findHomepageAuthorLinks().forEach(function (entry) {
+            const item = entry.item;
+            const authorLink = entry.link;
+            const userId = getUserIdFromAuthorLink(authorLink);
+            const target = findHomepageCategoryTarget(item);
+            if (!userId || !target) return;
+
+            if (authorLink.dataset.nsHomepageMetaUserId === userId && item.querySelector('.ns-homepage-author-meta-wrapper')) {
                 return;
             }
             authorLink.dataset.nsHomepageMetaUserId = userId;
 
-            parent.querySelectorAll('.ns-homepage-author-meta').forEach(function (el) { el.remove(); });
+            item.querySelectorAll('.ns-homepage-author-meta-wrapper').forEach(function (el) { el.remove(); });
+
+            const wrapper = document.createElement('span');
+            wrapper.className = 'ns-homepage-author-meta-wrapper';
 
             const joinBadge = createUserMetaBadge('join');
             const rankBadge = createUserMetaBadge('rank');
             joinBadge.classList.add('ns-homepage-author-meta');
             rankBadge.classList.add('ns-homepage-author-meta');
 
-            authorLink.after(rankBadge);
-            authorLink.after(joinBadge);
+            wrapper.appendChild(joinBadge);
+            wrapper.appendChild(rankBadge);
+            target.after(wrapper);
             updateUserMetaBadges(authorLink, joinBadge, rankBadge);
         });
     }
