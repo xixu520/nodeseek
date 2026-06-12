@@ -40,7 +40,7 @@
         if (!userId || typeof fetchUserData !== 'function') return;
         fetchUserData(userId).then(function (userData) {
             if (!userData) return;
-            const joinDays = getJoinDaysFromCreatedAt(userData.created_at);
+            const joinDays = getJoinDaysFromCreatedAt(userData.created_at || userData.created_at_str);
             const rank = parseInt(userData.rank, 10);
             joinBadge.classList.remove('ns-user-meta-loading', 'ns-user-meta-danger');
             rankBadge.classList.remove('ns-user-meta-loading', 'ns-user-meta-danger');
@@ -297,6 +297,42 @@
             parent.appendChild(joinBadge);
             parent.appendChild(rankBadge);
             updateUserMetaBadges(a, joinBadge, rankBadge);
+        });
+    }
+
+    function findHomepageAuthorLinks() {
+        const links = [];
+        const seen = new Set();
+        document.querySelectorAll('li.post-list-item, .post-list-item').forEach(function (item) {
+            const link = item.querySelector('.info-author a[href*="/space/"], a.author-name[href*="/space/"], a[href^="/space/"]');
+            if (!link || seen.has(link) || link.classList.contains('author-name')) return;
+            seen.add(link);
+            links.push(link);
+        });
+        return links;
+    }
+
+    function processHomepageAuthorMetaBadges() {
+        findHomepageAuthorLinks().forEach(function (authorLink) {
+            const userId = getUserIdFromAuthorLink(authorLink);
+            const parent = authorLink.parentNode;
+            if (!userId || !parent) return;
+
+            if (authorLink.dataset.nsHomepageMetaUserId === userId && parent.querySelector('.ns-homepage-author-meta')) {
+                return;
+            }
+            authorLink.dataset.nsHomepageMetaUserId = userId;
+
+            parent.querySelectorAll('.ns-homepage-author-meta').forEach(function (el) { el.remove(); });
+
+            const joinBadge = createUserMetaBadge('join');
+            const rankBadge = createUserMetaBadge('rank');
+            joinBadge.classList.add('ns-homepage-author-meta');
+            rankBadge.classList.add('ns-homepage-author-meta');
+
+            authorLink.after(rankBadge);
+            authorLink.after(joinBadge);
+            updateUserMetaBadges(authorLink, joinBadge, rankBadge);
         });
     }
 
@@ -1062,6 +1098,7 @@
 
         updatePageScopeClasses();
         processUsernames();
+        processHomepageAuthorMetaBadges();
         highlightBlacklisted();
         highlightFriends(); // 新增调用
         replaceRelativeTimeWithAbsolute(); // 新增：替换相对时间为完整时间
@@ -1069,9 +1106,6 @@
         if (getOpenPostNewTabEnabled()) applyNewTabLinks(); // 新增：应用新标签页打开帖子逻辑
         if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.bindEditorButton === 'function') window.NodeSeekQuickReply.bindEditorButton();
         ensurePluginControlPanel();
-        if (getUserInfoDisplayState()) {
-            runWhenIdle(function () { processUserAvatars(); }, 1800);
-        }
     }
 
     // 兼容异步加载，定时检查

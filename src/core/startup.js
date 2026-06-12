@@ -731,40 +731,7 @@
         dataRow.appendChild(createSettingsActionButton('同步设置', '#475569', showWebdavSyncDialog));
         content.appendChild(dataRow);
 
-        // 1. 用户信息显示开关
-        const userInfoRow = document.createElement('div');
-        userInfoRow.style.display = 'flex';
-        userInfoRow.style.justifyContent = 'space-between';
-        userInfoRow.style.alignItems = 'center';
-        if (isMobile) userInfoRow.style.flexWrap = 'wrap';
-
-        const userInfoLabel = document.createElement('label');
-        userInfoLabel.textContent = '显示用户信息';
-        userInfoLabel.style.fontWeight = '500';
-        userInfoLabel.style.color = '#555';
-
-        const userInfoSwitch = document.createElement('input');
-        userInfoSwitch.type = 'checkbox';
-        userInfoSwitch.checked = getUserInfoDisplayState();
-        userInfoSwitch.style.transform = 'scale(1.2)';
-        userInfoSwitch.onchange = function () {
-            const newState = this.checked;
-            setUserInfoDisplayState(newState);
-            if (newState) {
-                processUserAvatars();
-                addLog('用户信息显示：开启');
-            } else {
-                const userInfoElements = document.querySelectorAll('.user-info-display');
-                userInfoElements.forEach(el => el.remove());
-                addLog('用户信息显示：关闭');
-            }
-        };
-
-        userInfoRow.appendChild(userInfoLabel);
-        userInfoRow.appendChild(userInfoSwitch);
-        content.appendChild(userInfoRow);
-
-        // 2. 阅读记忆开关（含颜色选择）
+        // 1. 阅读记忆开关（含颜色选择）
         const historyRow = document.createElement('div');
         historyRow.style.display = 'flex';
         historyRow.style.justifyContent = 'space-between';

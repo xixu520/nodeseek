@@ -160,7 +160,6 @@
         display: none !important;
     }
 
-    /* 新增：确保用户弹窗能完全遮盖用户信息显示 */
     .hover-user-card, .user-card {
         z-index: 1000 !important;
         background-color: var(--bg-main-color, #fff) !important;

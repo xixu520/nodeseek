@@ -82,8 +82,6 @@
     // 新增：用户数据缓存的存储键
     const USER_DATA_CACHE_KEY = 'nodeseek_user_data_cache';
 
-    // 新增：用户信息显示状态的存储键
-    const USER_INFO_DISPLAY_KEY = 'nodeseek_user_info_display';
     const VIEWED_HISTORY_ENABLED_KEY = 'nodeseek_viewed_history_enabled';
     const VIEWED_COLOR_KEY = 'nodeseek_viewed_color';
     // 新增：跳过跳转页面开关
@@ -115,7 +113,6 @@
         { key: 'browseHistory', label: '浏览历史', dataKeys: ['browseHistory'] },
         { key: 'quickReplies', label: '快捷回复', dataKeys: ['quickReplies', 'quickReplySettings'] },
         { key: 'signSettings', label: '签到设置', dataKeys: ['signSettings'] },
-        { key: 'userInfoSettings', label: '用户信息显示设置', dataKeys: ['userInfoSettings'] },
         { key: 'skipJumpSettings', label: '跳转设置', dataKeys: ['skipJumpSettings'] },
         { key: 'openPostNewTabSettings', label: '新标签打开设置', dataKeys: ['openPostNewTabSettings'] },
         { key: 'chickenLegStats', label: '鸡腿统计', dataKeys: ['chickenLegStats'] },
@@ -166,16 +163,6 @@
 
     function setOpenPostNewTabEnabled(enabled) {
         localStorage.setItem(OPEN_POST_NEW_TAB_KEY, enabled.toString());
-    }
-
-    // 新增：获取用户信息显示状态
-    function getUserInfoDisplayState() {
-        return localStorage.getItem(USER_INFO_DISPLAY_KEY) !== 'false'; // 默认开启
-    }
-
-    // 新增：保存用户信息显示状态
-    function setUserInfoDisplayState(isEnabled) {
-        localStorage.setItem(USER_INFO_DISPLAY_KEY, isEnabled.toString());
     }
 
     // 新增：获取是否开启跳过跳转页面
@@ -554,211 +541,6 @@
         userDataPendingRequests.set(normalizedUserId, request);
         return request;
     }
-
-    // 新增：计算加入天数
-    function calculateJoinDays(createdAt) {
-        if (!createdAt) return '未知';
-        const joinDate = new Date(createdAt);
-        const now = new Date();
-        const diffTime = Math.abs(now - joinDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
-    }
-
-    // 新增：批量处理用户信息的队列
-    let userInfoQueue = new Set();
-    let isProcessingQueue = false;
-
-    // 新增：显示用户信息
-    async function displayUserInfo(userElement, userId) {
-        // 确保父元素有相对定位
-        const parentElement = userElement.closest('.nsk-content-meta-info') || userElement.parentElement;
-
-        // 检查父元素是否已经显示过用户信息
-        if (parentElement && parentElement.querySelector('.user-info-display')) {
-            return;
-        }
-
-        const userData = await fetchUserData(userId);
-        if (!userData) {
-            return;
-        }
-
-        await displayUserInfoFromData(userElement, userData);
-    }
-
-    // 优化后的批量处理用户头像和信息显示
-    async function processUserAvatars() {
-        // 查找所有用户头像或用户名链接
-        const userElements = document.querySelectorAll('a.author-name, .user-avatar, .nsk-content-meta-info a[href*="/space/"]');
-
-        // 收集所有需要处理的用户ID
-        const userIds = new Set();
-        const elementUserMap = new Map();
-
-        for (const element of userElements) {
-            // 检查是否已经显示过用户信息
-            const parentElement = element.closest('.nsk-content-meta-info') || element.parentElement;
-            if (parentElement && parentElement.querySelector('.user-info-display')) {
-                continue;
-            }
-
-            let userId = null;
-            // 从链接中提取用户ID
-            if (element.href && element.href.includes('/space/')) {
-                const match = element.href.match(/\/space\/(\d+)/);
-                if (match) {
-                    userId = match[1];
-                    userIds.add(userId);
-                    if (!elementUserMap.has(userId)) {
-                        elementUserMap.set(userId, []);
-                    }
-                    elementUserMap.get(userId).push(element);
-                }
-            }
-        }
-
-        // 如果没有新的用户需要处理，直接返回
-        if (userIds.size === 0) {
-            return;
-        }
-
-        // 批量获取用户数据
-        await batchFetchUserData(Array.from(userIds), elementUserMap);
-    }
-
-    // 新增：批量获取用户数据
-    async function batchFetchUserData(userIds, elementUserMap) {
-        // 检查缓存，分离需要请求的用户ID
-        const cache = getUserDataCache();
-        const cachedUsers = [];
-        const needFetchUsers = [];
-
-        userIds.forEach(userId => {
-            if (cache[userId] && cache[userId].timestamp) {
-                cachedUsers.push({ userId, data: cache[userId] });
-            } else {
-                needFetchUsers.push(userId);
-            }
-        });
-
-        // 先处理缓存的用户数据
-        for (const { userId, data } of cachedUsers) {
-            const elements = elementUserMap.get(userId) || [];
-            for (const element of elements) {
-                await displayUserInfoFromData(element, data);
-            }
-        }
-
-        // 并发获取需要请求的用户数据（限制并发数）
-        const concurrencyLimit = 3; // 限制并发请求数
-        const chunks = [];
-        for (let i = 0; i < needFetchUsers.length; i += concurrencyLimit) {
-            chunks.push(needFetchUsers.slice(i, i + concurrencyLimit));
-        }
-
-        for (const chunk of chunks) {
-            const promises = chunk.map(async userId => {
-                try {
-                    const userData = await fetchUserData(userId);
-                    if (userData) {
-                        const elements = elementUserMap.get(userId) || [];
-                        for (const element of elements) {
-                            await displayUserInfoFromData(element, userData);
-                        }
-                    }
-                } catch (error) {
-                    console.error(`获取用户${userId}数据失败:`, error);
-                }
-            });
-
-            await Promise.all(promises);
-            // 批次间添加小延迟，避免请求过于频繁
-            if (chunks.indexOf(chunk) < chunks.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 200));
-            }
-        }
-    }
-
-    // 新增：从已有数据显示用户信息
-    async function displayUserInfoFromData(userElement, userData) {
-        // 检查用户信息显示开关状态
-        if (!getUserInfoDisplayState()) {
-            return;
-        }
-
-        const parentElement = userElement.closest('.nsk-content-meta-info') || userElement.parentElement;
-
-        // 检查父元素是否已经显示过用户信息
-        if (parentElement && parentElement.querySelector('.user-info-display')) {
-            return;
-        }
-
-        // 计算加入天数
-        const joinDays = calculateJoinDays(userData.created_at);
-
-        const isMobile = (window.NodeSeekFilter && typeof window.NodeSeekFilter.isMobileDevice === 'function')
-            ? window.NodeSeekFilter.isMobileDevice()
-            : (window.innerWidth <= 767);
-
-        // 创建用户信息显示元素
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'user-info-display';
-        infoDiv.style.cssText = `
-            position: ${isMobile ? 'static' : 'absolute'};
-            top: ${isMobile ? 'auto' : '-14px'};
-            left: 0;
-            right: auto;
-            max-width: ${isMobile ? '100%' : 'calc(100% - 60px)'};
-            margin-top: ${isMobile ? '3px' : '0'};
-            color: rgb(173, 87, 223);
-            padding: 0px 1px;
-            border-radius: 1px;
-            font-size: 11px;
-            white-space: ${isMobile ? 'normal' : 'nowrap'};
-            z-index: 1; /* 极低的z-index值，确保弹窗可以遮盖此元素 */
-            pointer-events: auto; /* 允许选择和复制文本 */
-            display: flex;
-            align-items: center;
-            flex-wrap: ${isMobile ? 'wrap' : 'nowrap'};
-            user-select: text;
-            -webkit-user-select: text;
-            -moz-user-select: text;
-            -ms-user-select: text;
-            line-height: ${isMobile ? '1.35' : '1'};
-            overflow: hidden;
-            text-overflow: ellipsis;
-        `;
-
-        // 横向显示所有信息
-        infoDiv.innerHTML = `加入: ${joinDays}天 | 等级: ${userData.rank} | 鸡腿: ${userData.coin} | 星辰: ${userData.stardust} | 主题: ${userData.nPost} | 评论: ${userData.nComment} | 粉丝: ${userData.fans} | 关注: ${userData.follows}`;
-
-        // 确保父元素有相对定位，但不影响其他子元素的布局
-        if (parentElement) {
-            // 保存原始position值
-            const originalPosition = getComputedStyle(parentElement).position;
-            if (originalPosition === 'static') {
-                parentElement.style.position = 'relative';
-            }
-
-            // 为了不影响楼层号位置，确保楼层号元素保持在右侧
-            const floorElements = parentElement.querySelectorAll('*');
-            floorElements.forEach(el => {
-                if (el.textContent && el.textContent.match(/^#\d+$/)) {
-                    // 找到楼层号元素，确保其样式不被影响，并向右移动8px
-                    const computedStyle = getComputedStyle(el);
-                    if (computedStyle.position !== 'absolute' && computedStyle.position !== 'fixed') {
-                        el.style.position = 'relative';
-                        el.style.zIndex = '1001';
-                        el.style.right = '-8px';
-                    }
-                }
-            });
-
-            parentElement.appendChild(infoDiv);
-        }
-    }
-
 
     // 添加黑名单
     function addToBlacklist(username, remark, userLinkElement, buttonElement) {
@@ -1248,7 +1030,6 @@
         display: none !important;
     }
 
-    /* 新增：确保用户弹窗能完全遮盖用户信息显示 */
     .hover-user-card, .user-card {
         z-index: 1000 !important;
         background-color: var(--bg-main-color, #fff) !important;
@@ -2488,7 +2269,7 @@
         if (!userId || typeof fetchUserData !== 'function') return;
         fetchUserData(userId).then(function (userData) {
             if (!userData) return;
-            const joinDays = getJoinDaysFromCreatedAt(userData.created_at);
+            const joinDays = getJoinDaysFromCreatedAt(userData.created_at || userData.created_at_str);
             const rank = parseInt(userData.rank, 10);
             joinBadge.classList.remove('ns-user-meta-loading', 'ns-user-meta-danger');
             rankBadge.classList.remove('ns-user-meta-loading', 'ns-user-meta-danger');
@@ -2745,6 +2526,42 @@
             parent.appendChild(joinBadge);
             parent.appendChild(rankBadge);
             updateUserMetaBadges(a, joinBadge, rankBadge);
+        });
+    }
+
+    function findHomepageAuthorLinks() {
+        const links = [];
+        const seen = new Set();
+        document.querySelectorAll('li.post-list-item, .post-list-item').forEach(function (item) {
+            const link = item.querySelector('.info-author a[href*="/space/"], a.author-name[href*="/space/"], a[href^="/space/"]');
+            if (!link || seen.has(link) || link.classList.contains('author-name')) return;
+            seen.add(link);
+            links.push(link);
+        });
+        return links;
+    }
+
+    function processHomepageAuthorMetaBadges() {
+        findHomepageAuthorLinks().forEach(function (authorLink) {
+            const userId = getUserIdFromAuthorLink(authorLink);
+            const parent = authorLink.parentNode;
+            if (!userId || !parent) return;
+
+            if (authorLink.dataset.nsHomepageMetaUserId === userId && parent.querySelector('.ns-homepage-author-meta')) {
+                return;
+            }
+            authorLink.dataset.nsHomepageMetaUserId = userId;
+
+            parent.querySelectorAll('.ns-homepage-author-meta').forEach(function (el) { el.remove(); });
+
+            const joinBadge = createUserMetaBadge('join');
+            const rankBadge = createUserMetaBadge('rank');
+            joinBadge.classList.add('ns-homepage-author-meta');
+            rankBadge.classList.add('ns-homepage-author-meta');
+
+            authorLink.after(rankBadge);
+            authorLink.after(joinBadge);
+            updateUserMetaBadges(authorLink, joinBadge, rankBadge);
         });
     }
 
@@ -3510,6 +3327,7 @@
 
         updatePageScopeClasses();
         processUsernames();
+        processHomepageAuthorMetaBadges();
         highlightBlacklisted();
         highlightFriends(); // 新增调用
         replaceRelativeTimeWithAbsolute(); // 新增：替换相对时间为完整时间
@@ -3517,9 +3335,6 @@
         if (getOpenPostNewTabEnabled()) applyNewTabLinks(); // 新增：应用新标签页打开帖子逻辑
         if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.bindEditorButton === 'function') window.NodeSeekQuickReply.bindEditorButton();
         ensurePluginControlPanel();
-        if (getUserInfoDisplayState()) {
-            runWhenIdle(function () { processUserAvatars(); }, 1800);
-        }
     }
 
     // 兼容异步加载，定时检查
@@ -3670,17 +3485,6 @@
             console.error('导出备份设置失败:', error);
         }
 
-        // 新增：用户信息显示设置
-        let userInfoSettings = {};
-        try {
-            const userInfoDisplay = localStorage.getItem('nodeseek_user_info_display');
-            if (userInfoDisplay !== null) {
-                userInfoSettings.display = userInfoDisplay !== 'false';
-            }
-        } catch (error) {
-            console.error('导出用户信息显示设置失败:', error);
-        }
-
         // 新增：屏蔽URL跳转提醒设置
         let skipJumpSettings = {};
         try {
@@ -3707,7 +3511,6 @@
             quickReplies: quickReplies, // 添加快捷回复数据
             quickReplySettings: quickReplySettings, // 新增：快捷回复设置
             signSettings: signSettings, // 新增：签到设置
-            userInfoSettings: userInfoSettings, // 新增：用户信息显示设置
             skipJumpSettings: skipJumpSettings, // 新增：屏蔽URL跳转提醒设置
             openPostNewTabSettings: openPostNewTabSettings, // 新增：新标签页打开帖子设置
             chickenLegStats: chickenLegStats, // 添加鸡腿统计数据
@@ -3903,19 +3706,6 @@
                         } catch (error) {
                             console.error('导入签到设置(兼容字段)失败:', error);
                             importInfo.push('签到设置(失败)');
-                        }
-                    }
-
-                    // 新增：处理用户信息显示设置
-                    if (json.userInfoSettings && typeof json.userInfoSettings === 'object') {
-                        try {
-                            if (typeof json.userInfoSettings.display !== 'undefined') {
-                                setUserInfoDisplayState(json.userInfoSettings.display);
-                                importInfo.push(`用户信息显示设置(${json.userInfoSettings.display ? '开启' : '关闭'})`);
-                            }
-                        } catch (error) {
-                            console.error('导入用户信息显示设置失败:', error);
-                            importInfo.push('用户信息显示设置(失败)');
                         }
                     }
 
@@ -4324,14 +4114,6 @@
             console.error('读取备份设置失败:', error);
         }
 
-        const userInfoSettings = {};
-        try {
-            const userInfoDisplay = localStorage.getItem('nodeseek_user_info_display');
-            if (userInfoDisplay !== null) userInfoSettings.display = userInfoDisplay !== 'false';
-        } catch (error) {
-            console.error('读取用户信息显示设置失败:', error);
-        }
-
         let skipJumpSettings = {};
         try {
             skipJumpSettings = {
@@ -4358,7 +4140,6 @@
             quickReplies: quickReplies,
             quickReplySettings: quickReplySettings,
             signSettings: signSettings,
-            userInfoSettings: userInfoSettings,
             skipJumpSettings: skipJumpSettings,
             openPostNewTabSettings: openPostNewTabSettings,
             chickenLegStats: chickenLegStats,
@@ -4395,10 +4176,6 @@
             if (json.signSettings && typeof json.signSettings === 'object') {
                 if (typeof json.signSettings.enabled !== 'undefined') localStorage.setItem('nodeseek_sign_enabled', json.signSettings.enabled ? 'true' : 'false');
                 if (typeof json.signSettings.mode !== 'undefined') localStorage.setItem('nodeseek_sign_mode', json.signSettings.mode);
-            }
-
-            if (json.userInfoSettings && typeof json.userInfoSettings === 'object' && typeof json.userInfoSettings.display !== 'undefined') {
-                setUserInfoDisplayState(json.userInfoSettings.display);
             }
 
             if (json.skipJumpSettings && typeof json.skipJumpSettings === 'object') {
@@ -9498,40 +9275,7 @@
         dataRow.appendChild(createSettingsActionButton('同步设置', '#475569', showWebdavSyncDialog));
         content.appendChild(dataRow);
 
-        // 1. 用户信息显示开关
-        const userInfoRow = document.createElement('div');
-        userInfoRow.style.display = 'flex';
-        userInfoRow.style.justifyContent = 'space-between';
-        userInfoRow.style.alignItems = 'center';
-        if (isMobile) userInfoRow.style.flexWrap = 'wrap';
-
-        const userInfoLabel = document.createElement('label');
-        userInfoLabel.textContent = '显示用户信息';
-        userInfoLabel.style.fontWeight = '500';
-        userInfoLabel.style.color = '#555';
-
-        const userInfoSwitch = document.createElement('input');
-        userInfoSwitch.type = 'checkbox';
-        userInfoSwitch.checked = getUserInfoDisplayState();
-        userInfoSwitch.style.transform = 'scale(1.2)';
-        userInfoSwitch.onchange = function () {
-            const newState = this.checked;
-            setUserInfoDisplayState(newState);
-            if (newState) {
-                processUserAvatars();
-                addLog('用户信息显示：开启');
-            } else {
-                const userInfoElements = document.querySelectorAll('.user-info-display');
-                userInfoElements.forEach(el => el.remove());
-                addLog('用户信息显示：关闭');
-            }
-        };
-
-        userInfoRow.appendChild(userInfoLabel);
-        userInfoRow.appendChild(userInfoSwitch);
-        content.appendChild(userInfoRow);
-
-        // 2. 阅读记忆开关（含颜色选择）
+        // 1. 阅读记忆开关（含颜色选择）
         const historyRow = document.createElement('div');
         historyRow.style.display = 'flex';
         historyRow.style.justifyContent = 'space-between';

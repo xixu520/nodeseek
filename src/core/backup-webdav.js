@@ -140,17 +140,6 @@
             console.error('导出备份设置失败:', error);
         }
 
-        // 新增：用户信息显示设置
-        let userInfoSettings = {};
-        try {
-            const userInfoDisplay = localStorage.getItem('nodeseek_user_info_display');
-            if (userInfoDisplay !== null) {
-                userInfoSettings.display = userInfoDisplay !== 'false';
-            }
-        } catch (error) {
-            console.error('导出用户信息显示设置失败:', error);
-        }
-
         // 新增：屏蔽URL跳转提醒设置
         let skipJumpSettings = {};
         try {
@@ -177,7 +166,6 @@
             quickReplies: quickReplies, // 添加快捷回复数据
             quickReplySettings: quickReplySettings, // 新增：快捷回复设置
             signSettings: signSettings, // 新增：签到设置
-            userInfoSettings: userInfoSettings, // 新增：用户信息显示设置
             skipJumpSettings: skipJumpSettings, // 新增：屏蔽URL跳转提醒设置
             openPostNewTabSettings: openPostNewTabSettings, // 新增：新标签页打开帖子设置
             chickenLegStats: chickenLegStats, // 添加鸡腿统计数据
@@ -373,19 +361,6 @@
                         } catch (error) {
                             console.error('导入签到设置(兼容字段)失败:', error);
                             importInfo.push('签到设置(失败)');
-                        }
-                    }
-
-                    // 新增：处理用户信息显示设置
-                    if (json.userInfoSettings && typeof json.userInfoSettings === 'object') {
-                        try {
-                            if (typeof json.userInfoSettings.display !== 'undefined') {
-                                setUserInfoDisplayState(json.userInfoSettings.display);
-                                importInfo.push(`用户信息显示设置(${json.userInfoSettings.display ? '开启' : '关闭'})`);
-                            }
-                        } catch (error) {
-                            console.error('导入用户信息显示设置失败:', error);
-                            importInfo.push('用户信息显示设置(失败)');
                         }
                     }
 
@@ -794,14 +769,6 @@
             console.error('读取备份设置失败:', error);
         }
 
-        const userInfoSettings = {};
-        try {
-            const userInfoDisplay = localStorage.getItem('nodeseek_user_info_display');
-            if (userInfoDisplay !== null) userInfoSettings.display = userInfoDisplay !== 'false';
-        } catch (error) {
-            console.error('读取用户信息显示设置失败:', error);
-        }
-
         let skipJumpSettings = {};
         try {
             skipJumpSettings = {
@@ -828,7 +795,6 @@
             quickReplies: quickReplies,
             quickReplySettings: quickReplySettings,
             signSettings: signSettings,
-            userInfoSettings: userInfoSettings,
             skipJumpSettings: skipJumpSettings,
             openPostNewTabSettings: openPostNewTabSettings,
             chickenLegStats: chickenLegStats,
@@ -865,10 +831,6 @@
             if (json.signSettings && typeof json.signSettings === 'object') {
                 if (typeof json.signSettings.enabled !== 'undefined') localStorage.setItem('nodeseek_sign_enabled', json.signSettings.enabled ? 'true' : 'false');
                 if (typeof json.signSettings.mode !== 'undefined') localStorage.setItem('nodeseek_sign_mode', json.signSettings.mode);
-            }
-
-            if (json.userInfoSettings && typeof json.userInfoSettings === 'object' && typeof json.userInfoSettings.display !== 'undefined') {
-                setUserInfoDisplayState(json.userInfoSettings.display);
             }
 
             if (json.skipJumpSettings && typeof json.skipJumpSettings === 'object') {
