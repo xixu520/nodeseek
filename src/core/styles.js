@@ -139,10 +139,16 @@
     }
 
     #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
-        right: 0 !important;
-        top: 40% !important;
         align-items: flex-end !important;
         flex-direction: column !important;
+        cursor: move !important;
+        touch-action: none !important;
+        user-select: none !important;
+    }
+
+    #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed.ns-collapsed-move-locked {
+        cursor: default !important;
+        touch-action: auto !important;
     }
 
     #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
@@ -1271,9 +1277,7 @@
             }
 
             #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
-                right: 0 !important;
-                bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
-                top: auto !important;
+                max-width: calc(100vw - 24px) !important;
             }
 
             #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {

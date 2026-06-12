@@ -638,25 +638,113 @@
                 renderCollapsedActions();
                 collapsedHighlightBtn.style.display = isHomePage() ? 'inline-flex' : 'none';
                 updateCollapsedHighlightCount();
-                if (window.innerWidth <= 767) {
-                    mainContainer.style.top = 'auto';
-                    mainContainer.style.right = '0px';
-                    mainContainer.style.bottom = 'calc(88px + env(safe-area-inset-bottom, 0px))';
-                } else {
-                    mainContainer.style.top = '40%';
-                    mainContainer.style.right = '0px';
-                    mainContainer.style.bottom = '';
-                }
+                mainContainer.classList.toggle('ns-collapsed-move-locked', getCollapsedMoveLockState());
+                requestAnimationFrame(function () {
+                    const saved = getCollapsedPosition();
+                    const rect = mainContainer.getBoundingClientRect();
+                    const fallbackLeft = Math.max(0, window.innerWidth - rect.width);
+                    const fallbackTop = window.innerWidth <= 767
+                        ? Math.max(0, window.innerHeight - rect.height - 88)
+                        : Math.max(0, Math.round((window.innerHeight - rect.height) * 0.4));
+                    setCollapsedPanelPosition(saved || { left: fallbackLeft, top: fallbackTop }, false);
+                });
             } else {
                 mainContainer.style.flexDirection = 'row';
                 mainContainer.style.alignItems = '';
+                mainContainer.classList.remove('ns-collapsed-move-locked');
                 collapsedRail.style.display = 'none';
                 collapsedHighlightBtn.style.display = 'none';
+                mainContainer.style.removeProperty('left');
+                mainContainer.style.removeProperty('right');
+                mainContainer.style.removeProperty('top');
+                mainContainer.style.removeProperty('bottom');
                 mainContainer.style.top = expandedPosition.top;
                 mainContainer.style.right = expandedPosition.right;
                 mainContainer.style.bottom = expandedPosition.bottom;
             }
         }
+
+        function setCollapsedPanelPosition(position, save) {
+            const rect = mainContainer.getBoundingClientRect();
+            const maxLeft = Math.max(0, window.innerWidth - rect.width);
+            const maxTop = Math.max(0, window.innerHeight - rect.height);
+            let left = Math.min(maxLeft, Math.max(0, position.left));
+            let top = Math.min(maxTop, Math.max(0, position.top));
+            const snap = 24;
+            if (left <= snap) left = 0;
+            if (maxLeft - left <= snap) left = maxLeft;
+            if (top <= snap) top = 0;
+            if (maxTop - top <= snap) top = maxTop;
+            mainContainer.style.setProperty('left', left + 'px', 'important');
+            mainContainer.style.setProperty('top', top + 'px', 'important');
+            mainContainer.style.setProperty('right', 'auto', 'important');
+            mainContainer.style.setProperty('bottom', 'auto', 'important');
+            if (save) setCollapsedPosition({ left, top });
+        }
+
+        let collapsedDragState = null;
+
+        function isCollapsedPanelDraggableTarget(target) {
+            if (!mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) return false;
+            if (getCollapsedMoveLockState()) return false;
+            if (target.closest && target.closest('.ns-collapsed-action-btn, #ns-collapsed-highlight-count')) return false;
+            return true;
+        }
+
+        function startCollapsedPanelDrag(event) {
+            if (!isCollapsedPanelDraggableTarget(event.target)) return;
+            const point = event.touches ? event.touches[0] : event;
+            if (!point) return;
+            const rect = mainContainer.getBoundingClientRect();
+            collapsedDragState = {
+                startX: point.clientX,
+                startY: point.clientY,
+                left: rect.left,
+                top: rect.top,
+                moved: false
+            };
+            document.addEventListener('mousemove', moveCollapsedPanelDrag);
+            document.addEventListener('mouseup', endCollapsedPanelDrag);
+            document.addEventListener('touchmove', moveCollapsedPanelDrag, { passive: false });
+            document.addEventListener('touchend', endCollapsedPanelDrag);
+        }
+
+        function moveCollapsedPanelDrag(event) {
+            if (!collapsedDragState) return;
+            const point = event.touches ? event.touches[0] : event;
+            if (!point) return;
+            const dx = point.clientX - collapsedDragState.startX;
+            const dy = point.clientY - collapsedDragState.startY;
+            if (Math.abs(dx) + Math.abs(dy) > 4) collapsedDragState.moved = true;
+            if (event.cancelable) event.preventDefault();
+            setCollapsedPanelPosition({
+                left: collapsedDragState.left + dx,
+                top: collapsedDragState.top + dy
+            }, false);
+        }
+
+        function endCollapsedPanelDrag() {
+            if (collapsedDragState) {
+                const rect = mainContainer.getBoundingClientRect();
+                setCollapsedPanelPosition({ left: rect.left, top: rect.top }, true);
+            }
+            document.removeEventListener('mousemove', moveCollapsedPanelDrag);
+            document.removeEventListener('mouseup', endCollapsedPanelDrag);
+            document.removeEventListener('touchmove', moveCollapsedPanelDrag);
+            document.removeEventListener('touchend', endCollapsedPanelDrag);
+            setTimeout(function () { collapsedDragState = null; }, 0);
+        }
+
+        mainContainer.addEventListener('mousedown', startCollapsedPanelDrag);
+        mainContainer.addEventListener('touchstart', startCollapsedPanelDrag, { passive: true });
+        document.addEventListener('nodeseek-collapsed-lock-change', function () {
+            mainContainer.classList.toggle('ns-collapsed-move-locked', getCollapsedMoveLockState());
+        });
+        window.addEventListener('resize', function () {
+            if (!mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) return;
+            const rect = mainContainer.getBoundingClientRect();
+            setCollapsedPanelPosition({ left: rect.left, top: rect.top }, true);
+        });
 
         // 处理折叠状态
         const isCollapsed = getCollapsedState();
@@ -834,6 +922,7 @@
 
         // 折叠按钮点击事件
         collapseBtn.onclick = function () {
+            if (collapsedDragState && collapsedDragState.moved) return;
             const isCurrentlyCollapsed = container.classList.contains('nodeseek-plugin-container-collapsed');
 
             if (isCurrentlyCollapsed) {

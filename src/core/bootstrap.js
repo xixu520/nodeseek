@@ -52,6 +52,8 @@
 
     // 新增：折叠状态的存储键
     const COLLAPSED_STATE_KEY = 'nodeseek_buttons_collapsed';
+    const COLLAPSED_POSITION_KEY = 'nodeseek_collapsed_position';
+    const COLLAPSED_MOVE_LOCK_KEY = 'nodeseek_collapsed_move_locked';
     const PANEL_THEME_MODE_KEY = 'nodeseek_panel_theme_mode';
 
     // 新增：用户数据缓存的存储键
@@ -252,6 +254,31 @@
     // 新增：保存折叠状态
     function setCollapsedState(isCollapsed) {
         localStorage.setItem(COLLAPSED_STATE_KEY, isCollapsed.toString());
+    }
+
+    function getCollapsedPosition() {
+        try {
+            const value = JSON.parse(localStorage.getItem(COLLAPSED_POSITION_KEY) || 'null');
+            if (value && Number.isFinite(value.left) && Number.isFinite(value.top)) return value;
+        } catch (e) { }
+        return null;
+    }
+
+    function setCollapsedPosition(position) {
+        if (!position || !Number.isFinite(position.left) || !Number.isFinite(position.top)) return;
+        localStorage.setItem(COLLAPSED_POSITION_KEY, JSON.stringify({
+            left: Math.round(position.left),
+            top: Math.round(position.top)
+        }));
+    }
+
+    function getCollapsedMoveLockState() {
+        return localStorage.getItem(COLLAPSED_MOVE_LOCK_KEY) === 'true';
+    }
+
+    function setCollapsedMoveLockState(isLocked) {
+        localStorage.setItem(COLLAPSED_MOVE_LOCK_KEY, isLocked.toString());
+        document.dispatchEvent(new CustomEvent('nodeseek-collapsed-lock-change', { detail: { locked: !!isLocked } }));
     }
 
     function getPanelThemeMode() {
