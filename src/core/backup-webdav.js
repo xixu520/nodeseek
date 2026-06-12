@@ -158,6 +158,13 @@
             console.error('导出新标签页打开帖子设置失败:', error);
         }
 
+        let commentAutoLoadSettings = {};
+        try {
+            commentAutoLoadSettings.enabled = getCommentAutoLoadMoreEnabled();
+        } catch (error) {
+            console.error('导出评论自动加载设置失败:', error);
+        }
+
         const data = JSON.stringify({
             blacklist: blacklist,
             friends: friends,
@@ -168,6 +175,7 @@
             signSettings: signSettings, // 新增：签到设置
             skipJumpSettings: skipJumpSettings, // 新增：屏蔽URL跳转提醒设置
             openPostNewTabSettings: openPostNewTabSettings, // 新增：新标签页打开帖子设置
+            commentAutoLoadSettings: commentAutoLoadSettings, // 新增：评论自动加载设置
             chickenLegStats: chickenLegStats, // 添加鸡腿统计数据
             filterData: filterData, // 添加关键词过滤数据
             notesData: notesData, // 添加笔记数据
@@ -396,6 +404,18 @@
                         } catch (error) {
                             console.error('导入新标签页打开帖子设置失败:', error);
                             importInfo.push('新标签页打开帖子设置(失败)');
+                        }
+                    }
+
+                    if (json.commentAutoLoadSettings && typeof json.commentAutoLoadSettings === 'object') {
+                        try {
+                            if (typeof json.commentAutoLoadSettings.enabled !== 'undefined') {
+                                setCommentAutoLoadMoreEnabled(json.commentAutoLoadSettings.enabled);
+                                importInfo.push(`评论自动加载设置(${json.commentAutoLoadSettings.enabled ? '开启' : '关闭'})`);
+                            }
+                        } catch (error) {
+                            console.error('导入评论自动加载设置失败:', error);
+                            importInfo.push('评论自动加载设置(失败)');
                         }
                     }
 
@@ -787,6 +807,13 @@
             console.error('读取新标签页打开帖子设置失败:', error);
         }
 
+        let commentAutoLoadSettings = {};
+        try {
+            commentAutoLoadSettings.enabled = getCommentAutoLoadMoreEnabled();
+        } catch (error) {
+            console.error('读取评论自动加载设置失败:', error);
+        }
+
         const data = {
             blacklist: blacklist,
             friends: friends,
@@ -797,6 +824,7 @@
             signSettings: signSettings,
             skipJumpSettings: skipJumpSettings,
             openPostNewTabSettings: openPostNewTabSettings,
+            commentAutoLoadSettings: commentAutoLoadSettings,
             chickenLegStats: chickenLegStats,
             filterData: filterData,
             notesData: notesData,
@@ -841,6 +869,10 @@
 
             if (json.openPostNewTabSettings && typeof json.openPostNewTabSettings === 'object' && typeof json.openPostNewTabSettings.enabled !== 'undefined') {
                 setOpenPostNewTabEnabled(json.openPostNewTabSettings.enabled);
+            }
+
+            if (json.commentAutoLoadSettings && typeof json.commentAutoLoadSettings === 'object' && typeof json.commentAutoLoadSettings.enabled !== 'undefined') {
+                setCommentAutoLoadMoreEnabled(json.commentAutoLoadSettings.enabled);
             }
 
             if (json.chickenLegStats && typeof json.chickenLegStats === 'object') {

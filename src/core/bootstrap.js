@@ -61,6 +61,7 @@
 
     const VIEWED_HISTORY_ENABLED_KEY = 'nodeseek_viewed_history_enabled';
     const VIEWED_COLOR_KEY = 'nodeseek_viewed_color';
+    const COMMENT_AUTO_LOAD_MORE_KEY = 'nodeseek_comment_auto_load_more';
     // 新增：跳过跳转页面开关
     const SKIP_JUMP_PAGE_KEY = 'nodeseek_skip_jump_page';
     const SKIP_JUMP_MODE_KEY = 'nodeseek_skip_jump_mode'; // 'blacklist' or 'whitelist'
@@ -92,6 +93,7 @@
         { key: 'signSettings', label: '签到设置', dataKeys: ['signSettings'] },
         { key: 'skipJumpSettings', label: '跳转设置', dataKeys: ['skipJumpSettings'] },
         { key: 'openPostNewTabSettings', label: '新标签打开设置', dataKeys: ['openPostNewTabSettings'] },
+        { key: 'commentAutoLoadSettings', label: '评论自动加载设置', dataKeys: ['commentAutoLoadSettings'] },
         { key: 'chickenLegStats', label: '鸡腿统计', dataKeys: ['chickenLegStats'] },
         { key: 'filterData', label: '关键词过滤', dataKeys: ['filterData'] },
         { key: 'notesData', label: '笔记', dataKeys: ['notesData'] },
@@ -140,6 +142,15 @@
 
     function setOpenPostNewTabEnabled(enabled) {
         localStorage.setItem(OPEN_POST_NEW_TAB_KEY, enabled.toString());
+    }
+
+    function getCommentAutoLoadMoreEnabled() {
+        const val = localStorage.getItem(COMMENT_AUTO_LOAD_MORE_KEY);
+        return val === null ? true : val === 'true';
+    }
+
+    function setCommentAutoLoadMoreEnabled(enabled) {
+        localStorage.setItem(COMMENT_AUTO_LOAD_MORE_KEY, enabled.toString());
     }
 
     // 新增：获取是否开启跳过跳转页面

@@ -365,6 +365,75 @@
         });
     }
 
+    let commentAutoLoadReady = false;
+    let commentAutoLoadTimer = null;
+    let commentAutoLoadCooldownUntil = 0;
+
+    function isCommentDetailPage() {
+        const path = window.location.pathname || '';
+        return path.includes('/topic/') || path.includes('/article/') || /\/post-\d+/i.test(path);
+    }
+
+    function isElementVisible(el) {
+        if (!el || !(el instanceof HTMLElement)) return false;
+        const rect = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    }
+
+    function isCommentLoadMoreText(text) {
+        const clean = String(text || '').replace(/\s+/g, '');
+        if (!clean || clean.length > 24) return false;
+        return clean.includes('加载更多')
+            || clean.includes('更多评论')
+            || clean.includes('查看更多评论')
+            || clean.includes('展开更多评论')
+            || clean.includes('显示更多评论')
+            || clean === '查看更多'
+            || clean === '展开更多';
+    }
+
+    function isCommentLoadMoreCandidate(el) {
+        if (!isElementVisible(el)) return false;
+        if (el.closest('#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #friends-dialog, #nodeimage-dialog')) return false;
+        if (el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
+        if (!isCommentLoadMoreText(el.textContent)) return false;
+
+        const rect = el.getBoundingClientRect();
+        return rect.top < window.innerHeight + 220 && rect.bottom > -40;
+    }
+
+    function tryAutoLoadMoreComments() {
+        if (!getCommentAutoLoadMoreEnabled()) return;
+        if (!isCommentDetailPage()) return;
+        if (Date.now() < commentAutoLoadCooldownUntil) return;
+
+        const candidates = Array.from(document.querySelectorAll('button, a, [role="button"], .btn, [class*="load"], [class*="more"]'));
+        const target = candidates.find(isCommentLoadMoreCandidate);
+        if (!target) return;
+
+        commentAutoLoadCooldownUntil = Date.now() + 1600;
+        target.click();
+        if (typeof addLog === 'function') addLog('评论区自动加载更多');
+    }
+
+    function scheduleCommentAutoLoadMore(delay) {
+        if (commentAutoLoadTimer) clearTimeout(commentAutoLoadTimer);
+        commentAutoLoadTimer = setTimeout(function () {
+            commentAutoLoadTimer = null;
+            tryAutoLoadMoreComments();
+        }, typeof delay === 'number' ? delay : 180);
+    }
+
+    function ensureCommentAutoLoadMore() {
+        if (commentAutoLoadReady) return;
+        commentAutoLoadReady = true;
+        window.addEventListener('scroll', function () { scheduleCommentAutoLoadMore(120); }, { passive: true });
+        window.addEventListener('resize', function () { scheduleCommentAutoLoadMore(180); });
+        new MutationObserver(function () { scheduleCommentAutoLoadMore(260); }).observe(document.body, { childList: true, subtree: true });
+        scheduleCommentAutoLoadMore(800);
+    }
+
     // 高亮黑名单用户并显示备注和网址
     let blacklistRemarkWidthRaf = null;
     function findFloorMarkerElement(metaInfo) {
@@ -1128,6 +1197,8 @@
         updatePageScopeClasses();
         processUsernames();
         processHomepageAuthorMetaBadges();
+        ensureCommentAutoLoadMore();
+        scheduleCommentAutoLoadMore(400);
         highlightBlacklisted();
         highlightFriends(); // 新增调用
         replaceRelativeTimeWithAbsolute(); // 新增：替换相对时间为完整时间

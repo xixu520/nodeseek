@@ -864,6 +864,30 @@
         historyRow.appendChild(rightContainer);
         content.appendChild(historyRow);
 
+        const commentAutoLoadRow = document.createElement('div');
+        commentAutoLoadRow.style.display = 'flex';
+        commentAutoLoadRow.style.justifyContent = 'space-between';
+        commentAutoLoadRow.style.alignItems = 'center';
+        if (isMobile) commentAutoLoadRow.style.flexWrap = 'wrap';
+
+        const commentAutoLoadLabel = document.createElement('label');
+        commentAutoLoadLabel.textContent = '评论区自动加载更多';
+        commentAutoLoadLabel.style.fontWeight = '500';
+        commentAutoLoadLabel.style.color = '#555';
+
+        const commentAutoLoadSwitch = document.createElement('input');
+        commentAutoLoadSwitch.type = 'checkbox';
+        commentAutoLoadSwitch.checked = getCommentAutoLoadMoreEnabled();
+        commentAutoLoadSwitch.style.transform = 'scale(1.2)';
+        commentAutoLoadSwitch.onchange = function () {
+            setCommentAutoLoadMoreEnabled(this.checked);
+            addLog('评论区自动加载更多：' + (this.checked ? '开启' : '关闭'));
+        };
+
+        commentAutoLoadRow.appendChild(commentAutoLoadLabel);
+        commentAutoLoadRow.appendChild(commentAutoLoadSwitch);
+        content.appendChild(commentAutoLoadRow);
+
         // 3. 自动签到设置
         const signRow = document.createElement('div');
         signRow.style.display = 'flex';

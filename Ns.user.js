@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.12.5
+// @version      2026.06.12.6
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -86,6 +86,7 @@
 
     const VIEWED_HISTORY_ENABLED_KEY = 'nodeseek_viewed_history_enabled';
     const VIEWED_COLOR_KEY = 'nodeseek_viewed_color';
+    const COMMENT_AUTO_LOAD_MORE_KEY = 'nodeseek_comment_auto_load_more';
     // 新增：跳过跳转页面开关
     const SKIP_JUMP_PAGE_KEY = 'nodeseek_skip_jump_page';
     const SKIP_JUMP_MODE_KEY = 'nodeseek_skip_jump_mode'; // 'blacklist' or 'whitelist'
@@ -117,6 +118,7 @@
         { key: 'signSettings', label: '签到设置', dataKeys: ['signSettings'] },
         { key: 'skipJumpSettings', label: '跳转设置', dataKeys: ['skipJumpSettings'] },
         { key: 'openPostNewTabSettings', label: '新标签打开设置', dataKeys: ['openPostNewTabSettings'] },
+        { key: 'commentAutoLoadSettings', label: '评论自动加载设置', dataKeys: ['commentAutoLoadSettings'] },
         { key: 'chickenLegStats', label: '鸡腿统计', dataKeys: ['chickenLegStats'] },
         { key: 'filterData', label: '关键词过滤', dataKeys: ['filterData'] },
         { key: 'notesData', label: '笔记', dataKeys: ['notesData'] },
@@ -165,6 +167,15 @@
 
     function setOpenPostNewTabEnabled(enabled) {
         localStorage.setItem(OPEN_POST_NEW_TAB_KEY, enabled.toString());
+    }
+
+    function getCommentAutoLoadMoreEnabled() {
+        const val = localStorage.getItem(COMMENT_AUTO_LOAD_MORE_KEY);
+        return val === null ? true : val === 'true';
+    }
+
+    function setCommentAutoLoadMoreEnabled(enabled) {
+        localStorage.setItem(COMMENT_AUTO_LOAD_MORE_KEY, enabled.toString());
     }
 
     // 新增：获取是否开启跳过跳转页面
@@ -2636,6 +2647,75 @@
         });
     }
 
+    let commentAutoLoadReady = false;
+    let commentAutoLoadTimer = null;
+    let commentAutoLoadCooldownUntil = 0;
+
+    function isCommentDetailPage() {
+        const path = window.location.pathname || '';
+        return path.includes('/topic/') || path.includes('/article/') || /\/post-\d+/i.test(path);
+    }
+
+    function isElementVisible(el) {
+        if (!el || !(el instanceof HTMLElement)) return false;
+        const rect = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    }
+
+    function isCommentLoadMoreText(text) {
+        const clean = String(text || '').replace(/\s+/g, '');
+        if (!clean || clean.length > 24) return false;
+        return clean.includes('加载更多')
+            || clean.includes('更多评论')
+            || clean.includes('查看更多评论')
+            || clean.includes('展开更多评论')
+            || clean.includes('显示更多评论')
+            || clean === '查看更多'
+            || clean === '展开更多';
+    }
+
+    function isCommentLoadMoreCandidate(el) {
+        if (!isElementVisible(el)) return false;
+        if (el.closest('#nodeseek-plugin-main-container, #settings-dialog, #webdav-sync-dialog, #blacklist-dialog, #ns-filter-dialog, #quick-reply-dialog, #logs-dialog, #friends-dialog, #nodeimage-dialog')) return false;
+        if (el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
+        if (!isCommentLoadMoreText(el.textContent)) return false;
+
+        const rect = el.getBoundingClientRect();
+        return rect.top < window.innerHeight + 220 && rect.bottom > -40;
+    }
+
+    function tryAutoLoadMoreComments() {
+        if (!getCommentAutoLoadMoreEnabled()) return;
+        if (!isCommentDetailPage()) return;
+        if (Date.now() < commentAutoLoadCooldownUntil) return;
+
+        const candidates = Array.from(document.querySelectorAll('button, a, [role="button"], .btn, [class*="load"], [class*="more"]'));
+        const target = candidates.find(isCommentLoadMoreCandidate);
+        if (!target) return;
+
+        commentAutoLoadCooldownUntil = Date.now() + 1600;
+        target.click();
+        if (typeof addLog === 'function') addLog('评论区自动加载更多');
+    }
+
+    function scheduleCommentAutoLoadMore(delay) {
+        if (commentAutoLoadTimer) clearTimeout(commentAutoLoadTimer);
+        commentAutoLoadTimer = setTimeout(function () {
+            commentAutoLoadTimer = null;
+            tryAutoLoadMoreComments();
+        }, typeof delay === 'number' ? delay : 180);
+    }
+
+    function ensureCommentAutoLoadMore() {
+        if (commentAutoLoadReady) return;
+        commentAutoLoadReady = true;
+        window.addEventListener('scroll', function () { scheduleCommentAutoLoadMore(120); }, { passive: true });
+        window.addEventListener('resize', function () { scheduleCommentAutoLoadMore(180); });
+        new MutationObserver(function () { scheduleCommentAutoLoadMore(260); }).observe(document.body, { childList: true, subtree: true });
+        scheduleCommentAutoLoadMore(800);
+    }
+
     // 高亮黑名单用户并显示备注和网址
     let blacklistRemarkWidthRaf = null;
     function findFloorMarkerElement(metaInfo) {
@@ -3399,6 +3479,8 @@
         updatePageScopeClasses();
         processUsernames();
         processHomepageAuthorMetaBadges();
+        ensureCommentAutoLoadMore();
+        scheduleCommentAutoLoadMore(400);
         highlightBlacklisted();
         highlightFriends(); // 新增调用
         replaceRelativeTimeWithAbsolute(); // 新增：替换相对时间为完整时间
@@ -3574,6 +3656,13 @@
             console.error('导出新标签页打开帖子设置失败:', error);
         }
 
+        let commentAutoLoadSettings = {};
+        try {
+            commentAutoLoadSettings.enabled = getCommentAutoLoadMoreEnabled();
+        } catch (error) {
+            console.error('导出评论自动加载设置失败:', error);
+        }
+
         const data = JSON.stringify({
             blacklist: blacklist,
             friends: friends,
@@ -3584,6 +3673,7 @@
             signSettings: signSettings, // 新增：签到设置
             skipJumpSettings: skipJumpSettings, // 新增：屏蔽URL跳转提醒设置
             openPostNewTabSettings: openPostNewTabSettings, // 新增：新标签页打开帖子设置
+            commentAutoLoadSettings: commentAutoLoadSettings, // 新增：评论自动加载设置
             chickenLegStats: chickenLegStats, // 添加鸡腿统计数据
             filterData: filterData, // 添加关键词过滤数据
             notesData: notesData, // 添加笔记数据
@@ -3812,6 +3902,18 @@
                         } catch (error) {
                             console.error('导入新标签页打开帖子设置失败:', error);
                             importInfo.push('新标签页打开帖子设置(失败)');
+                        }
+                    }
+
+                    if (json.commentAutoLoadSettings && typeof json.commentAutoLoadSettings === 'object') {
+                        try {
+                            if (typeof json.commentAutoLoadSettings.enabled !== 'undefined') {
+                                setCommentAutoLoadMoreEnabled(json.commentAutoLoadSettings.enabled);
+                                importInfo.push(`评论自动加载设置(${json.commentAutoLoadSettings.enabled ? '开启' : '关闭'})`);
+                            }
+                        } catch (error) {
+                            console.error('导入评论自动加载设置失败:', error);
+                            importInfo.push('评论自动加载设置(失败)');
                         }
                     }
 
@@ -4203,6 +4305,13 @@
             console.error('读取新标签页打开帖子设置失败:', error);
         }
 
+        let commentAutoLoadSettings = {};
+        try {
+            commentAutoLoadSettings.enabled = getCommentAutoLoadMoreEnabled();
+        } catch (error) {
+            console.error('读取评论自动加载设置失败:', error);
+        }
+
         const data = {
             blacklist: blacklist,
             friends: friends,
@@ -4213,6 +4322,7 @@
             signSettings: signSettings,
             skipJumpSettings: skipJumpSettings,
             openPostNewTabSettings: openPostNewTabSettings,
+            commentAutoLoadSettings: commentAutoLoadSettings,
             chickenLegStats: chickenLegStats,
             filterData: filterData,
             notesData: notesData,
@@ -4257,6 +4367,10 @@
 
             if (json.openPostNewTabSettings && typeof json.openPostNewTabSettings === 'object' && typeof json.openPostNewTabSettings.enabled !== 'undefined') {
                 setOpenPostNewTabEnabled(json.openPostNewTabSettings.enabled);
+            }
+
+            if (json.commentAutoLoadSettings && typeof json.commentAutoLoadSettings === 'object' && typeof json.commentAutoLoadSettings.enabled !== 'undefined') {
+                setCommentAutoLoadMoreEnabled(json.commentAutoLoadSettings.enabled);
             }
 
             if (json.chickenLegStats && typeof json.chickenLegStats === 'object') {
@@ -9567,6 +9681,30 @@
         historyRow.appendChild(historyLabel);
         historyRow.appendChild(rightContainer);
         content.appendChild(historyRow);
+
+        const commentAutoLoadRow = document.createElement('div');
+        commentAutoLoadRow.style.display = 'flex';
+        commentAutoLoadRow.style.justifyContent = 'space-between';
+        commentAutoLoadRow.style.alignItems = 'center';
+        if (isMobile) commentAutoLoadRow.style.flexWrap = 'wrap';
+
+        const commentAutoLoadLabel = document.createElement('label');
+        commentAutoLoadLabel.textContent = '评论区自动加载更多';
+        commentAutoLoadLabel.style.fontWeight = '500';
+        commentAutoLoadLabel.style.color = '#555';
+
+        const commentAutoLoadSwitch = document.createElement('input');
+        commentAutoLoadSwitch.type = 'checkbox';
+        commentAutoLoadSwitch.checked = getCommentAutoLoadMoreEnabled();
+        commentAutoLoadSwitch.style.transform = 'scale(1.2)';
+        commentAutoLoadSwitch.onchange = function () {
+            setCommentAutoLoadMoreEnabled(this.checked);
+            addLog('评论区自动加载更多：' + (this.checked ? '开启' : '关闭'));
+        };
+
+        commentAutoLoadRow.appendChild(commentAutoLoadLabel);
+        commentAutoLoadRow.appendChild(commentAutoLoadSwitch);
+        content.appendChild(commentAutoLoadRow);
 
         // 3. 自动签到设置
         const signRow = document.createElement('div');
