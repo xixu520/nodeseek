@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.13.3
+// @version      2026.06.13.4
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
-// @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
-// @downloadURL  https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
+// @updateURL    https://cdn.jsdelivr.net/gh/xixu520/nodeseek@main/Ns.user.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/xixu520/nodeseek@main/Ns.user.js
 // @grant        GM_xmlhttpRequest
 // @grant        GM_info
 // @grant        GM_openInTab
