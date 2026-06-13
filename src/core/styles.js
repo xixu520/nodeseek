@@ -737,7 +737,8 @@
         }
 
         #collapse-btn,
-        #theme-toggle-btn {
+        #theme-toggle-btn,
+        #ns-collapsed-drag-handle {
             border-radius: 7px 0 0 7px !important;
             background: var(--ns-ui-bg-solid) !important;
             border: 1px solid var(--ns-ui-line) !important;
@@ -752,6 +753,24 @@
             padding: 0 !important;
             line-height: 1 !important;
             box-sizing: border-box !important;
+        }
+
+        #ns-collapsed-drag-handle {
+            display: none !important;
+            border-radius: 9px !important;
+            background: #f8fafc !important;
+            color: #475569 !important;
+            font-size: 13px !important;
+            font-weight: 800 !important;
+            cursor: move !important;
+            touch-action: none !important;
+            align-items: center !important;
+            justify-content: center !important;
+            -webkit-tap-highlight-color: transparent !important;
+        }
+
+        #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #ns-collapsed-drag-handle {
+            display: none !important;
         }
 
         .ns-collapsed-action-rail {
@@ -1280,6 +1299,24 @@
 
             #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
                 max-width: calc(100vw - 24px) !important;
+            }
+
+            #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #ns-collapsed-drag-handle {
+                display: inline-flex !important;
+                width: 42px !important;
+                height: 42px !important;
+                min-width: 42px !important;
+                min-height: 42px !important;
+                max-width: 42px !important;
+                max-height: 42px !important;
+                margin-bottom: 6px !important;
+                border-radius: 12px !important;
+                box-shadow: 0 8px 18px rgba(15, 23, 42, .15) !important;
+                font-size: 14px !important;
+            }
+
+            #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed.ns-collapsed-move-locked #ns-collapsed-drag-handle {
+                display: none !important;
             }
 
             #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {

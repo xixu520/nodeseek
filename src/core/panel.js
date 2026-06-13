@@ -609,6 +609,18 @@
         }
         renderCollapsedActions();
 
+        const collapsedDragHandle = document.createElement('button');
+        collapsedDragHandle.id = 'ns-collapsed-drag-handle';
+        collapsedDragHandle.className = 'ns-collapsed-drag-handle';
+        collapsedDragHandle.type = 'button';
+        collapsedDragHandle.textContent = '拖';
+        collapsedDragHandle.title = '拖动位置';
+        collapsedDragHandle.setAttribute('aria-label', '拖动最小化按钮');
+        collapsedDragHandle.onclick = function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
         const themeToggleBtn = document.createElement('button');
         themeToggleBtn.id = 'theme-toggle-btn';
         themeToggleBtn.className = 'collapse-btn theme-toggle-btn';
@@ -624,6 +636,7 @@
 
         // 组装UI - 先添加折叠按钮，再添加内容容器
         mainContainer.appendChild(collapsedRail);
+        mainContainer.appendChild(collapsedDragHandle);
         mainContainer.appendChild(collapseBtn);
         mainContainer.appendChild(collapsedHighlightBtn);
         mainContainer.appendChild(themeToggleBtn);
@@ -636,6 +649,7 @@
                 mainContainer.style.flexDirection = 'column';
                 mainContainer.style.alignItems = 'flex-end';
                 collapsedRail.style.display = 'flex';
+                collapsedDragHandle.style.display = getCollapsedMoveLockState() ? 'none' : 'inline-flex';
                 renderCollapsedActions();
                 collapsedHighlightBtn.style.display = isHomePage() ? 'inline-flex' : 'none';
                 updateCollapsedHighlightCount();
@@ -654,6 +668,7 @@
                 mainContainer.style.alignItems = '';
                 mainContainer.classList.remove('ns-collapsed-move-locked');
                 collapsedRail.style.display = 'none';
+                collapsedDragHandle.style.display = 'none';
                 collapsedHighlightBtn.style.display = 'none';
                 mainContainer.style.removeProperty('left');
                 mainContainer.style.removeProperty('right');
@@ -708,10 +723,12 @@
         }
 
         let collapsedDragState = null;
+        let suppressCollapsedClick = false;
 
         function isCollapsedPanelDraggableTarget(target) {
             if (!mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) return false;
             if (getCollapsedMoveLockState()) return false;
+            if (window.innerWidth <= 767) return !!(target.closest && target.closest('#ns-collapsed-drag-handle'));
             if (target.closest && target.closest('.ns-collapsed-action-btn, #ns-collapsed-highlight-count')) return false;
             return true;
         }
@@ -728,6 +745,7 @@
                 top: rect.top,
                 moved: false
             };
+            suppressCollapsedClick = false;
             document.addEventListener('mousemove', moveCollapsedPanelDrag);
             document.addEventListener('mouseup', endCollapsedPanelDrag);
             document.addEventListener('touchmove', moveCollapsedPanelDrag, { passive: false });
@@ -740,7 +758,10 @@
             if (!point) return;
             const dx = point.clientX - collapsedDragState.startX;
             const dy = point.clientY - collapsedDragState.startY;
-            if (Math.abs(dx) + Math.abs(dy) > 4) collapsedDragState.moved = true;
+            if (Math.abs(dx) + Math.abs(dy) > 4) {
+                collapsedDragState.moved = true;
+                suppressCollapsedClick = true;
+            }
             if (event.cancelable) event.preventDefault();
             setCollapsedPanelPosition({
                 left: collapsedDragState.left + dx,
@@ -749,6 +770,7 @@
         }
 
         function endCollapsedPanelDrag() {
+            const moved = collapsedDragState && collapsedDragState.moved;
             if (collapsedDragState) {
                 const rect = mainContainer.getBoundingClientRect();
                 setCollapsedPanelPosition({ left: rect.left, top: rect.top }, true);
@@ -757,13 +779,25 @@
             document.removeEventListener('mouseup', endCollapsedPanelDrag);
             document.removeEventListener('touchmove', moveCollapsedPanelDrag);
             document.removeEventListener('touchend', endCollapsedPanelDrag);
-            setTimeout(function () { collapsedDragState = null; }, 0);
+            setTimeout(function () {
+                collapsedDragState = null;
+                suppressCollapsedClick = !!moved;
+                setTimeout(function () { suppressCollapsedClick = false; }, 120);
+            }, 0);
         }
 
         mainContainer.addEventListener('mousedown', startCollapsedPanelDrag);
         mainContainer.addEventListener('touchstart', startCollapsedPanelDrag, { passive: true });
+        mainContainer.addEventListener('click', function (event) {
+            if (!suppressCollapsedClick) return;
+            event.preventDefault();
+            event.stopPropagation();
+        }, true);
         document.addEventListener('nodeseek-collapsed-lock-change', function () {
             mainContainer.classList.toggle('ns-collapsed-move-locked', getCollapsedMoveLockState());
+            if (mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) {
+                collapsedDragHandle.style.display = getCollapsedMoveLockState() ? 'none' : 'inline-flex';
+            }
         });
         window.addEventListener('resize', function () {
             if (!mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) return;

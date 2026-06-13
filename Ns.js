@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.13.4
+// @version      2026.06.13.5
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://cdn.jsdelivr.net/gh/xixu520/nodeseek@main/Ns.user.js
@@ -1715,7 +1715,8 @@
         }
 
         #collapse-btn,
-        #theme-toggle-btn {
+        #theme-toggle-btn,
+        #ns-collapsed-drag-handle {
             border-radius: 7px 0 0 7px !important;
             background: var(--ns-ui-bg-solid) !important;
             border: 1px solid var(--ns-ui-line) !important;
@@ -1730,6 +1731,24 @@
             padding: 0 !important;
             line-height: 1 !important;
             box-sizing: border-box !important;
+        }
+
+        #ns-collapsed-drag-handle {
+            display: none !important;
+            border-radius: 9px !important;
+            background: #f8fafc !important;
+            color: #475569 !important;
+            font-size: 13px !important;
+            font-weight: 800 !important;
+            cursor: move !important;
+            touch-action: none !important;
+            align-items: center !important;
+            justify-content: center !important;
+            -webkit-tap-highlight-color: transparent !important;
+        }
+
+        #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #ns-collapsed-drag-handle {
+            display: none !important;
         }
 
         .ns-collapsed-action-rail {
@@ -2258,6 +2277,24 @@
 
             #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
                 max-width: calc(100vw - 24px) !important;
+            }
+
+            #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #ns-collapsed-drag-handle {
+                display: inline-flex !important;
+                width: 42px !important;
+                height: 42px !important;
+                min-width: 42px !important;
+                min-height: 42px !important;
+                max-width: 42px !important;
+                max-height: 42px !important;
+                margin-bottom: 6px !important;
+                border-radius: 12px !important;
+                box-shadow: 0 8px 18px rgba(15, 23, 42, .15) !important;
+                font-size: 14px !important;
+            }
+
+            #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed.ns-collapsed-move-locked #ns-collapsed-drag-handle {
+                display: none !important;
             }
 
             #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
@@ -6554,6 +6591,18 @@
         }
         renderCollapsedActions();
 
+        const collapsedDragHandle = document.createElement('button');
+        collapsedDragHandle.id = 'ns-collapsed-drag-handle';
+        collapsedDragHandle.className = 'ns-collapsed-drag-handle';
+        collapsedDragHandle.type = 'button';
+        collapsedDragHandle.textContent = '拖';
+        collapsedDragHandle.title = '拖动位置';
+        collapsedDragHandle.setAttribute('aria-label', '拖动最小化按钮');
+        collapsedDragHandle.onclick = function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
         const themeToggleBtn = document.createElement('button');
         themeToggleBtn.id = 'theme-toggle-btn';
         themeToggleBtn.className = 'collapse-btn theme-toggle-btn';
@@ -6569,6 +6618,7 @@
 
         // 组装UI - 先添加折叠按钮，再添加内容容器
         mainContainer.appendChild(collapsedRail);
+        mainContainer.appendChild(collapsedDragHandle);
         mainContainer.appendChild(collapseBtn);
         mainContainer.appendChild(collapsedHighlightBtn);
         mainContainer.appendChild(themeToggleBtn);
@@ -6581,6 +6631,7 @@
                 mainContainer.style.flexDirection = 'column';
                 mainContainer.style.alignItems = 'flex-end';
                 collapsedRail.style.display = 'flex';
+                collapsedDragHandle.style.display = getCollapsedMoveLockState() ? 'none' : 'inline-flex';
                 renderCollapsedActions();
                 collapsedHighlightBtn.style.display = isHomePage() ? 'inline-flex' : 'none';
                 updateCollapsedHighlightCount();
@@ -6599,6 +6650,7 @@
                 mainContainer.style.alignItems = '';
                 mainContainer.classList.remove('ns-collapsed-move-locked');
                 collapsedRail.style.display = 'none';
+                collapsedDragHandle.style.display = 'none';
                 collapsedHighlightBtn.style.display = 'none';
                 mainContainer.style.removeProperty('left');
                 mainContainer.style.removeProperty('right');
@@ -6653,10 +6705,12 @@
         }
 
         let collapsedDragState = null;
+        let suppressCollapsedClick = false;
 
         function isCollapsedPanelDraggableTarget(target) {
             if (!mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) return false;
             if (getCollapsedMoveLockState()) return false;
+            if (window.innerWidth <= 767) return !!(target.closest && target.closest('#ns-collapsed-drag-handle'));
             if (target.closest && target.closest('.ns-collapsed-action-btn, #ns-collapsed-highlight-count')) return false;
             return true;
         }
@@ -6673,6 +6727,7 @@
                 top: rect.top,
                 moved: false
             };
+            suppressCollapsedClick = false;
             document.addEventListener('mousemove', moveCollapsedPanelDrag);
             document.addEventListener('mouseup', endCollapsedPanelDrag);
             document.addEventListener('touchmove', moveCollapsedPanelDrag, { passive: false });
@@ -6685,7 +6740,10 @@
             if (!point) return;
             const dx = point.clientX - collapsedDragState.startX;
             const dy = point.clientY - collapsedDragState.startY;
-            if (Math.abs(dx) + Math.abs(dy) > 4) collapsedDragState.moved = true;
+            if (Math.abs(dx) + Math.abs(dy) > 4) {
+                collapsedDragState.moved = true;
+                suppressCollapsedClick = true;
+            }
             if (event.cancelable) event.preventDefault();
             setCollapsedPanelPosition({
                 left: collapsedDragState.left + dx,
@@ -6694,6 +6752,7 @@
         }
 
         function endCollapsedPanelDrag() {
+            const moved = collapsedDragState && collapsedDragState.moved;
             if (collapsedDragState) {
                 const rect = mainContainer.getBoundingClientRect();
                 setCollapsedPanelPosition({ left: rect.left, top: rect.top }, true);
@@ -6702,13 +6761,25 @@
             document.removeEventListener('mouseup', endCollapsedPanelDrag);
             document.removeEventListener('touchmove', moveCollapsedPanelDrag);
             document.removeEventListener('touchend', endCollapsedPanelDrag);
-            setTimeout(function () { collapsedDragState = null; }, 0);
+            setTimeout(function () {
+                collapsedDragState = null;
+                suppressCollapsedClick = !!moved;
+                setTimeout(function () { suppressCollapsedClick = false; }, 120);
+            }, 0);
         }
 
         mainContainer.addEventListener('mousedown', startCollapsedPanelDrag);
         mainContainer.addEventListener('touchstart', startCollapsedPanelDrag, { passive: true });
+        mainContainer.addEventListener('click', function (event) {
+            if (!suppressCollapsedClick) return;
+            event.preventDefault();
+            event.stopPropagation();
+        }, true);
         document.addEventListener('nodeseek-collapsed-lock-change', function () {
             mainContainer.classList.toggle('ns-collapsed-move-locked', getCollapsedMoveLockState());
+            if (mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) {
+                collapsedDragHandle.style.display = getCollapsedMoveLockState() ? 'none' : 'inline-flex';
+            }
         });
         window.addEventListener('resize', function () {
             if (!mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) return;
