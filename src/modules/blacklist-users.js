@@ -487,8 +487,8 @@
     }
 
     function scheduleBlacklistRemarkWidthUpdate() {
-        if (blacklistRemarkWidthRaf) cancelAnimationFrame(blacklistRemarkWidthRaf);
-        blacklistRemarkWidthRaf = requestAnimationFrame(() => {
+        if (blacklistRemarkWidthRaf) nsCancelAnimationFrame(blacklistRemarkWidthRaf);
+        blacklistRemarkWidthRaf = nsRequestAnimationFrame(() => {
             blacklistRemarkWidthRaf = null;
             updateAllBlacklistRemarkWidths();
         });

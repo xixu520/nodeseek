@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.13.1
+// @version      2026.06.13.2
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -26,8 +26,11 @@
     // --------------------------------------------------------
     // 新增功能：跳过跳转提示页面
     // 检查开关状态 (默认为 false)
-    const skipJumpVal = localStorage.getItem('nodeseek_skip_jump_page');
-    const isSkipJumpEnabled = skipJumpVal === null ? false : skipJumpVal === 'true';
+    let isSkipJumpEnabled = false;
+    try {
+        const skipJumpVal = localStorage.getItem('nodeseek_skip_jump_page');
+        isSkipJumpEnabled = skipJumpVal === null ? false : skipJumpVal === 'true';
+    } catch (e) { }
     function decodeJumpTarget(value) {
         let text = String(value || '');
         for (let i = 0; i < 2 && /%[0-9a-f]{2}/i.test(text); i++) {
@@ -50,38 +53,46 @@
         return domains.some(domain => host === domain || host.endsWith('.' + domain));
     }
 
-    if (isSkipJumpEnabled) {
-        if (location.pathname === '/jump' && location.search.includes('to=')) {
-            const params = new URLSearchParams(location.search);
-            if (params.has('to')) {
-                const target = params.get('to');
-                if (target) {
-                    try {
-                        const targetUrlStr = decodeJumpTarget(target);
-                        const targetUrl = new URL(targetUrlStr, location.origin);
-                        const targetDomain = targetUrl.hostname;
+    try {
+        if (isSkipJumpEnabled) {
+            if (location.pathname === '/jump' && location.search.includes('to=')) {
+                const params = new URLSearchParams(location.search);
+                if (params.has('to')) {
+                    const target = params.get('to');
+                    if (target) {
+                        try {
+                            const targetUrlStr = decodeJumpTarget(target);
+                            const targetUrl = new URL(targetUrlStr, location.origin);
+                            const targetDomain = targetUrl.hostname;
 
-                        const modeRaw = localStorage.getItem('nodeseek_skip_jump_mode');
-                        const mode = (modeRaw === 'whitelist') ? 'whitelist' : 'all';
-                        const listSaved = localStorage.getItem('nodeseek_skip_jump_list');
-                        const list = listSaved ? JSON.parse(listSaved) : [];
+                            let mode = 'all';
+                            let list = [];
+                            try {
+                                const modeRaw = localStorage.getItem('nodeseek_skip_jump_mode');
+                                mode = (modeRaw === 'whitelist') ? 'whitelist' : 'all';
+                                const listSaved = localStorage.getItem('nodeseek_skip_jump_list');
+                                list = listSaved ? JSON.parse(listSaved) : [];
+                            } catch (e) { }
 
-                        const shouldSkip = isJumpTargetAllowed(targetDomain, mode, list);
+                            const shouldSkip = isJumpTargetAllowed(targetDomain, mode, list);
 
-                        if (shouldSkip) {
-                            // 立即跳转
-                            window.location.replace(targetUrlStr);
-                            return; // 停止执行后续脚本
+                            if (shouldSkip) {
+                                // 立即跳转
+                                window.location.replace(targetUrlStr);
+                                return; // 停止执行后续脚本
+                            }
+                        } catch (e) {
+                            try {
+                                // URL 解析失败，按原逻辑直接跳转
+                                window.location.replace(decodeJumpTarget(target));
+                                return;
+                            } catch (err) { }
                         }
-                    } catch (e) {
-                        // URL 解析失败，按原逻辑直接跳转
-                        window.location.replace(decodeJumpTarget(target));
-                        return;
                     }
                 }
             }
         }
-    }
+    } catch (e) { }
     // --------------------------------------------------------
 
     // 黑名单数据结构：{ username: {remark: 'xxx'} }
@@ -143,6 +154,19 @@
     let isWebdavApplyingRemoteData = false;
     const webdavPageId = 'page-' + Date.now() + '-' + Math.random().toString(36).slice(2);
 
+    function nsRequestAnimationFrame(callback) {
+        if (typeof requestAnimationFrame === 'function') return requestAnimationFrame(callback);
+        return setTimeout(callback, 16);
+    }
+
+    function nsCancelAnimationFrame(id) {
+        if (typeof cancelAnimationFrame === 'function') {
+            cancelAnimationFrame(id);
+            return;
+        }
+        clearTimeout(id);
+    }
+
     function isWebdavTrackedStorageKey(key) {
         if (!key) return false;
         if (key === WEBDAV_SYNC_CONFIG_KEY || key === WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY || key === WEBDAV_SYNC_LAST_SYNC_AT_KEY || key === WEBDAV_SYNC_LAST_REMOTE_UPDATED_AT_KEY || key === WEBDAV_SYNC_LOCK_KEY || key === WEBDAV_SYNC_DEVICE_ID_KEY) return false;
@@ -154,25 +178,10 @@
     function markWebdavLocalChanged(key) {
         if (isWebdavApplyingRemoteData) return;
         if (!isWebdavTrackedStorageKey(key)) return;
-        localStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(Date.now()));
-        scheduleWebdavChangeSync();
-    }
-
-    if (typeof Storage !== 'undefined' && Storage.prototype) {
-        const originalLocalStorageSetItem = Storage.prototype.setItem;
-        const originalLocalStorageRemoveItem = Storage.prototype.removeItem;
-
-        Storage.prototype.setItem = function (key, value) {
-            const result = originalLocalStorageSetItem.apply(this, arguments);
-            if (this === localStorage) markWebdavLocalChanged(String(key));
-            return result;
-        };
-
-        Storage.prototype.removeItem = function (key) {
-            const result = originalLocalStorageRemoveItem.apply(this, arguments);
-            if (this === localStorage) markWebdavLocalChanged(String(key));
-            return result;
-        };
+        try {
+            localStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(Date.now()));
+            scheduleWebdavChangeSync();
+        } catch (e) { }
     }
 
     function getOpenPostNewTabEnabled() {
@@ -338,7 +347,10 @@
     }
 
     function getPanelThemeMode() {
-        const saved = localStorage.getItem(PANEL_THEME_MODE_KEY);
+        let saved = null;
+        try {
+            saved = localStorage.getItem(PANEL_THEME_MODE_KEY);
+        } catch (e) { }
         if (saved === 'dark' || saved === 'light') return saved;
         const root = document.documentElement;
         const pageTheme = root.getAttribute('data-theme');
@@ -346,13 +358,17 @@
         const isDarkByClass = root.classList.contains('dark') || document.body?.classList?.contains('dark') || document.body?.classList?.contains('theme-dark');
         const isDarkByMedia = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
         const inferred = (isDarkByAttr || isDarkByClass || isDarkByMedia) ? 'dark' : 'light';
-        localStorage.setItem(PANEL_THEME_MODE_KEY, inferred);
+        try {
+            localStorage.setItem(PANEL_THEME_MODE_KEY, inferred);
+        } catch (e) { }
         return inferred;
     }
 
     function setPanelThemeMode(mode) {
         const safe = (mode === 'dark' || mode === 'light') ? mode : getPanelThemeMode();
-        localStorage.setItem(PANEL_THEME_MODE_KEY, safe);
+        try {
+            localStorage.setItem(PANEL_THEME_MODE_KEY, safe);
+        } catch (e) { }
     }
 
     function applyPanelThemeMode(mode) {
@@ -2799,8 +2815,8 @@
     }
 
     function scheduleBlacklistRemarkWidthUpdate() {
-        if (blacklistRemarkWidthRaf) cancelAnimationFrame(blacklistRemarkWidthRaf);
-        blacklistRemarkWidthRaf = requestAnimationFrame(() => {
+        if (blacklistRemarkWidthRaf) nsCancelAnimationFrame(blacklistRemarkWidthRaf);
+        blacklistRemarkWidthRaf = nsRequestAnimationFrame(() => {
             blacklistRemarkWidthRaf = null;
             updateAllBlacklistRemarkWidths();
         });
@@ -6535,7 +6551,7 @@
                 collapsedHighlightBtn.style.display = isHomePage() ? 'inline-flex' : 'none';
                 updateCollapsedHighlightCount();
                 mainContainer.classList.toggle('ns-collapsed-move-locked', getCollapsedMoveLockState());
-                requestAnimationFrame(function () {
+                nsRequestAnimationFrame(function () {
                     const saved = getCollapsedPosition();
                     const rect = mainContainer.getBoundingClientRect();
                     const fallbackLeft = Math.max(0, window.innerWidth - rect.width);
@@ -6557,7 +6573,7 @@
                 mainContainer.style.top = expandedPosition.top;
                 mainContainer.style.right = expandedPosition.right;
                 mainContainer.style.bottom = expandedPosition.bottom;
-                requestAnimationFrame(function () {
+                nsRequestAnimationFrame(function () {
                     setExpandedPanelPositionNear(positionBeforeLayout);
                 });
             }
@@ -9017,7 +9033,7 @@
     // 首次加载
     ensureNsModules();
     addExportImportButtons();
-    requestAnimationFrame(function () {
+    nsRequestAnimationFrame(function () {
         if (typeof scheduleUpdateAll === 'function') scheduleUpdateAll(0);
         else updateAll();
     });

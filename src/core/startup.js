@@ -119,7 +119,7 @@
     // 首次加载
     ensureNsModules();
     addExportImportButtons();
-    requestAnimationFrame(function () {
+    nsRequestAnimationFrame(function () {
         if (typeof scheduleUpdateAll === 'function') scheduleUpdateAll(0);
         else updateAll();
     });

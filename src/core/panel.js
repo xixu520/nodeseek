@@ -640,7 +640,7 @@
                 collapsedHighlightBtn.style.display = isHomePage() ? 'inline-flex' : 'none';
                 updateCollapsedHighlightCount();
                 mainContainer.classList.toggle('ns-collapsed-move-locked', getCollapsedMoveLockState());
-                requestAnimationFrame(function () {
+                nsRequestAnimationFrame(function () {
                     const saved = getCollapsedPosition();
                     const rect = mainContainer.getBoundingClientRect();
                     const fallbackLeft = Math.max(0, window.innerWidth - rect.width);
@@ -662,7 +662,7 @@
                 mainContainer.style.top = expandedPosition.top;
                 mainContainer.style.right = expandedPosition.right;
                 mainContainer.style.bottom = expandedPosition.bottom;
-                requestAnimationFrame(function () {
+                nsRequestAnimationFrame(function () {
                     setExpandedPanelPositionNear(positionBeforeLayout);
                 });
             }
