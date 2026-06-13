@@ -1,9 +1,43 @@
+    const nsStorageFallback = new Map();
+    const nsLocalStorage = {
+        getItem(key) {
+            try {
+                const storage = window['localStorage'];
+                if (storage) return storage.getItem(key);
+            } catch (e) { }
+            return nsStorageFallback.has(key) ? nsStorageFallback.get(key) : null;
+        },
+        setItem(key, value) {
+            const safeKey = String(key);
+            const safeValue = String(value);
+            try {
+                const storage = window['localStorage'];
+                if (storage) {
+                    storage.setItem(safeKey, safeValue);
+                    try { markWebdavLocalChanged(safeKey); } catch (e) { }
+                    return;
+                }
+            } catch (e) { }
+            nsStorageFallback.set(safeKey, safeValue);
+            try { markWebdavLocalChanged(safeKey); } catch (e) { }
+        },
+        removeItem(key) {
+            const safeKey = String(key);
+            try {
+                const storage = window['localStorage'];
+                if (storage) storage.removeItem(safeKey);
+            } catch (e) { }
+            nsStorageFallback.delete(safeKey);
+            try { markWebdavLocalChanged(safeKey); } catch (e) { }
+        }
+    };
+
     // --------------------------------------------------------
     // 新增功能：跳过跳转提示页面
     // 检查开关状态 (默认为 false)
     let isSkipJumpEnabled = false;
     try {
-        const skipJumpVal = localStorage.getItem('nodeseek_skip_jump_page');
+        const skipJumpVal = nsLocalStorage.getItem('nodeseek_skip_jump_page');
         isSkipJumpEnabled = skipJumpVal === null ? false : skipJumpVal === 'true';
     } catch (e) { }
     function decodeJumpTarget(value) {
@@ -43,9 +77,9 @@
                             let mode = 'all';
                             let list = [];
                             try {
-                                const modeRaw = localStorage.getItem('nodeseek_skip_jump_mode');
+                                const modeRaw = nsLocalStorage.getItem('nodeseek_skip_jump_mode');
                                 mode = (modeRaw === 'whitelist') ? 'whitelist' : 'all';
-                                const listSaved = localStorage.getItem('nodeseek_skip_jump_list');
+                                const listSaved = nsLocalStorage.getItem('nodeseek_skip_jump_list');
                                 list = listSaved ? JSON.parse(listSaved) : [];
                             } catch (e) { }
 
@@ -154,54 +188,54 @@
         if (isWebdavApplyingRemoteData) return;
         if (!isWebdavTrackedStorageKey(key)) return;
         try {
-            localStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(Date.now()));
+            nsLocalStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(Date.now()));
             scheduleWebdavChangeSync();
         } catch (e) { }
     }
 
     function getOpenPostNewTabEnabled() {
-        const val = localStorage.getItem(OPEN_POST_NEW_TAB_KEY);
+        const val = nsLocalStorage.getItem(OPEN_POST_NEW_TAB_KEY);
         return val === 'true'; // 默认关闭
     }
 
     function setOpenPostNewTabEnabled(enabled) {
-        localStorage.setItem(OPEN_POST_NEW_TAB_KEY, enabled.toString());
+        nsLocalStorage.setItem(OPEN_POST_NEW_TAB_KEY, enabled.toString());
     }
 
     function getCommentAutoLoadMoreEnabled() {
-        const val = localStorage.getItem(COMMENT_AUTO_LOAD_MORE_KEY);
+        const val = nsLocalStorage.getItem(COMMENT_AUTO_LOAD_MORE_KEY);
         return val === null ? true : val === 'true';
     }
 
     function setCommentAutoLoadMoreEnabled(enabled) {
-        localStorage.setItem(COMMENT_AUTO_LOAD_MORE_KEY, enabled.toString());
+        nsLocalStorage.setItem(COMMENT_AUTO_LOAD_MORE_KEY, enabled.toString());
     }
 
     // 新增：获取是否开启跳过跳转页面
     function getSkipJumpPageEnabled() {
-        const val = localStorage.getItem(SKIP_JUMP_PAGE_KEY);
+        const val = nsLocalStorage.getItem(SKIP_JUMP_PAGE_KEY);
         return val === null ? false : val === 'true'; // 默认关闭
     }
 
     // 新增：设置是否开启跳过跳转页面
     function setSkipJumpPageEnabled(enabled) {
-        localStorage.setItem(SKIP_JUMP_PAGE_KEY, enabled.toString());
+        nsLocalStorage.setItem(SKIP_JUMP_PAGE_KEY, enabled.toString());
     }
 
     // 新增：获取跳转模式
     function getSkipJumpMode() {
-        const mode = localStorage.getItem(SKIP_JUMP_MODE_KEY);
+        const mode = nsLocalStorage.getItem(SKIP_JUMP_MODE_KEY);
         return (mode === 'whitelist') ? 'whitelist' : 'all'; // 默认为 all，处理旧有的 blacklist 为 all
     }
 
     // 新增：设置跳转模式
     function setSkipJumpMode(mode) {
-        localStorage.setItem(SKIP_JUMP_MODE_KEY, mode);
+        nsLocalStorage.setItem(SKIP_JUMP_MODE_KEY, mode);
     }
 
     // 新增：获取跳转名单列表
     function getSkipJumpList() {
-        const saved = localStorage.getItem(SKIP_JUMP_LIST_KEY);
+        const saved = nsLocalStorage.getItem(SKIP_JUMP_LIST_KEY);
         try {
             return saved ? JSON.parse(saved) : [];
         } catch (e) {
@@ -211,27 +245,27 @@
 
     // 新增：设置跳转名单列表
     function setSkipJumpList(list) {
-        localStorage.setItem(SKIP_JUMP_LIST_KEY, JSON.stringify(list));
+        nsLocalStorage.setItem(SKIP_JUMP_LIST_KEY, JSON.stringify(list));
     }
 
     // 新增：获取阅读记忆开启状态
     function getViewedHistoryEnabled() {
-        return localStorage.getItem(VIEWED_HISTORY_ENABLED_KEY) !== 'false'; // 默认开启
+        return nsLocalStorage.getItem(VIEWED_HISTORY_ENABLED_KEY) !== 'false'; // 默认开启
     }
 
     // 新增：保存阅读记忆开启状态
     function setViewedHistoryEnabled(enabled) {
-        localStorage.setItem(VIEWED_HISTORY_ENABLED_KEY, enabled.toString());
+        nsLocalStorage.setItem(VIEWED_HISTORY_ENABLED_KEY, enabled.toString());
     }
 
     // 新增：获取阅读后颜色
     function getViewedColor() {
-        return localStorage.getItem(VIEWED_COLOR_KEY) || '#9aa0a6';
+        return nsLocalStorage.getItem(VIEWED_COLOR_KEY) || '#9aa0a6';
     }
 
     // 新增：保存阅读后颜色
     function setViewedColor(color) {
-        localStorage.setItem(VIEWED_COLOR_KEY, color);
+        nsLocalStorage.setItem(VIEWED_COLOR_KEY, color);
     }
 
     // 新增：浏览历史记录管理
@@ -239,14 +273,14 @@
         if (window.NodeSeekHistory && window.NodeSeekHistory.getBrowseHistory) {
             return window.NodeSeekHistory.getBrowseHistory();
         }
-        return JSON.parse(localStorage.getItem(BROWSE_HISTORY_KEY) || '[]');
+        return JSON.parse(nsLocalStorage.getItem(BROWSE_HISTORY_KEY) || '[]');
     }
 
     function setBrowseHistory(list) {
         if (window.NodeSeekHistory && window.NodeSeekHistory.setBrowseHistory) {
             return window.NodeSeekHistory.setBrowseHistory(list);
         }
-        localStorage.setItem(BROWSE_HISTORY_KEY, JSON.stringify(list));
+        nsLocalStorage.setItem(BROWSE_HISTORY_KEY, JSON.stringify(list));
     }
 
     function addToBrowseHistory(title, url) {
@@ -259,7 +293,7 @@
         if (window.NodeSeekHistory && window.NodeSeekHistory.clearBrowseHistory) {
             return window.NodeSeekHistory.clearBrowseHistory();
         }
-        localStorage.removeItem(BROWSE_HISTORY_KEY);
+        nsLocalStorage.removeItem(BROWSE_HISTORY_KEY);
     }
 
     // 新增：清理现有的重复记录
@@ -272,28 +306,28 @@
 
     // 读取黑名单
     function getBlacklist() {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        return JSON.parse(nsLocalStorage.getItem(STORAGE_KEY) || '{}');
     }
 
     // 保存黑名单
     function setBlacklist(list) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        nsLocalStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     }
 
 
     // 新增：获取折叠状态
     function getCollapsedState() {
-        return localStorage.getItem(COLLAPSED_STATE_KEY) === 'true';
+        return nsLocalStorage.getItem(COLLAPSED_STATE_KEY) === 'true';
     }
 
     // 新增：保存折叠状态
     function setCollapsedState(isCollapsed) {
-        localStorage.setItem(COLLAPSED_STATE_KEY, isCollapsed.toString());
+        nsLocalStorage.setItem(COLLAPSED_STATE_KEY, isCollapsed.toString());
     }
 
     function getCollapsedPosition() {
         try {
-            const value = JSON.parse(localStorage.getItem(COLLAPSED_POSITION_KEY) || 'null');
+            const value = JSON.parse(nsLocalStorage.getItem(COLLAPSED_POSITION_KEY) || 'null');
             if (value && Number.isFinite(value.left) && Number.isFinite(value.top)) return value;
         } catch (e) { }
         return null;
@@ -301,18 +335,18 @@
 
     function setCollapsedPosition(position) {
         if (!position || !Number.isFinite(position.left) || !Number.isFinite(position.top)) return;
-        localStorage.setItem(COLLAPSED_POSITION_KEY, JSON.stringify({
+        nsLocalStorage.setItem(COLLAPSED_POSITION_KEY, JSON.stringify({
             left: Math.round(position.left),
             top: Math.round(position.top)
         }));
     }
 
     function getCollapsedMoveLockState() {
-        return localStorage.getItem(COLLAPSED_MOVE_LOCK_KEY) === 'true';
+        return nsLocalStorage.getItem(COLLAPSED_MOVE_LOCK_KEY) === 'true';
     }
 
     function setCollapsedMoveLockState(isLocked) {
-        localStorage.setItem(COLLAPSED_MOVE_LOCK_KEY, isLocked.toString());
+        nsLocalStorage.setItem(COLLAPSED_MOVE_LOCK_KEY, isLocked.toString());
         try {
             const event = typeof CustomEvent === 'function'
                 ? new CustomEvent('nodeseek-collapsed-lock-change', { detail: { locked: !!isLocked } })
@@ -324,7 +358,7 @@
     function getPanelThemeMode() {
         let saved = null;
         try {
-            saved = localStorage.getItem(PANEL_THEME_MODE_KEY);
+            saved = nsLocalStorage.getItem(PANEL_THEME_MODE_KEY);
         } catch (e) { }
         if (saved === 'dark' || saved === 'light') return saved;
         const root = document.documentElement;
@@ -334,7 +368,7 @@
         const isDarkByMedia = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
         const inferred = (isDarkByAttr || isDarkByClass || isDarkByMedia) ? 'dark' : 'light';
         try {
-            localStorage.setItem(PANEL_THEME_MODE_KEY, inferred);
+            nsLocalStorage.setItem(PANEL_THEME_MODE_KEY, inferred);
         } catch (e) { }
         return inferred;
     }
@@ -342,7 +376,7 @@
     function setPanelThemeMode(mode) {
         const safe = (mode === 'dark' || mode === 'light') ? mode : getPanelThemeMode();
         try {
-            localStorage.setItem(PANEL_THEME_MODE_KEY, safe);
+            nsLocalStorage.setItem(PANEL_THEME_MODE_KEY, safe);
         } catch (e) { }
     }
 
@@ -386,7 +420,7 @@
 
     function getUserDataCache() {
         try {
-            const cache = JSON.parse(localStorage.getItem(USER_DATA_CACHE_KEY) || '{}');
+            const cache = JSON.parse(nsLocalStorage.getItem(USER_DATA_CACHE_KEY) || '{}');
             if (!cache || typeof cache !== 'object') return {};
             // 清理过期缓存（1小时过期）
             const now = Date.now();
@@ -396,11 +430,11 @@
                     delete cache[userId];
                 }
             });
-            localStorage.setItem(USER_DATA_CACHE_KEY, JSON.stringify(cache));
+            nsLocalStorage.setItem(USER_DATA_CACHE_KEY, JSON.stringify(cache));
             return cache;
         } catch (error) {
             console.warn('读取用户数据缓存失败，已重置:', error);
-            localStorage.removeItem(USER_DATA_CACHE_KEY);
+            nsLocalStorage.removeItem(USER_DATA_CACHE_KEY);
             return {};
         }
     }
@@ -412,7 +446,7 @@
                 ...data,
                 timestamp: Date.now()
             };
-            localStorage.setItem(USER_DATA_CACHE_KEY, JSON.stringify(cache));
+            nsLocalStorage.setItem(USER_DATA_CACHE_KEY, JSON.stringify(cache));
         } catch (error) {
             console.warn('写入用户数据缓存失败:', error);
         }
@@ -420,7 +454,7 @@
 
     function getUserDataFailedCache() {
         try {
-            const cache = JSON.parse(localStorage.getItem(USER_DATA_FAILED_CACHE_KEY) || '{}');
+            const cache = JSON.parse(nsLocalStorage.getItem(USER_DATA_FAILED_CACHE_KEY) || '{}');
             if (!cache || typeof cache !== 'object') return {};
             const now = Date.now();
             Object.keys(cache).forEach(userId => {
@@ -428,11 +462,11 @@
                     delete cache[userId];
                 }
             });
-            localStorage.setItem(USER_DATA_FAILED_CACHE_KEY, JSON.stringify(cache));
+            nsLocalStorage.setItem(USER_DATA_FAILED_CACHE_KEY, JSON.stringify(cache));
             return cache;
         } catch (error) {
             console.warn('读取用户数据失败缓存失败，已重置:', error);
-            localStorage.removeItem(USER_DATA_FAILED_CACHE_KEY);
+            nsLocalStorage.removeItem(USER_DATA_FAILED_CACHE_KEY);
             return {};
         }
     }
@@ -441,7 +475,7 @@
         try {
             const cache = getUserDataFailedCache();
             cache[userId] = Date.now();
-            localStorage.setItem(USER_DATA_FAILED_CACHE_KEY, JSON.stringify(cache));
+            nsLocalStorage.setItem(USER_DATA_FAILED_CACHE_KEY, JSON.stringify(cache));
         } catch (error) {
             console.warn('写入用户数据失败缓存失败:', error);
         }
@@ -453,13 +487,13 @@
     }
 
     function getUserDataRateLimitUntil() {
-        const until = parseInt(localStorage.getItem(USER_DATA_RATE_LIMIT_UNTIL_KEY) || '0', 10) || 0;
+        const until = parseInt(nsLocalStorage.getItem(USER_DATA_RATE_LIMIT_UNTIL_KEY) || '0', 10) || 0;
         return until > Date.now() ? until : 0;
     }
 
     function pauseUserDataRequests() {
         const until = Date.now() + USER_DATA_RATE_LIMIT_PAUSE;
-        localStorage.setItem(USER_DATA_RATE_LIMIT_UNTIL_KEY, String(until));
+        nsLocalStorage.setItem(USER_DATA_RATE_LIMIT_UNTIL_KEY, String(until));
         while (userDataRequestQueue.length) {
             const task = userDataRequestQueue.shift();
             userDataPendingRequests.delete(task.userId);

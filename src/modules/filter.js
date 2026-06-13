@@ -54,7 +54,7 @@
             }
 
             function readWords(key) {
-                const raw = localStorage.getItem(key);
+                const raw = nsLocalStorage.getItem(key);
                 if (!raw) return [];
                 try {
                     const parsed = JSON.parse(raw);
@@ -65,7 +65,7 @@
             }
 
             function readBool(key, fallback) {
-                const raw = localStorage.getItem(key);
+                const raw = nsLocalStorage.getItem(key);
                 if (raw === null) return fallback;
                 try {
                     return !!JSON.parse(raw);
@@ -75,7 +75,7 @@
             }
 
             function readNumber(key, fallback) {
-                const raw = localStorage.getItem(key);
+                const raw = nsLocalStorage.getItem(key);
                 if (raw === null) return fallback;
                 if (raw === '') return null;
                 const value = Number(raw);
@@ -83,12 +83,12 @@
             }
 
             function readWordsWithDefault(key, fallback) {
-                if (localStorage.getItem(key) === null) return fallback;
+                if (nsLocalStorage.getItem(key) === null) return fallback;
                 return readWords(key);
             }
 
             function writeJson(key, value) {
-                localStorage.setItem(key, JSON.stringify(value));
+                nsLocalStorage.setItem(key, JSON.stringify(value));
             }
 
             function getSettings() {
@@ -106,7 +106,7 @@
                     highlightKeywords,
                     highlightPostKeywords: highlightKeywords,
                     highlightAuthorEnabled: readBool('ns-filter-highlight-author-enabled', false),
-                    highlightColor: localStorage.getItem('ns-filter-highlight-color') || '#38bdf8',
+                    highlightColor: nsLocalStorage.getItem('ns-filter-highlight-color') || '#38bdf8',
                     whitelistUsers: readWords('ns-filter-whitelist-users'),
                     profileFilterEnabled: readBool('ns-filter-profile-filter-enabled', true),
                     blockLevels: uniqueWords(readWordsWithDefault('ns-filter-block-levels', ['0', '1']))
@@ -123,14 +123,14 @@
                 writeJson('ns-filter-highlight-keywords', highlightKeywords);
                 writeJson('ns-filter-highlight-post-keywords', highlightKeywords);
                 writeJson('ns-filter-highlight-author-enabled', !!settings.highlightAuthorEnabled);
-                localStorage.setItem('ns-filter-highlight-color', settings.highlightColor || '#38bdf8');
+                nsLocalStorage.setItem('ns-filter-highlight-color', settings.highlightColor || '#38bdf8');
                 writeJson('ns-filter-whitelist-users', uniqueWords(settings.whitelistUsers || []));
                 writeJson('ns-filter-profile-filter-enabled', !!settings.profileFilterEnabled);
                 writeJson('ns-filter-block-levels', uniqueWords(settings.blockLevels || []).filter(level => LEVEL_OPTIONS.includes(level)));
                 if (Number.isFinite(settings.maxJoinDays) && settings.maxJoinDays >= 0) {
-                    localStorage.setItem('ns-filter-max-join-days', String(Math.floor(settings.maxJoinDays)));
+                    nsLocalStorage.setItem('ns-filter-max-join-days', String(Math.floor(settings.maxJoinDays)));
                 } else {
-                    localStorage.setItem('ns-filter-max-join-days', '');
+                    nsLocalStorage.setItem('ns-filter-max-join-days', '');
                 }
             }
 

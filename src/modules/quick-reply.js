@@ -15,27 +15,27 @@
 
             function getQuickReplies() {
                 try {
-                    return normalizeReplies(JSON.parse(localStorage.getItem('nodeseek_quick_reply') || '{}'));
+                    return normalizeReplies(JSON.parse(nsLocalStorage.getItem('nodeseek_quick_reply') || '{}'));
                 } catch (e) {
                     return {};
                 }
             }
 
             function setQuickReplies(replies) {
-                localStorage.setItem('nodeseek_quick_reply', JSON.stringify(normalizeReplies(replies)));
+                nsLocalStorage.setItem('nodeseek_quick_reply', JSON.stringify(normalizeReplies(replies)));
             }
 
             function getAutoSubmit() {
-                return localStorage.getItem('nodeseek_quick_reply_auto_submit') === 'true';
+                return nsLocalStorage.getItem('nodeseek_quick_reply_auto_submit') === 'true';
             }
 
             function setAutoSubmit(value) {
-                localStorage.setItem('nodeseek_quick_reply_auto_submit', value ? 'true' : 'false');
+                nsLocalStorage.setItem('nodeseek_quick_reply_auto_submit', value ? 'true' : 'false');
             }
 
             function getLastUsed() {
                 try {
-                    return JSON.parse(localStorage.getItem('nodeseek_quick_reply_last_used') || '{}');
+                    return JSON.parse(nsLocalStorage.getItem('nodeseek_quick_reply_last_used') || '{}');
                 } catch (e) {
                     return {};
                 }
@@ -44,12 +44,12 @@
             function setLastUsed(title) {
                 const data = getLastUsed();
                 data[title] = Date.now();
-                localStorage.setItem('nodeseek_quick_reply_last_used', JSON.stringify(data));
+                nsLocalStorage.setItem('nodeseek_quick_reply_last_used', JSON.stringify(data));
             }
 
             function getSelectedShortcutKeys() {
                 try {
-                    const value = JSON.parse(localStorage.getItem('nodeseek_quick_reply_shortcuts') || '[]');
+                    const value = JSON.parse(nsLocalStorage.getItem('nodeseek_quick_reply_shortcuts') || '[]');
                     return Array.isArray(value) ? value.filter(Boolean) : [];
                 } catch (e) {
                     return [];
@@ -64,7 +64,7 @@
                     seen.add(key);
                     next.push(key);
                 });
-                localStorage.setItem('nodeseek_quick_reply_shortcuts', JSON.stringify(next));
+                nsLocalStorage.setItem('nodeseek_quick_reply_shortcuts', JSON.stringify(next));
                 if (window.NodeSeekCollapsedActions && typeof window.NodeSeekCollapsedActions.refresh === 'function') {
                     window.NodeSeekCollapsedActions.refresh();
                 }

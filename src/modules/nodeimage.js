@@ -13,9 +13,9 @@
             }
         } catch (e) { }
         try {
-            const oldValue = localStorage.getItem('ns_nodeimage_api_key') || '';
+            const oldValue = nsLocalStorage.getItem('ns_nodeimage_api_key') || '';
             if (oldValue && typeof GM_setValue === 'function') GM_setValue('ns_nodeimage_api_key', oldValue);
-            localStorage.removeItem('ns_nodeimage_api_key');
+            nsLocalStorage.removeItem('ns_nodeimage_api_key');
             return oldValue;
         } catch (e2) {
             return '';
@@ -25,7 +25,7 @@
     function setSafariNodeImageApiKey(value) {
         const key = (value || '').trim();
         try {
-            localStorage.removeItem('ns_nodeimage_api_key');
+            nsLocalStorage.removeItem('ns_nodeimage_api_key');
         } catch (e) { }
         try {
             if (typeof GM_setValue === 'function' && key) GM_setValue('ns_nodeimage_api_key', key);

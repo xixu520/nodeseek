@@ -264,7 +264,7 @@
         }
 
         // 保存日志
-        localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
+        nsLocalStorage.setItem(LOGS_KEY, JSON.stringify(logs));
 
         // 如果日志对话框已打开，则更新其内容
         updateLogDialogIfOpen(logEntry);
@@ -296,12 +296,12 @@
 
     // 获取日志
     function getLogs() {
-        return JSON.parse(localStorage.getItem(LOGS_KEY) || '[]');
+        return JSON.parse(nsLocalStorage.getItem(LOGS_KEY) || '[]');
     }
 
     // 清除日志
     function clearLogs() {
-        localStorage.removeItem(LOGS_KEY);
+        nsLocalStorage.removeItem(LOGS_KEY);
     }
 
     // 显示日志弹窗

@@ -20,7 +20,7 @@
         // 新增：快捷回复设置（自动发布）
         let quickReplySettings = {};
         try {
-            const autoSubmit = localStorage.getItem('nodeseek_quick_reply_auto_submit');
+            const autoSubmit = nsLocalStorage.getItem('nodeseek_quick_reply_auto_submit');
             if (autoSubmit !== null) {
                 quickReplySettings.autoSubmit = autoSubmit === 'true';
             }
@@ -31,11 +31,11 @@
         // 新增：签到设置（是否开启自动签到及模式）
         let signSettings = {};
         try {
-            const signEnabled = localStorage.getItem('nodeseek_sign_enabled');
+            const signEnabled = nsLocalStorage.getItem('nodeseek_sign_enabled');
             if (signEnabled !== null) {
                 signSettings.enabled = signEnabled === 'true';
             }
-            const signMode = localStorage.getItem('nodeseek_sign_mode');
+            const signMode = nsLocalStorage.getItem('nodeseek_sign_mode');
             if (signMode !== null) {
                 signSettings.mode = signMode;
             }
@@ -51,10 +51,10 @@
                 chickenLegStats = window.NodeSeekRegister.getChickenLegStats();
             } else {
                 // 如果模块函数不存在，尝试直接从localStorage获取所有相关数据
-                const lastFetch = localStorage.getItem('nodeseek_chicken_leg_last_fetch');
-                const nextAllow = localStorage.getItem('nodeseek_chicken_leg_next_allow');
-                const lastHtml = localStorage.getItem('nodeseek_chicken_leg_last_html');
-                const history = localStorage.getItem('nodeseek_chicken_leg_history');
+                const lastFetch = nsLocalStorage.getItem('nodeseek_chicken_leg_last_fetch');
+                const nextAllow = nsLocalStorage.getItem('nodeseek_chicken_leg_next_allow');
+                const lastHtml = nsLocalStorage.getItem('nodeseek_chicken_leg_last_html');
+                const history = nsLocalStorage.getItem('nodeseek_chicken_leg_history');
 
                 if (lastFetch || nextAllow || lastHtml || history) {
                     chickenLegStats = {
@@ -73,17 +73,17 @@
         let filterData = {};
         try {
             if (window.NodeSeekFilter) {
-                const customKeywords = localStorage.getItem('ns-filter-custom-keywords');
-                const displayKeywords = localStorage.getItem('ns-filter-keywords');
-                const highlightKeywords = localStorage.getItem('ns-filter-highlight-keywords');
-                const highlightPostKeywords = localStorage.getItem('ns-filter-highlight-post-keywords');
-                const highlightAuthorEnabled = localStorage.getItem('ns-filter-highlight-author-enabled');
-                const highlightColor = localStorage.getItem('ns-filter-highlight-color');
-                const dialogPosition = localStorage.getItem('ns-filter-dialog-position');
-                const whitelistUsers = localStorage.getItem('ns-filter-whitelist-users');
-                const profileFilterEnabled = localStorage.getItem('ns-filter-profile-filter-enabled');
-                const blockLevels = localStorage.getItem('ns-filter-block-levels');
-                const maxJoinDays = localStorage.getItem('ns-filter-max-join-days');
+                const customKeywords = nsLocalStorage.getItem('ns-filter-custom-keywords');
+                const displayKeywords = nsLocalStorage.getItem('ns-filter-keywords');
+                const highlightKeywords = nsLocalStorage.getItem('ns-filter-highlight-keywords');
+                const highlightPostKeywords = nsLocalStorage.getItem('ns-filter-highlight-post-keywords');
+                const highlightAuthorEnabled = nsLocalStorage.getItem('ns-filter-highlight-author-enabled');
+                const highlightColor = nsLocalStorage.getItem('ns-filter-highlight-color');
+                const dialogPosition = nsLocalStorage.getItem('ns-filter-dialog-position');
+                const whitelistUsers = nsLocalStorage.getItem('ns-filter-whitelist-users');
+                const profileFilterEnabled = nsLocalStorage.getItem('ns-filter-profile-filter-enabled');
+                const blockLevels = nsLocalStorage.getItem('ns-filter-block-levels');
+                const maxJoinDays = nsLocalStorage.getItem('ns-filter-max-join-days');
 
                 if (customKeywords || displayKeywords || highlightKeywords || highlightPostKeywords || highlightAuthorEnabled || highlightColor || dialogPosition || whitelistUsers || profileFilterEnabled || blockLevels || maxJoinDays !== null) {
                     filterData = {
@@ -118,9 +118,9 @@
         // 添加阅读记忆数据
         let viewedTitles = {};
         try {
-            const enabled = localStorage.getItem('nodeseek_viewed_history_enabled');
-            const color = localStorage.getItem('nodeseek_viewed_color');
-            const data = localStorage.getItem('nodeseek_viewed_titles_data');
+            const enabled = nsLocalStorage.getItem('nodeseek_viewed_history_enabled');
+            const color = nsLocalStorage.getItem('nodeseek_viewed_color');
+            const data = nsLocalStorage.getItem('nodeseek_viewed_titles_data');
 
             if (enabled !== null) viewedTitles.enabled = enabled === 'true';
             if (color !== null) viewedTitles.color = color;
@@ -132,7 +132,7 @@
         // 添加备份设置
         let backupLimit = 3;
         try {
-            const limit = localStorage.getItem('nodeseek_backup_limit');
+            const limit = nsLocalStorage.getItem('nodeseek_backup_limit');
             if (limit) {
                 backupLimit = parseInt(limit);
             }
@@ -251,7 +251,7 @@
 
                     // 处理日志数据
                     if (json.logs && Array.isArray(json.logs)) {
-                        localStorage.setItem(LOGS_KEY, JSON.stringify(json.logs));
+                        nsLocalStorage.setItem(LOGS_KEY, JSON.stringify(json.logs));
                         importInfo.push("操作日志");
                     }
 
@@ -269,31 +269,31 @@
 
                             // 导入RSS历史数据
                             if (hotData.rssHistory && Array.isArray(hotData.rssHistory)) {
-                                localStorage.setItem('nodeseek_rss_history', JSON.stringify(hotData.rssHistory));
+                                nsLocalStorage.setItem('nodeseek_rss_history', JSON.stringify(hotData.rssHistory));
                                 hotImportCount++;
                             }
 
                             // 导入热词历史数据
                             if (hotData.hotWordsHistory && Array.isArray(hotData.hotWordsHistory)) {
-                                localStorage.setItem('nodeseek_hot_words_history', JSON.stringify(hotData.hotWordsHistory));
+                                nsLocalStorage.setItem('nodeseek_hot_words_history', JSON.stringify(hotData.hotWordsHistory));
                                 hotImportCount++;
                             }
 
                             // 导入时间分布数据
                             if (hotData.timeDistributionHistory && Array.isArray(hotData.timeDistributionHistory)) {
-                                localStorage.setItem('nodeseek_time_distribution_history', JSON.stringify(hotData.timeDistributionHistory));
+                                nsLocalStorage.setItem('nodeseek_time_distribution_history', JSON.stringify(hotData.timeDistributionHistory));
                                 hotImportCount++;
                             }
 
                             // 导入用户统计数据
                             if (hotData.userStatsHistory && Array.isArray(hotData.userStatsHistory)) {
-                                localStorage.setItem('nodeseek_user_stats_history', JSON.stringify(hotData.userStatsHistory));
+                                nsLocalStorage.setItem('nodeseek_user_stats_history', JSON.stringify(hotData.userStatsHistory));
                                 hotImportCount++;
                             }
 
                             // 导入全局状态数据
                             if (hotData.globalState && typeof hotData.globalState === 'object') {
-                                localStorage.setItem('nodeseek_focus_global_state', JSON.stringify(hotData.globalState));
+                                nsLocalStorage.setItem('nodeseek_focus_global_state', JSON.stringify(hotData.globalState));
                                 hotImportCount++;
                             }
 
@@ -315,7 +315,7 @@
                                 importInfo.push(`快捷回复(${categoriesCount}个分类)`);
                             } else {
                                 // 如果功能暂不可用，直接保存到localStorage
-                                localStorage.setItem('nodeseek_quick_reply', JSON.stringify(json.quickReplies));
+                                nsLocalStorage.setItem('nodeseek_quick_reply', JSON.stringify(json.quickReplies));
                                 importInfo.push("快捷回复");
                             }
                         } catch (error) {
@@ -328,7 +328,7 @@
                     if (json.quickReplySettings && typeof json.quickReplySettings === 'object') {
                         try {
                             if (typeof json.quickReplySettings.autoSubmit !== 'undefined') {
-                                localStorage.setItem('nodeseek_quick_reply_auto_submit', json.quickReplySettings.autoSubmit ? 'true' : 'false');
+                                nsLocalStorage.setItem('nodeseek_quick_reply_auto_submit', json.quickReplySettings.autoSubmit ? 'true' : 'false');
                                 importInfo.push(`快捷回复设置(自动发布${json.quickReplySettings.autoSubmit ? '开启' : '关闭'})`);
                             }
                         } catch (error) {
@@ -338,7 +338,7 @@
                     } else if (typeof json.quickReplyAutoSubmit !== 'undefined') {
                         // 兼容可能的旧字段名
                         try {
-                            localStorage.setItem('nodeseek_quick_reply_auto_submit', json.quickReplyAutoSubmit ? 'true' : 'false');
+                            nsLocalStorage.setItem('nodeseek_quick_reply_auto_submit', json.quickReplyAutoSubmit ? 'true' : 'false');
                             importInfo.push(`快捷回复设置(自动发布${json.quickReplyAutoSubmit ? '开启' : '关闭'})`);
                         } catch (error) {
                             console.error('导入快捷回复设置(兼容字段)失败:', error);
@@ -350,10 +350,10 @@
                     if (json.signSettings && typeof json.signSettings === 'object') {
                         try {
                             if (typeof json.signSettings.enabled !== 'undefined') {
-                                localStorage.setItem('nodeseek_sign_enabled', json.signSettings.enabled ? 'true' : 'false');
+                                nsLocalStorage.setItem('nodeseek_sign_enabled', json.signSettings.enabled ? 'true' : 'false');
                             }
                             if (typeof json.signSettings.mode !== 'undefined') {
-                                localStorage.setItem('nodeseek_sign_mode', json.signSettings.mode);
+                                nsLocalStorage.setItem('nodeseek_sign_mode', json.signSettings.mode);
                             }
                             const modeStr = json.signSettings.mode === 'fixed' ? '固定' : (json.signSettings.mode === 'random' ? '随机' : '默认');
                             importInfo.push(`签到设置(${json.signSettings.enabled ? '开启' : '关闭'}, ${modeStr})`);
@@ -364,7 +364,7 @@
                     } else if (typeof json.signEnabled !== 'undefined') {
                         // 兼容可能的旧字段名
                         try {
-                            localStorage.setItem('nodeseek_sign_enabled', json.signEnabled ? 'true' : 'false');
+                            nsLocalStorage.setItem('nodeseek_sign_enabled', json.signEnabled ? 'true' : 'false');
                             importInfo.push(`签到设置(${json.signEnabled ? '开启' : '关闭'})`);
                         } catch (error) {
                             console.error('导入签到设置(兼容字段)失败:', error);
@@ -431,22 +431,22 @@
                                 let importedCount = 0;
 
                                 if (json.chickenLegStats.lastFetch) {
-                                    localStorage.setItem('nodeseek_chicken_leg_last_fetch', json.chickenLegStats.lastFetch);
+                                    nsLocalStorage.setItem('nodeseek_chicken_leg_last_fetch', json.chickenLegStats.lastFetch);
                                     importedCount++;
                                 }
 
                                 if (json.chickenLegStats.nextAllow) {
-                                    localStorage.setItem('nodeseek_chicken_leg_next_allow', json.chickenLegStats.nextAllow);
+                                    nsLocalStorage.setItem('nodeseek_chicken_leg_next_allow', json.chickenLegStats.nextAllow);
                                     importedCount++;
                                 }
 
                                 if (json.chickenLegStats.lastHtml) {
-                                    localStorage.setItem('nodeseek_chicken_leg_last_html', json.chickenLegStats.lastHtml);
+                                    nsLocalStorage.setItem('nodeseek_chicken_leg_last_html', json.chickenLegStats.lastHtml);
                                     importedCount++;
                                 }
 
                                 if (json.chickenLegStats.history && Array.isArray(json.chickenLegStats.history)) {
-                                    localStorage.setItem('nodeseek_chicken_leg_history', JSON.stringify(json.chickenLegStats.history));
+                                    nsLocalStorage.setItem('nodeseek_chicken_leg_history', JSON.stringify(json.chickenLegStats.history));
                                     importedCount++;
                                     importInfo.push(`鸡腿统计(${json.chickenLegStats.history.length}条记录)`);
                                 } else {
@@ -467,55 +467,55 @@
 
                             // 导入屏蔽关键词
                             if (json.filterData.customKeywords && Array.isArray(json.filterData.customKeywords)) {
-                                localStorage.setItem('ns-filter-custom-keywords', JSON.stringify(json.filterData.customKeywords));
+                                nsLocalStorage.setItem('ns-filter-custom-keywords', JSON.stringify(json.filterData.customKeywords));
                                 filterImportCount += json.filterData.customKeywords.length;
                             }
 
                             // 导入显示关键词
                             if (json.filterData.displayKeywords && Array.isArray(json.filterData.displayKeywords)) {
-                                localStorage.setItem('ns-filter-keywords', JSON.stringify(json.filterData.displayKeywords));
+                                nsLocalStorage.setItem('ns-filter-keywords', JSON.stringify(json.filterData.displayKeywords));
                             }
 
                             // 导入高亮关键词
                             if (json.filterData.highlightKeywords && Array.isArray(json.filterData.highlightKeywords)) {
-                                localStorage.setItem('ns-filter-highlight-keywords', JSON.stringify(json.filterData.highlightKeywords));
+                                nsLocalStorage.setItem('ns-filter-highlight-keywords', JSON.stringify(json.filterData.highlightKeywords));
                             }
 
                             // 导入帖子内容高亮关键词
                             if (json.filterData.highlightPostKeywords && Array.isArray(json.filterData.highlightPostKeywords)) {
-                                localStorage.setItem('ns-filter-highlight-post-keywords', JSON.stringify(json.filterData.highlightPostKeywords));
+                                nsLocalStorage.setItem('ns-filter-highlight-post-keywords', JSON.stringify(json.filterData.highlightPostKeywords));
                             }
 
                             // 导入作者高亮选项
                             if (json.filterData.highlightAuthorEnabled !== undefined) {
-                                localStorage.setItem('ns-filter-highlight-author-enabled', JSON.stringify(json.filterData.highlightAuthorEnabled));
+                                nsLocalStorage.setItem('ns-filter-highlight-author-enabled', JSON.stringify(json.filterData.highlightAuthorEnabled));
                             }
 
                             // 导入高亮颜色
                             if (json.filterData.highlightColor) {
-                                localStorage.setItem('ns-filter-highlight-color', json.filterData.highlightColor);
+                                nsLocalStorage.setItem('ns-filter-highlight-color', json.filterData.highlightColor);
                             }
 
                             // 导入弹窗位置
                             if (json.filterData.dialogPosition && typeof json.filterData.dialogPosition === 'object') {
-                                localStorage.setItem('ns-filter-dialog-position', JSON.stringify(json.filterData.dialogPosition));
+                                nsLocalStorage.setItem('ns-filter-dialog-position', JSON.stringify(json.filterData.dialogPosition));
                             }
 
                             // 导入不屏蔽用户
                             if (json.filterData.whitelistUsers && Array.isArray(json.filterData.whitelistUsers)) {
-                                localStorage.setItem('ns-filter-whitelist-users', JSON.stringify(json.filterData.whitelistUsers));
+                                nsLocalStorage.setItem('ns-filter-whitelist-users', JSON.stringify(json.filterData.whitelistUsers));
                             }
 
                             if (json.filterData.profileFilterEnabled !== undefined) {
-                                localStorage.setItem('ns-filter-profile-filter-enabled', JSON.stringify(json.filterData.profileFilterEnabled));
+                                nsLocalStorage.setItem('ns-filter-profile-filter-enabled', JSON.stringify(json.filterData.profileFilterEnabled));
                             }
 
                             if (json.filterData.blockLevels && Array.isArray(json.filterData.blockLevels)) {
-                                localStorage.setItem('ns-filter-block-levels', JSON.stringify(json.filterData.blockLevels));
+                                nsLocalStorage.setItem('ns-filter-block-levels', JSON.stringify(json.filterData.blockLevels));
                             }
 
                             if (json.filterData.maxJoinDays !== undefined) {
-                                localStorage.setItem('ns-filter-max-join-days', json.filterData.maxJoinDays === null ? '' : String(json.filterData.maxJoinDays));
+                                nsLocalStorage.setItem('ns-filter-max-join-days', json.filterData.maxJoinDays === null ? '' : String(json.filterData.maxJoinDays));
                             }
 
                             if (filterImportCount > 0 || (json.filterData.displayKeywords && json.filterData.displayKeywords.length > 0) || (json.filterData.highlightKeywords && json.filterData.highlightKeywords.length > 0) || json.filterData.highlightAuthorEnabled !== undefined || (json.filterData.whitelistUsers && json.filterData.whitelistUsers.length > 0) || json.filterData.profileFilterEnabled !== undefined || (json.filterData.blockLevels && json.filterData.blockLevels.length > 0) || json.filterData.maxJoinDays !== undefined) {
@@ -550,22 +550,22 @@
                             } else {
                                 // 如果功能暂不可用，直接保存到localStorage
                                 if (json.notesData.categories) {
-                                    localStorage.setItem('nodeseek_notes_categories', JSON.stringify(json.notesData.categories));
+                                    nsLocalStorage.setItem('nodeseek_notes_categories', JSON.stringify(json.notesData.categories));
                                 }
                                 if (json.notesData.notes) {
-                                    localStorage.setItem('nodeseek_notes_data', JSON.stringify(json.notesData.notes));
+                                    nsLocalStorage.setItem('nodeseek_notes_data', JSON.stringify(json.notesData.notes));
                                 }
                                 if (json.notesData.fontColors) {
-                                    localStorage.setItem('nodeseek_notes_font_colors', JSON.stringify(json.notesData.fontColors));
+                                    nsLocalStorage.setItem('nodeseek_notes_font_colors', JSON.stringify(json.notesData.fontColors));
                                 }
                                 if (json.notesData.bgColors) {
-                                    localStorage.setItem('nodeseek_notes_bg_colors', JSON.stringify(json.notesData.bgColors));
+                                    nsLocalStorage.setItem('nodeseek_notes_bg_colors', JSON.stringify(json.notesData.bgColors));
                                 }
                                 if (json.notesData.lastSelectedNote) {
-                                    localStorage.setItem('nodeseek_notes_last_selected', JSON.stringify(json.notesData.lastSelectedNote));
+                                    nsLocalStorage.setItem('nodeseek_notes_last_selected', JSON.stringify(json.notesData.lastSelectedNote));
                                 }
                                 if (json.notesData.trash) {
-                                    localStorage.setItem('nodeseek_notes_trash', JSON.stringify(json.notesData.trash));
+                                    nsLocalStorage.setItem('nodeseek_notes_trash', JSON.stringify(json.notesData.trash));
                                 }
                                 const categoriesCount = json.notesData.categories ? json.notesData.categories.length : 0;
                                 const notesCount = json.notesData.notes ? Object.keys(json.notesData.notes).length : 0;
@@ -582,13 +582,13 @@
                     if (json.viewedTitles && typeof json.viewedTitles === 'object') {
                         try {
                             if (typeof json.viewedTitles.enabled !== 'undefined') {
-                                localStorage.setItem('nodeseek_viewed_history_enabled', json.viewedTitles.enabled ? 'true' : 'false');
+                                nsLocalStorage.setItem('nodeseek_viewed_history_enabled', json.viewedTitles.enabled ? 'true' : 'false');
                             }
                             if (json.viewedTitles.color) {
-                                localStorage.setItem('nodeseek_viewed_color', json.viewedTitles.color);
+                                nsLocalStorage.setItem('nodeseek_viewed_color', json.viewedTitles.color);
                             }
                             if (Array.isArray(json.viewedTitles.data)) {
-                                localStorage.setItem('nodeseek_viewed_titles_data', JSON.stringify(json.viewedTitles.data));
+                                nsLocalStorage.setItem('nodeseek_viewed_titles_data', JSON.stringify(json.viewedTitles.data));
                             }
 
                             // 刷新缓存
@@ -609,7 +609,7 @@
                     // 导入备份设置
                     if (json.backupLimit) {
                         try {
-                            localStorage.setItem('nodeseek_backup_limit', json.backupLimit.toString());
+                            nsLocalStorage.setItem('nodeseek_backup_limit', json.backupLimit.toString());
                             importInfo.push(`备份设置(保留${json.backupLimit}份)`);
                         } catch (e) {
                             importInfo.push('备份设置(失败)');
@@ -682,7 +682,7 @@
             if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.getQuickReplies === 'function') {
                 quickReplies = window.NodeSeekQuickReply.getQuickReplies();
             } else {
-                quickReplies = JSON.parse(localStorage.getItem('nodeseek_quick_reply') || '{}');
+                quickReplies = JSON.parse(nsLocalStorage.getItem('nodeseek_quick_reply') || '{}');
             }
         } catch (error) {
             console.error('读取快捷回复数据失败:', error);
@@ -690,7 +690,7 @@
 
         const quickReplySettings = {};
         try {
-            const autoSubmit = localStorage.getItem('nodeseek_quick_reply_auto_submit');
+            const autoSubmit = nsLocalStorage.getItem('nodeseek_quick_reply_auto_submit');
             if (autoSubmit !== null) quickReplySettings.autoSubmit = autoSubmit === 'true';
         } catch (error) {
             console.error('读取快捷回复设置失败:', error);
@@ -698,8 +698,8 @@
 
         const signSettings = {};
         try {
-            const signEnabled = localStorage.getItem('nodeseek_sign_enabled');
-            const signMode = localStorage.getItem('nodeseek_sign_mode');
+            const signEnabled = nsLocalStorage.getItem('nodeseek_sign_enabled');
+            const signMode = nsLocalStorage.getItem('nodeseek_sign_mode');
             if (signEnabled !== null) signSettings.enabled = signEnabled === 'true';
             if (signMode !== null) signSettings.mode = signMode;
         } catch (error) {
@@ -711,10 +711,10 @@
             if (window.NodeSeekRegister && typeof window.NodeSeekRegister.getChickenLegStats === 'function') {
                 chickenLegStats = window.NodeSeekRegister.getChickenLegStats();
             } else {
-                const lastFetch = localStorage.getItem('nodeseek_chicken_leg_last_fetch');
-                const nextAllow = localStorage.getItem('nodeseek_chicken_leg_next_allow');
-                const lastHtml = localStorage.getItem('nodeseek_chicken_leg_last_html');
-                const history = localStorage.getItem('nodeseek_chicken_leg_history');
+                const lastFetch = nsLocalStorage.getItem('nodeseek_chicken_leg_last_fetch');
+                const nextAllow = nsLocalStorage.getItem('nodeseek_chicken_leg_next_allow');
+                const lastHtml = nsLocalStorage.getItem('nodeseek_chicken_leg_last_html');
+                const history = nsLocalStorage.getItem('nodeseek_chicken_leg_history');
                 if (lastFetch || nextAllow || lastHtml || history) {
                     chickenLegStats = {
                         lastFetch: lastFetch,
@@ -730,17 +730,17 @@
 
         let filterData = {};
         try {
-            const customKeywords = localStorage.getItem('ns-filter-custom-keywords');
-            const displayKeywords = localStorage.getItem('ns-filter-keywords');
-            const highlightKeywords = localStorage.getItem('ns-filter-highlight-keywords');
-            const highlightPostKeywords = localStorage.getItem('ns-filter-highlight-post-keywords');
-            const highlightAuthorEnabled = localStorage.getItem('ns-filter-highlight-author-enabled');
-            const highlightColor = localStorage.getItem('ns-filter-highlight-color');
-            const dialogPosition = localStorage.getItem('ns-filter-dialog-position');
-            const whitelistUsers = localStorage.getItem('ns-filter-whitelist-users');
-            const profileFilterEnabled = localStorage.getItem('ns-filter-profile-filter-enabled');
-            const blockLevels = localStorage.getItem('ns-filter-block-levels');
-            const maxJoinDays = localStorage.getItem('ns-filter-max-join-days');
+            const customKeywords = nsLocalStorage.getItem('ns-filter-custom-keywords');
+            const displayKeywords = nsLocalStorage.getItem('ns-filter-keywords');
+            const highlightKeywords = nsLocalStorage.getItem('ns-filter-highlight-keywords');
+            const highlightPostKeywords = nsLocalStorage.getItem('ns-filter-highlight-post-keywords');
+            const highlightAuthorEnabled = nsLocalStorage.getItem('ns-filter-highlight-author-enabled');
+            const highlightColor = nsLocalStorage.getItem('ns-filter-highlight-color');
+            const dialogPosition = nsLocalStorage.getItem('ns-filter-dialog-position');
+            const whitelistUsers = nsLocalStorage.getItem('ns-filter-whitelist-users');
+            const profileFilterEnabled = nsLocalStorage.getItem('ns-filter-profile-filter-enabled');
+            const blockLevels = nsLocalStorage.getItem('ns-filter-block-levels');
+            const maxJoinDays = nsLocalStorage.getItem('ns-filter-max-join-days');
             if (customKeywords || displayKeywords || highlightKeywords || highlightPostKeywords || highlightAuthorEnabled || highlightColor || dialogPosition || whitelistUsers || profileFilterEnabled || blockLevels || maxJoinDays !== null) {
                 filterData = {
                     customKeywords: customKeywords ? JSON.parse(customKeywords) : [],
@@ -771,9 +771,9 @@
 
         const viewedTitles = {};
         try {
-            const enabled = localStorage.getItem('nodeseek_viewed_history_enabled');
-            const color = localStorage.getItem('nodeseek_viewed_color');
-            const data = localStorage.getItem('nodeseek_viewed_titles_data');
+            const enabled = nsLocalStorage.getItem('nodeseek_viewed_history_enabled');
+            const color = nsLocalStorage.getItem('nodeseek_viewed_color');
+            const data = nsLocalStorage.getItem('nodeseek_viewed_titles_data');
             if (enabled !== null) viewedTitles.enabled = enabled === 'true';
             if (color !== null) viewedTitles.color = color;
             if (data !== null) viewedTitles.data = JSON.parse(data);
@@ -783,7 +783,7 @@
 
         let backupLimit = 3;
         try {
-            const limit = localStorage.getItem('nodeseek_backup_limit');
+            const limit = nsLocalStorage.getItem('nodeseek_backup_limit');
             if (limit) backupLimit = parseInt(limit);
         } catch (error) {
             console.error('读取备份设置失败:', error);
@@ -842,23 +842,23 @@
         try {
             if (json.blacklist) setBlacklist(json.blacklist);
             if (json.friends) setFriends(json.friends);
-            if (json.logs && Array.isArray(json.logs)) localStorage.setItem(LOGS_KEY, JSON.stringify(json.logs));
+            if (json.logs && Array.isArray(json.logs)) nsLocalStorage.setItem(LOGS_KEY, JSON.stringify(json.logs));
             if (json.browseHistory && Array.isArray(json.browseHistory)) setBrowseHistory(json.browseHistory);
             if (json.quickReplies && typeof json.quickReplies === 'object') {
                 if (window.NodeSeekQuickReply && typeof window.NodeSeekQuickReply.setQuickReplies === 'function') {
                     window.NodeSeekQuickReply.setQuickReplies(json.quickReplies);
                 } else {
-                    localStorage.setItem('nodeseek_quick_reply', JSON.stringify(json.quickReplies));
+                    nsLocalStorage.setItem('nodeseek_quick_reply', JSON.stringify(json.quickReplies));
                 }
             }
 
             if (json.quickReplySettings && typeof json.quickReplySettings === 'object' && typeof json.quickReplySettings.autoSubmit !== 'undefined') {
-                localStorage.setItem('nodeseek_quick_reply_auto_submit', json.quickReplySettings.autoSubmit ? 'true' : 'false');
+                nsLocalStorage.setItem('nodeseek_quick_reply_auto_submit', json.quickReplySettings.autoSubmit ? 'true' : 'false');
             }
 
             if (json.signSettings && typeof json.signSettings === 'object') {
-                if (typeof json.signSettings.enabled !== 'undefined') localStorage.setItem('nodeseek_sign_enabled', json.signSettings.enabled ? 'true' : 'false');
-                if (typeof json.signSettings.mode !== 'undefined') localStorage.setItem('nodeseek_sign_mode', json.signSettings.mode);
+                if (typeof json.signSettings.enabled !== 'undefined') nsLocalStorage.setItem('nodeseek_sign_enabled', json.signSettings.enabled ? 'true' : 'false');
+                if (typeof json.signSettings.mode !== 'undefined') nsLocalStorage.setItem('nodeseek_sign_mode', json.signSettings.mode);
             }
 
             if (json.skipJumpSettings && typeof json.skipJumpSettings === 'object') {
@@ -879,48 +879,48 @@
                 if (window.NodeSeekRegister && typeof window.NodeSeekRegister.setChickenLegStats === 'function') {
                     window.NodeSeekRegister.setChickenLegStats(json.chickenLegStats);
                 } else {
-                    if (json.chickenLegStats.lastFetch) localStorage.setItem('nodeseek_chicken_leg_last_fetch', json.chickenLegStats.lastFetch);
-                    if (json.chickenLegStats.nextAllow) localStorage.setItem('nodeseek_chicken_leg_next_allow', json.chickenLegStats.nextAllow);
-                    if (json.chickenLegStats.lastHtml) localStorage.setItem('nodeseek_chicken_leg_last_html', json.chickenLegStats.lastHtml);
-                    if (Array.isArray(json.chickenLegStats.history)) localStorage.setItem('nodeseek_chicken_leg_history', JSON.stringify(json.chickenLegStats.history));
+                    if (json.chickenLegStats.lastFetch) nsLocalStorage.setItem('nodeseek_chicken_leg_last_fetch', json.chickenLegStats.lastFetch);
+                    if (json.chickenLegStats.nextAllow) nsLocalStorage.setItem('nodeseek_chicken_leg_next_allow', json.chickenLegStats.nextAllow);
+                    if (json.chickenLegStats.lastHtml) nsLocalStorage.setItem('nodeseek_chicken_leg_last_html', json.chickenLegStats.lastHtml);
+                    if (Array.isArray(json.chickenLegStats.history)) nsLocalStorage.setItem('nodeseek_chicken_leg_history', JSON.stringify(json.chickenLegStats.history));
                 }
             }
 
             if (json.filterData && typeof json.filterData === 'object') {
-                if (Array.isArray(json.filterData.customKeywords)) localStorage.setItem('ns-filter-custom-keywords', JSON.stringify(json.filterData.customKeywords));
-                if (Array.isArray(json.filterData.displayKeywords)) localStorage.setItem('ns-filter-keywords', JSON.stringify(json.filterData.displayKeywords));
-                if (Array.isArray(json.filterData.highlightKeywords)) localStorage.setItem('ns-filter-highlight-keywords', JSON.stringify(json.filterData.highlightKeywords));
-                if (Array.isArray(json.filterData.highlightPostKeywords)) localStorage.setItem('ns-filter-highlight-post-keywords', JSON.stringify(json.filterData.highlightPostKeywords));
-                if (json.filterData.highlightAuthorEnabled !== undefined) localStorage.setItem('ns-filter-highlight-author-enabled', JSON.stringify(json.filterData.highlightAuthorEnabled));
-                if (json.filterData.highlightColor) localStorage.setItem('ns-filter-highlight-color', json.filterData.highlightColor);
-                if (json.filterData.dialogPosition && typeof json.filterData.dialogPosition === 'object') localStorage.setItem('ns-filter-dialog-position', JSON.stringify(json.filterData.dialogPosition));
-                if (Array.isArray(json.filterData.whitelistUsers)) localStorage.setItem('ns-filter-whitelist-users', JSON.stringify(json.filterData.whitelistUsers));
-                if (json.filterData.profileFilterEnabled !== undefined) localStorage.setItem('ns-filter-profile-filter-enabled', JSON.stringify(json.filterData.profileFilterEnabled));
-                if (Array.isArray(json.filterData.blockLevels)) localStorage.setItem('ns-filter-block-levels', JSON.stringify(json.filterData.blockLevels));
-                if (json.filterData.maxJoinDays !== undefined) localStorage.setItem('ns-filter-max-join-days', json.filterData.maxJoinDays === null ? '' : String(json.filterData.maxJoinDays));
+                if (Array.isArray(json.filterData.customKeywords)) nsLocalStorage.setItem('ns-filter-custom-keywords', JSON.stringify(json.filterData.customKeywords));
+                if (Array.isArray(json.filterData.displayKeywords)) nsLocalStorage.setItem('ns-filter-keywords', JSON.stringify(json.filterData.displayKeywords));
+                if (Array.isArray(json.filterData.highlightKeywords)) nsLocalStorage.setItem('ns-filter-highlight-keywords', JSON.stringify(json.filterData.highlightKeywords));
+                if (Array.isArray(json.filterData.highlightPostKeywords)) nsLocalStorage.setItem('ns-filter-highlight-post-keywords', JSON.stringify(json.filterData.highlightPostKeywords));
+                if (json.filterData.highlightAuthorEnabled !== undefined) nsLocalStorage.setItem('ns-filter-highlight-author-enabled', JSON.stringify(json.filterData.highlightAuthorEnabled));
+                if (json.filterData.highlightColor) nsLocalStorage.setItem('ns-filter-highlight-color', json.filterData.highlightColor);
+                if (json.filterData.dialogPosition && typeof json.filterData.dialogPosition === 'object') nsLocalStorage.setItem('ns-filter-dialog-position', JSON.stringify(json.filterData.dialogPosition));
+                if (Array.isArray(json.filterData.whitelistUsers)) nsLocalStorage.setItem('ns-filter-whitelist-users', JSON.stringify(json.filterData.whitelistUsers));
+                if (json.filterData.profileFilterEnabled !== undefined) nsLocalStorage.setItem('ns-filter-profile-filter-enabled', JSON.stringify(json.filterData.profileFilterEnabled));
+                if (Array.isArray(json.filterData.blockLevels)) nsLocalStorage.setItem('ns-filter-block-levels', JSON.stringify(json.filterData.blockLevels));
+                if (json.filterData.maxJoinDays !== undefined) nsLocalStorage.setItem('ns-filter-max-join-days', json.filterData.maxJoinDays === null ? '' : String(json.filterData.maxJoinDays));
             }
 
             if (json.notesData && typeof json.notesData === 'object') {
                 if (window.NodeSeekNotes && typeof window.NodeSeekNotes.importNotesData === 'function') {
                     window.NodeSeekNotes.importNotesData(json.notesData);
                 } else {
-                    if (json.notesData.categories) localStorage.setItem('nodeseek_notes_categories', JSON.stringify(json.notesData.categories));
-                    if (json.notesData.notes) localStorage.setItem('nodeseek_notes_data', JSON.stringify(json.notesData.notes));
-                    if (json.notesData.fontColors) localStorage.setItem('nodeseek_notes_font_colors', JSON.stringify(json.notesData.fontColors));
-                    if (json.notesData.bgColors) localStorage.setItem('nodeseek_notes_bg_colors', JSON.stringify(json.notesData.bgColors));
-                    if (json.notesData.lastSelectedNote) localStorage.setItem('nodeseek_notes_last_selected', JSON.stringify(json.notesData.lastSelectedNote));
-                    if (json.notesData.trash) localStorage.setItem('nodeseek_notes_trash', JSON.stringify(json.notesData.trash));
+                    if (json.notesData.categories) nsLocalStorage.setItem('nodeseek_notes_categories', JSON.stringify(json.notesData.categories));
+                    if (json.notesData.notes) nsLocalStorage.setItem('nodeseek_notes_data', JSON.stringify(json.notesData.notes));
+                    if (json.notesData.fontColors) nsLocalStorage.setItem('nodeseek_notes_font_colors', JSON.stringify(json.notesData.fontColors));
+                    if (json.notesData.bgColors) nsLocalStorage.setItem('nodeseek_notes_bg_colors', JSON.stringify(json.notesData.bgColors));
+                    if (json.notesData.lastSelectedNote) nsLocalStorage.setItem('nodeseek_notes_last_selected', JSON.stringify(json.notesData.lastSelectedNote));
+                    if (json.notesData.trash) nsLocalStorage.setItem('nodeseek_notes_trash', JSON.stringify(json.notesData.trash));
                 }
             }
 
             if (json.viewedTitles && typeof json.viewedTitles === 'object') {
-                if (typeof json.viewedTitles.enabled !== 'undefined') localStorage.setItem('nodeseek_viewed_history_enabled', json.viewedTitles.enabled ? 'true' : 'false');
-                if (json.viewedTitles.color) localStorage.setItem('nodeseek_viewed_color', json.viewedTitles.color);
-                if (Array.isArray(json.viewedTitles.data)) localStorage.setItem('nodeseek_viewed_titles_data', JSON.stringify(json.viewedTitles.data));
+                if (typeof json.viewedTitles.enabled !== 'undefined') nsLocalStorage.setItem('nodeseek_viewed_history_enabled', json.viewedTitles.enabled ? 'true' : 'false');
+                if (json.viewedTitles.color) nsLocalStorage.setItem('nodeseek_viewed_color', json.viewedTitles.color);
+                if (Array.isArray(json.viewedTitles.data)) nsLocalStorage.setItem('nodeseek_viewed_titles_data', JSON.stringify(json.viewedTitles.data));
                 if (window.NodeSeekViewedTitles && typeof window.NodeSeekViewedTitles.refresh === 'function') window.NodeSeekViewedTitles.refresh();
             }
 
-            if (json.backupLimit) localStorage.setItem('nodeseek_backup_limit', json.backupLimit.toString());
+            if (json.backupLimit) nsLocalStorage.setItem('nodeseek_backup_limit', json.backupLimit.toString());
         } finally {
             isWebdavApplyingRemoteData = false;
         }
@@ -950,14 +950,14 @@
         setWebdavStoredPassword(password);
         delete saved.password;
         try {
-            localStorage.setItem(WEBDAV_SYNC_CONFIG_KEY, JSON.stringify(saved));
+            nsLocalStorage.setItem(WEBDAV_SYNC_CONFIG_KEY, JSON.stringify(saved));
         } catch (e) { }
         return saved;
     }
 
     function getWebdavSyncConfig() {
         try {
-            const savedRaw = JSON.parse(localStorage.getItem(WEBDAV_SYNC_CONFIG_KEY) || '{}');
+            const savedRaw = JSON.parse(nsLocalStorage.getItem(WEBDAV_SYNC_CONFIG_KEY) || '{}');
             const legacyPassword = savedRaw.password || '';
             const saved = migrateWebdavPasswordFromLocalStorage(savedRaw);
             return {
@@ -982,7 +982,7 @@
             syncFields: normalizeWebdavSyncFields(config.syncFields)
         };
         setWebdavStoredPassword(config.password || '');
-        localStorage.setItem(WEBDAV_SYNC_CONFIG_KEY, JSON.stringify(safe));
+        nsLocalStorage.setItem(WEBDAV_SYNC_CONFIG_KEY, JSON.stringify(safe));
         restartWebdavSyncTimer();
     }
 
@@ -1083,10 +1083,10 @@
     }
 
     function ensureWebdavLocalChangedAt() {
-        let value = parseInt(localStorage.getItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY) || '0', 10);
+        let value = parseInt(nsLocalStorage.getItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY) || '0', 10);
         if (!value) {
             value = Date.now();
-            localStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(value));
+            nsLocalStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(value));
         }
         return value;
     }
@@ -1096,18 +1096,18 @@
     }
 
     function getWebdavLastRemoteUpdatedAt() {
-        return parseInt(localStorage.getItem(WEBDAV_SYNC_LAST_REMOTE_UPDATED_AT_KEY) || '0', 10) || 0;
+        return parseInt(nsLocalStorage.getItem(WEBDAV_SYNC_LAST_REMOTE_UPDATED_AT_KEY) || '0', 10) || 0;
     }
 
     function setWebdavLastRemoteUpdatedAt(value) {
-        localStorage.setItem(WEBDAV_SYNC_LAST_REMOTE_UPDATED_AT_KEY, String(value || 0));
+        nsLocalStorage.setItem(WEBDAV_SYNC_LAST_REMOTE_UPDATED_AT_KEY, String(value || 0));
     }
 
     function getWebdavDeviceId() {
-        let deviceId = localStorage.getItem(WEBDAV_SYNC_DEVICE_ID_KEY);
+        let deviceId = nsLocalStorage.getItem(WEBDAV_SYNC_DEVICE_ID_KEY);
         if (!deviceId) {
             deviceId = 'device-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-            localStorage.setItem(WEBDAV_SYNC_DEVICE_ID_KEY, deviceId);
+            nsLocalStorage.setItem(WEBDAV_SYNC_DEVICE_ID_KEY, deviceId);
         }
         return deviceId;
     }
@@ -1130,17 +1130,17 @@
     function tryAcquireWebdavSyncLock() {
         const now = Date.now();
         try {
-            const saved = JSON.parse(localStorage.getItem(WEBDAV_SYNC_LOCK_KEY) || 'null');
+            const saved = JSON.parse(nsLocalStorage.getItem(WEBDAV_SYNC_LOCK_KEY) || 'null');
             if (saved && saved.owner && saved.owner !== webdavPageId && saved.expiresAt && saved.expiresAt > now) {
                 return false;
             }
         } catch (e) { }
 
         const lock = { owner: webdavPageId, expiresAt: now + WEBDAV_SYNC_LOCK_TTL_MS };
-        localStorage.setItem(WEBDAV_SYNC_LOCK_KEY, JSON.stringify(lock));
+        nsLocalStorage.setItem(WEBDAV_SYNC_LOCK_KEY, JSON.stringify(lock));
 
         try {
-            const current = JSON.parse(localStorage.getItem(WEBDAV_SYNC_LOCK_KEY) || 'null');
+            const current = JSON.parse(nsLocalStorage.getItem(WEBDAV_SYNC_LOCK_KEY) || 'null');
             return current && current.owner === webdavPageId;
         } catch (e) {
             return true;
@@ -1149,10 +1149,10 @@
 
     function releaseWebdavSyncLock() {
         try {
-            const saved = JSON.parse(localStorage.getItem(WEBDAV_SYNC_LOCK_KEY) || 'null');
-            if (!saved || saved.owner === webdavPageId) localStorage.removeItem(WEBDAV_SYNC_LOCK_KEY);
+            const saved = JSON.parse(nsLocalStorage.getItem(WEBDAV_SYNC_LOCK_KEY) || 'null');
+            if (!saved || saved.owner === webdavPageId) nsLocalStorage.removeItem(WEBDAV_SYNC_LOCK_KEY);
         } catch (e) {
-            localStorage.removeItem(WEBDAV_SYNC_LOCK_KEY);
+            nsLocalStorage.removeItem(WEBDAV_SYNC_LOCK_KEY);
         }
     }
 
@@ -1223,13 +1223,13 @@
 
         isWebdavSyncRunning = true;
         try {
-            let localUpdatedAt = parseInt(localStorage.getItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY) || '0', 10) || 0;
+            let localUpdatedAt = parseInt(nsLocalStorage.getItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY) || '0', 10) || 0;
             const remoteData = await readWebdavBackup(config);
 
             if (!remoteData) {
                 if (!localUpdatedAt) localUpdatedAt = ensureWebdavLocalChangedAt();
                 await uploadWebdavBackup(config, localUpdatedAt);
-                localStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
+                nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
                 setWebdavLastRemoteUpdatedAt(localUpdatedAt);
                 addWebdavSyncLog('WebDAV同步：远端无文件，已上传本地数据');
                 if (trigger === 'manual') alert('同步完成：已上传本地数据');
@@ -1241,7 +1241,7 @@
                 const action = chooseWebdavConflictAction(trigger, localUpdatedAt, remoteUpdatedAt);
                 if (action === 'local') {
                     await uploadWebdavBackup(config, localUpdatedAt, remoteData);
-                    localStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
+                    nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
                     setWebdavLastRemoteUpdatedAt(localUpdatedAt);
                     addWebdavSyncLog('WebDAV同步：冲突处理，已上传本地数据');
                     if (trigger === 'manual') alert('同步完成：已上传本地数据');
@@ -1249,8 +1249,8 @@
                 }
                 if (action === 'remote') {
                     applyNodeSeekBackupData(filterRemoteWebdavBackupData(remoteData, config.syncFields));
-                    localStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(remoteUpdatedAt));
-                    localStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
+                    nsLocalStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(remoteUpdatedAt));
+                    nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
                     setWebdavLastRemoteUpdatedAt(remoteUpdatedAt);
                     addWebdavSyncLog('WebDAV同步：冲突处理，已使用远端数据');
                     if (trigger === 'manual') alert('同步完成：已使用远端数据，页面将刷新');
@@ -1264,8 +1264,8 @@
 
             if (!localUpdatedAt && remoteUpdatedAt) {
                 applyNodeSeekBackupData(filterRemoteWebdavBackupData(remoteData, config.syncFields));
-                localStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(remoteUpdatedAt));
-                localStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
+                nsLocalStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(remoteUpdatedAt));
+                nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
                 setWebdavLastRemoteUpdatedAt(remoteUpdatedAt);
                 addWebdavSyncLog('WebDAV同步：已使用远端数据');
                 if (trigger === 'manual') alert('同步完成：已使用远端数据，页面将刷新');
@@ -1276,8 +1276,8 @@
             if (!localUpdatedAt) localUpdatedAt = ensureWebdavLocalChangedAt();
             if (remoteUpdatedAt > localUpdatedAt) {
                 applyNodeSeekBackupData(filterRemoteWebdavBackupData(remoteData, config.syncFields));
-                localStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(remoteUpdatedAt));
-                localStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
+                nsLocalStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(remoteUpdatedAt));
+                nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
                 setWebdavLastRemoteUpdatedAt(remoteUpdatedAt);
                 addWebdavSyncLog('WebDAV同步：已使用远端最新数据');
                 if (trigger === 'manual') alert('同步完成：已使用远端最新数据，页面将刷新');
@@ -1287,14 +1287,14 @@
 
             if (localUpdatedAt > remoteUpdatedAt) {
                 await uploadWebdavBackup(config, localUpdatedAt, remoteData);
-                localStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
+                nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
                 setWebdavLastRemoteUpdatedAt(localUpdatedAt);
                 addWebdavSyncLog('WebDAV同步：已上传本地最新数据');
                 if (trigger === 'manual') alert('同步完成：已上传本地最新数据');
                 return;
             }
 
-            localStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
+            nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
             setWebdavLastRemoteUpdatedAt(remoteUpdatedAt);
             addWebdavSyncLog('WebDAV同步：两端数据一致');
             if (trigger === 'manual') alert('同步完成：两端数据一致');
@@ -1494,7 +1494,7 @@
         status.style.color = '#666';
         status.style.lineHeight = '1.35';
         status.style.wordBreak = 'break-all';
-        status.textContent = '上次同步：' + formatWebdavSyncTime(localStorage.getItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY));
+        status.textContent = '上次同步：' + formatWebdavSyncTime(nsLocalStorage.getItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY));
 
         const buttonRow = document.createElement('div');
         buttonRow.style.display = 'flex';
@@ -1551,7 +1551,7 @@
             }
             setWebdavSyncConfig(nextConfig);
             addLog('WebDAV同步设置：已保存');
-            status.textContent = '上次同步：' + formatWebdavSyncTime(localStorage.getItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY));
+            status.textContent = '上次同步：' + formatWebdavSyncTime(nsLocalStorage.getItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY));
             alert('WebDAV同步设置已保存');
         };
 
@@ -1582,7 +1582,7 @@
             }
             setWebdavSyncConfig(nextConfig);
             syncWithWebdav('manual').then(() => {
-                status.textContent = '上次同步：' + formatWebdavSyncTime(localStorage.getItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY));
+                status.textContent = '上次同步：' + formatWebdavSyncTime(nsLocalStorage.getItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY));
             });
         };
 

@@ -782,11 +782,11 @@
     const VIEWED_TITLES_STORAGE_KEY = 'nodeseek_viewed_titles_data';
 
     function getViewedTitlesData() {
-        return JSON.parse(localStorage.getItem(VIEWED_TITLES_STORAGE_KEY) || '[]');
+        return JSON.parse(nsLocalStorage.getItem(VIEWED_TITLES_STORAGE_KEY) || '[]');
     }
 
     function setViewedTitlesData(list) {
-        localStorage.setItem(VIEWED_TITLES_STORAGE_KEY, JSON.stringify(list));
+        nsLocalStorage.setItem(VIEWED_TITLES_STORAGE_KEY, JSON.stringify(list));
     }
 
     function addToViewedTitles(url) {
@@ -825,7 +825,7 @@
 
     function getVisitedUrlSet() {
         // 优先使用新的独立存储
-        const raw = localStorage.getItem(VIEWED_TITLES_STORAGE_KEY);
+        const raw = nsLocalStorage.getItem(VIEWED_TITLES_STORAGE_KEY);
         if (raw) {
             if (raw === lastVisitedHistoryRaw) return cachedVisitedUrlSet;
             lastVisitedHistoryRaw = raw;

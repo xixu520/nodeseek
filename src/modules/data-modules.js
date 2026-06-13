@@ -1,13 +1,13 @@
     function ensureNsModules() {
         const read = (key, fallback) => {
             try {
-                const raw = localStorage.getItem(key);
+                const raw = nsLocalStorage.getItem(key);
                 return raw ? JSON.parse(raw) : fallback;
             } catch (e) {
                 return fallback;
             }
         };
-        const write = (key, value) => localStorage.setItem(key, JSON.stringify(value));
+        const write = (key, value) => nsLocalStorage.setItem(key, JSON.stringify(value));
         const log = message => {
             if (typeof addLog === 'function') addLog(message);
         };
@@ -213,7 +213,7 @@
                 list.unshift({ title: title || url || location.href, url: url || location.href, time: new Date().toISOString(), count: old?.count ? old.count + 1 : 1 });
                 setBrowseHistoryData(list.slice(0, 500));
             };
-            const clearBrowseHistoryData = () => localStorage.removeItem(BROWSE_HISTORY_KEY);
+            const clearBrowseHistoryData = () => nsLocalStorage.removeItem(BROWSE_HISTORY_KEY);
             const cleanupDuplicateHistoryData = () => {
                 const seen = new Set();
                 const next = [];
@@ -272,16 +272,16 @@
             }
 
             function isSignEnabled() {
-                return localStorage.getItem('nodeseek_sign_enabled') !== 'false';
+                return nsLocalStorage.getItem('nodeseek_sign_enabled') !== 'false';
             }
 
             function setSignResult(message) {
-                localStorage.setItem(SIGN_LAST_RESULT_KEY, message || '');
+                nsLocalStorage.setItem(SIGN_LAST_RESULT_KEY, message || '');
                 logFn(message || '自动签到：已执行');
             }
 
             function cacheTodaySigned(message) {
-                localStorage.setItem(SIGN_LAST_SUCCESS_DATE_KEY, signDateKey());
+                nsLocalStorage.setItem(SIGN_LAST_SUCCESS_DATE_KEY, signDateKey());
                 setSignResult(message || '自动签到：今日已签到');
             }
 
@@ -294,7 +294,7 @@
             }
 
             async function postBoardAttendance() {
-                const random = (localStorage.getItem('nodeseek_sign_mode') || 'fixed') === 'random';
+                const random = (nsLocalStorage.getItem('nodeseek_sign_mode') || 'fixed') === 'random';
                 const response = await fetch('/api/attendance?random=' + String(random), {
                     method: 'POST',
                     credentials: 'include'
@@ -306,12 +306,12 @@
                 if (!isSignEnabled()) return false;
                 if (running) return false;
                 const today = signDateKey();
-                if (localStorage.getItem(SIGN_LAST_SUCCESS_DATE_KEY) === today) return true;
-                const lastAttempt = parseInt(localStorage.getItem(SIGN_LAST_ATTEMPT_AT_KEY) || '0', 10) || 0;
+                if (nsLocalStorage.getItem(SIGN_LAST_SUCCESS_DATE_KEY) === today) return true;
+                const lastAttempt = parseInt(nsLocalStorage.getItem(SIGN_LAST_ATTEMPT_AT_KEY) || '0', 10) || 0;
                 if (!force && lastAttempt && Date.now() - lastAttempt < SIGN_ATTEMPT_INTERVAL) return false;
 
                 running = true;
-                localStorage.setItem(SIGN_LAST_ATTEMPT_AT_KEY, String(Date.now()));
+                nsLocalStorage.setItem(SIGN_LAST_ATTEMPT_AT_KEY, String(Date.now()));
                 try {
                     const board = await readBoardAttendance();
                     if (board && board.record) {
@@ -355,7 +355,7 @@
             };
             window.NodeSeekClockIn = {
                 setAddLogFunction: fn => { if (typeof fn === 'function') logFn = fn; },
-                setSignMode: mode => { localStorage.setItem('nodeseek_sign_mode', mode === 'random' ? 'random' : 'fixed'); scheduleNextHourlySign(); },
+                setSignMode: mode => { nsLocalStorage.setItem('nodeseek_sign_mode', mode === 'random' ? 'random' : 'fixed'); scheduleNextHourlySign(); },
                 scheduleNextHourlySign,
                 runDailyBoardSign
             };
@@ -368,16 +368,16 @@
             window.NodeSeekRegister = {
                 setAddLogFunction: fn => { if (typeof fn === 'function') logFn = fn; },
                 getChickenLegStats: () => ({
-                    lastFetch: localStorage.getItem('nodeseek_chicken_leg_last_fetch') || '',
-                    nextAllow: localStorage.getItem('nodeseek_chicken_leg_next_allow') || '',
-                    lastHtml: localStorage.getItem('nodeseek_chicken_leg_last_html') || '',
+                    lastFetch: nsLocalStorage.getItem('nodeseek_chicken_leg_last_fetch') || '',
+                    nextAllow: nsLocalStorage.getItem('nodeseek_chicken_leg_next_allow') || '',
+                    lastHtml: nsLocalStorage.getItem('nodeseek_chicken_leg_last_html') || '',
                     history: read('nodeseek_chicken_leg_history', [])
                 }),
                 setChickenLegStats: stats => {
                     if (!stats || typeof stats !== 'object') return;
-                    if (stats.lastFetch) localStorage.setItem('nodeseek_chicken_leg_last_fetch', stats.lastFetch);
-                    if (stats.nextAllow) localStorage.setItem('nodeseek_chicken_leg_next_allow', stats.nextAllow);
-                    if (stats.lastHtml) localStorage.setItem('nodeseek_chicken_leg_last_html', stats.lastHtml);
+                    if (stats.lastFetch) nsLocalStorage.setItem('nodeseek_chicken_leg_last_fetch', stats.lastFetch);
+                    if (stats.nextAllow) nsLocalStorage.setItem('nodeseek_chicken_leg_next_allow', stats.nextAllow);
+                    if (stats.lastHtml) nsLocalStorage.setItem('nodeseek_chicken_leg_last_html', stats.lastHtml);
                     if (Array.isArray(stats.history)) write('nodeseek_chicken_leg_history', stats.history);
                 },
                 showChickenLegStatsDialog: () => {

@@ -913,10 +913,10 @@
         signModeContainer.style.color = '#666';
 
         // 获取当前模式，默认为 fixed
-        const currentSignMode = localStorage.getItem('nodeseek_sign_mode') || 'fixed';
+        const currentSignMode = nsLocalStorage.getItem('nodeseek_sign_mode') || 'fixed';
         // 确保如果是第一次使用，也存入 fixed
-        if (!localStorage.getItem('nodeseek_sign_mode')) {
-            localStorage.setItem('nodeseek_sign_mode', 'fixed');
+        if (!nsLocalStorage.getItem('nodeseek_sign_mode')) {
+            nsLocalStorage.setItem('nodeseek_sign_mode', 'fixed');
         }
 
         // 固定签到单选
@@ -928,7 +928,7 @@
         fixedRadio.style.cursor = 'pointer';
         fixedRadio.onchange = function () {
             if (this.checked) {
-                localStorage.setItem('nodeseek_sign_mode', 'fixed');
+                nsLocalStorage.setItem('nodeseek_sign_mode', 'fixed');
                 if (window.NodeSeekClockIn && window.NodeSeekClockIn.setSignMode) {
                     window.NodeSeekClockIn.setSignMode('fixed');
                 }
@@ -950,7 +950,7 @@
         randomRadio.style.cursor = 'pointer';
         randomRadio.onchange = function () {
             if (this.checked) {
-                localStorage.setItem('nodeseek_sign_mode', 'random');
+                nsLocalStorage.setItem('nodeseek_sign_mode', 'random');
                 if (window.NodeSeekClockIn && window.NodeSeekClockIn.setSignMode) {
                     window.NodeSeekClockIn.setSignMode('random');
                 }
@@ -971,11 +971,11 @@
         // 签到开关
         const signSwitch = document.createElement('input');
         signSwitch.type = 'checkbox';
-        signSwitch.checked = localStorage.getItem('nodeseek_sign_enabled') !== 'false';
+        signSwitch.checked = nsLocalStorage.getItem('nodeseek_sign_enabled') !== 'false';
         signSwitch.style.transform = 'scale(1.2)';
         signSwitch.onchange = function () {
             const newState = this.checked;
-            localStorage.setItem('nodeseek_sign_enabled', newState.toString());
+            nsLocalStorage.setItem('nodeseek_sign_enabled', newState.toString());
             addLog('自动签到：' + (newState ? '开启' : '关闭'));
 
             // 立即触发一次状态更新（如果是开启）
