@@ -1307,6 +1307,12 @@
         webdavRightContainer.style.alignItems = 'center';
         webdavRightContainer.style.gap = '6px';
 
+        const webdavLastSyncText = document.createElement('span');
+        webdavLastSyncText.textContent = '上次：' + formatWebdavSyncTime(nsLocalStorage.getItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY));
+        webdavLastSyncText.style.fontSize = '12px';
+        webdavLastSyncText.style.color = '#666';
+        webdavLastSyncText.style.whiteSpace = 'nowrap';
+
         const webdavOpenBtn = document.createElement('button');
         webdavOpenBtn.textContent = '配置';
         webdavOpenBtn.style.fontSize = '12px';
@@ -1328,9 +1334,12 @@
         webdavNowBtn.style.borderRadius = '4px';
         webdavNowBtn.style.cursor = 'pointer';
         webdavNowBtn.onclick = function () {
-            syncWithWebdav('manual');
+            syncWithWebdav('manual').then(function () {
+                webdavLastSyncText.textContent = '上次：' + formatWebdavSyncTime(nsLocalStorage.getItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY));
+            });
         };
 
+        webdavRightContainer.appendChild(webdavLastSyncText);
         webdavRightContainer.appendChild(webdavNowBtn);
         webdavRightContainer.appendChild(webdavOpenBtn);
         webdavRow.appendChild(webdavLabel);

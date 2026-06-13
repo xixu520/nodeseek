@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.13.6
+// @version      2026.06.13.7
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://cdn.jsdelivr.net/gh/xixu520/nodeseek@main/Ns.user.js
@@ -4805,7 +4805,6 @@
     }
 
     function chooseWebdavConflictAction(trigger, localUpdatedAt, remoteUpdatedAt) {
-        if (trigger !== 'manual') return 'skip';
         const message = [
             '发现本地和远端都已修改。',
             '本地时间：' + formatWebdavSyncTime(localUpdatedAt),
@@ -4818,6 +4817,26 @@
         if (choice === '1') return 'local';
         if (choice === '2') return 'remote';
         return 'cancel';
+    }
+
+    function chooseWebdavRemoteNewerAction(localUpdatedAt, remoteUpdatedAt) {
+        const message = [
+            '发现云端数据更新，请选择同步方式。',
+            '本地时间：' + formatWebdavSyncTime(localUpdatedAt),
+            '云端时间：' + formatWebdavSyncTime(remoteUpdatedAt),
+            '输入 1 保留本地并上传到云端。',
+            '输入 2 使用云端并刷新页面。',
+            '其他内容取消同步。'
+        ].join('\n');
+        const choice = window.prompt(message, '');
+        if (choice === '1') return 'local';
+        if (choice === '2') return 'remote';
+        return 'cancel';
+    }
+
+    function markWebdavSyncSuccess(remoteUpdatedAt) {
+        nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
+        setWebdavLastRemoteUpdatedAt(remoteUpdatedAt);
     }
 
     function filterRemoteWebdavBackupData(data, fields) {
@@ -4869,8 +4888,7 @@
             if (!remoteData) {
                 if (!localUpdatedAt) localUpdatedAt = ensureWebdavLocalChangedAt();
                 await uploadWebdavBackup(config, localUpdatedAt);
-                nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
-                setWebdavLastRemoteUpdatedAt(localUpdatedAt);
+                markWebdavSyncSuccess(localUpdatedAt);
                 addWebdavSyncLog('WebDAV同步：远端无文件，已上传本地数据');
                 if (trigger === 'manual') alert('同步完成：已上传本地数据');
                 return;
@@ -4881,8 +4899,7 @@
                 const action = chooseWebdavConflictAction(trigger, localUpdatedAt, remoteUpdatedAt);
                 if (action === 'local') {
                     await uploadWebdavBackup(config, localUpdatedAt, remoteData);
-                    nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
-                    setWebdavLastRemoteUpdatedAt(localUpdatedAt);
+                    markWebdavSyncSuccess(localUpdatedAt);
                     addWebdavSyncLog('WebDAV同步：冲突处理，已上传本地数据');
                     if (trigger === 'manual') alert('同步完成：已上传本地数据');
                     return;
@@ -4890,8 +4907,7 @@
                 if (action === 'remote') {
                     applyNodeSeekBackupData(filterRemoteWebdavBackupData(remoteData, config.syncFields));
                     nsLocalStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(remoteUpdatedAt));
-                    nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
-                    setWebdavLastRemoteUpdatedAt(remoteUpdatedAt);
+                    markWebdavSyncSuccess(remoteUpdatedAt);
                     addWebdavSyncLog('WebDAV同步：冲突处理，已使用远端数据');
                     if (trigger === 'manual') alert('同步完成：已使用远端数据，页面将刷新');
                     setTimeout(() => location.reload(), 500);
@@ -4903,39 +4919,62 @@
             }
 
             if (!localUpdatedAt && remoteUpdatedAt) {
-                applyNodeSeekBackupData(filterRemoteWebdavBackupData(remoteData, config.syncFields));
-                nsLocalStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(remoteUpdatedAt));
-                nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
-                setWebdavLastRemoteUpdatedAt(remoteUpdatedAt);
-                addWebdavSyncLog('WebDAV同步：已使用远端数据');
-                if (trigger === 'manual') alert('同步完成：已使用远端数据，页面将刷新');
-                setTimeout(() => location.reload(), 500);
+                const action = chooseWebdavRemoteNewerAction(0, remoteUpdatedAt);
+                if (action === 'local') {
+                    localUpdatedAt = ensureWebdavLocalChangedAt();
+                    await uploadWebdavBackup(config, localUpdatedAt, remoteData);
+                    markWebdavSyncSuccess(localUpdatedAt);
+                    addWebdavSyncLog('WebDAV同步：已按选择上传本地数据');
+                    if (trigger === 'manual') alert('同步完成：已上传本地数据');
+                    return;
+                }
+                if (action === 'remote') {
+                    applyNodeSeekBackupData(filterRemoteWebdavBackupData(remoteData, config.syncFields));
+                    nsLocalStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(remoteUpdatedAt));
+                    markWebdavSyncSuccess(remoteUpdatedAt);
+                    addWebdavSyncLog('WebDAV同步：已按选择使用云端数据');
+                    if (trigger === 'manual') alert('同步完成：已使用云端数据，页面将刷新');
+                    setTimeout(() => location.reload(), 500);
+                    return;
+                }
+                addWebdavSyncLog('WebDAV同步：云端数据较新，已取消同步');
+                if (trigger === 'manual') alert('同步已取消');
                 return;
             }
 
             if (!localUpdatedAt) localUpdatedAt = ensureWebdavLocalChangedAt();
             if (remoteUpdatedAt > localUpdatedAt) {
-                applyNodeSeekBackupData(filterRemoteWebdavBackupData(remoteData, config.syncFields));
-                nsLocalStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(remoteUpdatedAt));
-                nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
-                setWebdavLastRemoteUpdatedAt(remoteUpdatedAt);
-                addWebdavSyncLog('WebDAV同步：已使用远端最新数据');
-                if (trigger === 'manual') alert('同步完成：已使用远端最新数据，页面将刷新');
-                setTimeout(() => location.reload(), 500);
+                const action = chooseWebdavRemoteNewerAction(localUpdatedAt, remoteUpdatedAt);
+                if (action === 'local') {
+                    await uploadWebdavBackup(config, localUpdatedAt, remoteData);
+                    markWebdavSyncSuccess(localUpdatedAt);
+                    addWebdavSyncLog('WebDAV同步：云端较新，已按选择上传本地数据');
+                    if (trigger === 'manual') alert('同步完成：已上传本地数据');
+                    return;
+                }
+                if (action === 'remote') {
+                    applyNodeSeekBackupData(filterRemoteWebdavBackupData(remoteData, config.syncFields));
+                    nsLocalStorage.setItem(WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY, String(remoteUpdatedAt));
+                    markWebdavSyncSuccess(remoteUpdatedAt);
+                    addWebdavSyncLog('WebDAV同步：已按选择使用云端最新数据');
+                    if (trigger === 'manual') alert('同步完成：已使用云端最新数据，页面将刷新');
+                    setTimeout(() => location.reload(), 500);
+                    return;
+                }
+                addWebdavSyncLog('WebDAV同步：云端数据较新，已取消同步');
+                if (trigger === 'manual') alert('同步已取消');
                 return;
             }
 
             if (localUpdatedAt > remoteUpdatedAt) {
                 await uploadWebdavBackup(config, localUpdatedAt, remoteData);
-                nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
-                setWebdavLastRemoteUpdatedAt(localUpdatedAt);
+                markWebdavSyncSuccess(localUpdatedAt);
                 addWebdavSyncLog('WebDAV同步：已上传本地最新数据');
                 if (trigger === 'manual') alert('同步完成：已上传本地最新数据');
                 return;
             }
 
-            nsLocalStorage.setItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY, String(Date.now()));
-            setWebdavLastRemoteUpdatedAt(remoteUpdatedAt);
+            markWebdavSyncSuccess(remoteUpdatedAt);
             addWebdavSyncLog('WebDAV同步：两端数据一致');
             if (trigger === 'manual') alert('同步完成：两端数据一致');
         } catch (error) {
@@ -10326,6 +10365,12 @@
         webdavRightContainer.style.alignItems = 'center';
         webdavRightContainer.style.gap = '6px';
 
+        const webdavLastSyncText = document.createElement('span');
+        webdavLastSyncText.textContent = '上次：' + formatWebdavSyncTime(nsLocalStorage.getItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY));
+        webdavLastSyncText.style.fontSize = '12px';
+        webdavLastSyncText.style.color = '#666';
+        webdavLastSyncText.style.whiteSpace = 'nowrap';
+
         const webdavOpenBtn = document.createElement('button');
         webdavOpenBtn.textContent = '配置';
         webdavOpenBtn.style.fontSize = '12px';
@@ -10347,9 +10392,12 @@
         webdavNowBtn.style.borderRadius = '4px';
         webdavNowBtn.style.cursor = 'pointer';
         webdavNowBtn.onclick = function () {
-            syncWithWebdav('manual');
+            syncWithWebdav('manual').then(function () {
+                webdavLastSyncText.textContent = '上次：' + formatWebdavSyncTime(nsLocalStorage.getItem(WEBDAV_SYNC_LAST_SYNC_AT_KEY));
+            });
         };
 
+        webdavRightContainer.appendChild(webdavLastSyncText);
         webdavRightContainer.appendChild(webdavNowBtn);
         webdavRightContainer.appendChild(webdavOpenBtn);
         webdavRow.appendChild(webdavLabel);
