@@ -428,6 +428,206 @@
         }, 50);
     }
 
+    const SCRIPT_AUTO_UPDATE_ENABLED_KEY = 'nodeseek_script_auto_update_enabled';
+    const SCRIPT_AUTO_UPDATE_NEXT_AT_KEY = 'nodeseek_script_auto_update_next_at';
+    const SCRIPT_AUTO_UPDATE_LAST_PROMPT_KEY = 'nodeseek_script_auto_update_last_prompt';
+    const SCRIPT_UPDATE_DEFAULT_URL = 'https://cdn.jsdelivr.net/gh/xixu520/nodeseek@main/Ns.user.js';
+
+    function isScriptAutoUpdateEnabled() {
+        return nsLocalStorage.getItem(SCRIPT_AUTO_UPDATE_ENABLED_KEY) !== 'false';
+    }
+
+    function setScriptAutoUpdateEnabled(enabled) {
+        nsLocalStorage.setItem(SCRIPT_AUTO_UPDATE_ENABLED_KEY, enabled ? 'true' : 'false');
+        if (enabled) scheduleAutoScriptUpdateCheck(true);
+    }
+
+    function getScriptMetaForUpdate() {
+        const script = (typeof GM_info !== 'undefined' && GM_info.script) ? GM_info.script : {};
+        return {
+            name: script.name || 'NodeseekLite',
+            version: script.version || '',
+            updateURL: script.updateURL || '',
+            downloadURL: script.downloadURL || ''
+        };
+    }
+
+    function parseScriptVersion(text) {
+        const match = String(text || '').match(/\/\/\s*@version\s+([^\s]+)/);
+        return match ? match[1].trim() : '';
+    }
+
+    function parseScriptMetaField(text, field) {
+        const pattern = new RegExp('^\\s*//\\s*@' + field + '\\s+(.+)$', 'm');
+        const match = String(text || '').match(pattern);
+        return match ? match[1].trim() : '';
+    }
+
+    function compareScriptVersions(a, b) {
+        const left = String(a || '').split(/[^\dA-Za-z]+/).filter(Boolean);
+        const right = String(b || '').split(/[^\dA-Za-z]+/).filter(Boolean);
+        const len = Math.max(left.length, right.length);
+        for (let i = 0; i < len; i++) {
+            const x = left[i] || '0';
+            const y = right[i] || '0';
+            const xn = /^\d+$/.test(x) ? parseInt(x, 10) : null;
+            const yn = /^\d+$/.test(y) ? parseInt(y, 10) : null;
+            if (xn !== null && yn !== null) {
+                if (xn !== yn) return xn > yn ? 1 : -1;
+            } else if (x !== y) {
+                return x > y ? 1 : -1;
+            }
+        }
+        return 0;
+    }
+
+    function normalizeScriptInstallUrl(value) {
+        const source = String(value || '').trim();
+        if (!source) return SCRIPT_UPDATE_DEFAULT_URL;
+        const clean = source.replace(/[?#].*$/, '');
+        const rawMatch = clean.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/i);
+        if (rawMatch) {
+            const path = rawMatch[4].replace(/\/Ns\.js$/i, '/Ns.user.js');
+            return 'https://cdn.jsdelivr.net/gh/' + rawMatch[1] + '/' + rawMatch[2] + '@' + rawMatch[3] + '/' + path;
+        }
+        const githubRawMatch = clean.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/raw\/(?:refs\/heads\/)?([^/]+)\/(.+)$/i);
+        if (githubRawMatch) {
+            const path = githubRawMatch[4].replace(/\/Ns\.js$/i, '/Ns.user.js');
+            return 'https://cdn.jsdelivr.net/gh/' + githubRawMatch[1] + '/' + githubRawMatch[2] + '@' + githubRawMatch[3] + '/' + path;
+        }
+        return clean.replace(/\/Ns\.js$/i, '/Ns.user.js');
+    }
+
+    function getPreferredScriptUpdateUrl(meta) {
+        return normalizeScriptInstallUrl(meta.updateURL || meta.downloadURL || SCRIPT_UPDATE_DEFAULT_URL);
+    }
+
+    function openScriptInstallPage(url) {
+        const installText = String(normalizeScriptInstallUrl(url) || SCRIPT_UPDATE_DEFAULT_URL);
+        try {
+            const link = document.createElement('a');
+            link.href = installText;
+            link.target = '_self';
+            link.rel = 'noopener noreferrer';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(function () { link.remove(); }, 1000);
+            return true;
+        } catch (e) { }
+        try {
+            if (typeof GM_openInTab === 'function') {
+                GM_openInTab(installText, { active: true, insert: true, setParent: true });
+                return true;
+            }
+        } catch (e) { }
+        try {
+            const tab = window.open(installText, '_blank', 'noopener,noreferrer');
+            if (tab) return true;
+        } catch (e2) { }
+        try {
+            window.location.href = installText;
+            return true;
+        } catch (e3) {
+            return false;
+        }
+    }
+
+    function scheduleScriptUpdateRestart(statusEl) {
+        try {
+            sessionStorage.setItem('nodeseek_pending_script_update_restart', '1');
+        } catch (e) { }
+        setTimeout(function () {
+            if (statusEl) statusEl.textContent = '正在刷新页面以重启脚本...';
+            location.reload();
+        }, 8000);
+    }
+
+    function nextAutoUpdateDelay() {
+        return 12 * 60 * 60 * 1000 + Math.floor(Math.random() * 24 * 60 * 60 * 1000);
+    }
+
+    async function checkScriptUpdateCore(options) {
+        const opts = options || {};
+        const statusEl = opts.statusEl || null;
+        const silent = !!opts.silent;
+        const meta = getScriptMetaForUpdate();
+        const url = getPreferredScriptUpdateUrl(meta);
+        if (statusEl) statusEl.textContent = '正在检查更新...';
+        try {
+            const response = await gmRequestText('GET', url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now());
+            if (response.status < 200 || response.status >= 300) throw new Error('状态码 ' + response.status);
+            const latestVersion = parseScriptVersion(response.responseText);
+            if (!latestVersion) throw new Error('远端脚本没有 @version');
+            const currentVersion = meta.version || '';
+            if (compareScriptVersions(latestVersion, currentVersion) <= 0) {
+                if (statusEl) statusEl.textContent = '已是最新版本：' + currentVersion;
+                if (!silent) alert('当前已是最新版本：' + currentVersion);
+                return false;
+            }
+
+            if (silent) {
+                const lastPrompt = JSON.parse(nsLocalStorage.getItem(SCRIPT_AUTO_UPDATE_LAST_PROMPT_KEY) || 'null');
+                if (lastPrompt && lastPrompt.version === latestVersion && Date.now() - Number(lastPrompt.time || 0) < 6 * 60 * 60 * 1000) {
+                    return true;
+                }
+                nsLocalStorage.setItem(SCRIPT_AUTO_UPDATE_LAST_PROMPT_KEY, JSON.stringify({ version: latestVersion, time: Date.now() }));
+            }
+
+            if (statusEl) statusEl.textContent = '发现新版本：' + latestVersion;
+            const latestName = parseScriptMetaField(response.responseText, 'name') || meta.name || 'NodeseekLite';
+            const latestDesc = parseScriptMetaField(response.responseText, 'description') || '';
+            const downloadUrl = normalizeScriptInstallUrl(parseScriptMetaField(response.responseText, 'downloadURL') || url);
+            const message = [
+                '发现脚本新版本，是否立即更新？',
+                '',
+                '脚本：' + latestName,
+                '当前版本：' + (currentVersion || '未知'),
+                '最新版本：' + latestVersion,
+                latestDesc ? '说明：' + latestDesc : '',
+                '',
+                '点击确定后会打开脚本更新页面。'
+            ].filter(Boolean).join('\n');
+            if (confirm(message)) {
+                if (statusEl) statusEl.textContent = '正在打开更新页面...';
+                if (openScriptInstallPage(downloadUrl)) {
+                    scheduleScriptUpdateRestart(statusEl);
+                } else {
+                    throw new Error('无法打开更新页面');
+                }
+            }
+            return true;
+        } catch (error) {
+            if (statusEl) statusEl.textContent = '检查失败：' + error.message;
+            if (!silent) alert('检查更新失败：' + error.message);
+            return false;
+        }
+    }
+
+    function scheduleAutoScriptUpdateCheck(forceSoon) {
+        if (!isScriptAutoUpdateEnabled()) return;
+        let nextAt = parseInt(nsLocalStorage.getItem(SCRIPT_AUTO_UPDATE_NEXT_AT_KEY) || '0', 10) || 0;
+        const now = Date.now();
+        if (forceSoon || !nextAt) {
+            nextAt = now + 45 * 1000 + Math.floor(Math.random() * 150 * 1000);
+            nsLocalStorage.setItem(SCRIPT_AUTO_UPDATE_NEXT_AT_KEY, String(nextAt));
+        }
+        const delay = Math.max(30 * 1000, Math.min(nextAt - now, 4 * 60 * 60 * 1000));
+        setTimeout(async function () {
+            if (!isScriptAutoUpdateEnabled()) return;
+            const latestNext = parseInt(nsLocalStorage.getItem(SCRIPT_AUTO_UPDATE_NEXT_AT_KEY) || '0', 10) || 0;
+            if (Date.now() < latestNext - 1000) {
+                scheduleAutoScriptUpdateCheck(false);
+                return;
+            }
+            nsLocalStorage.setItem(SCRIPT_AUTO_UPDATE_NEXT_AT_KEY, String(Date.now() + nextAutoUpdateDelay()));
+            await checkScriptUpdateCore({ silent: true });
+            scheduleAutoScriptUpdateCheck(false);
+        }, delay);
+    }
+
+    scheduleAutoScriptUpdateCheck(false);
+
     // 新增：显示设置弹窗
     function showSettingsDialog() {
         // 打开弹窗时先更新一次标题状态，确保样式类已添加且内联样式已清除，以便颜色预览生效
@@ -554,7 +754,7 @@
         content.style.flexDirection = 'column';
         content.style.gap = '15px';
 
-        const DEFAULT_USERSCRIPT_URL = 'https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js';
+        const DEFAULT_USERSCRIPT_URL = SCRIPT_UPDATE_DEFAULT_URL;
 
         function getScriptMeta() {
             const script = (typeof GM_info !== 'undefined' && GM_info.script) ? GM_info.script : {};
@@ -635,12 +835,12 @@
             const rawMatch = clean.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/i);
             if (rawMatch) {
                 const path = rawMatch[4].replace(/\/Ns\.js$/i, '/Ns.user.js');
-                return 'https://raw.githubusercontent.com/' + rawMatch[1] + '/' + rawMatch[2] + '/' + rawMatch[3] + '/' + path;
+                return 'https://cdn.jsdelivr.net/gh/' + rawMatch[1] + '/' + rawMatch[2] + '@' + rawMatch[3] + '/' + path;
             }
             const githubRawMatch = clean.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/raw\/(?:refs\/heads\/)?([^/]+)\/(.+)$/i);
             if (githubRawMatch) {
                 const path = githubRawMatch[4].replace(/\/Ns\.js$/i, '/Ns.user.js');
-                return 'https://raw.githubusercontent.com/' + githubRawMatch[1] + '/' + githubRawMatch[2] + '/' + githubRawMatch[3] + '/' + path;
+                return 'https://cdn.jsdelivr.net/gh/' + githubRawMatch[1] + '/' + githubRawMatch[2] + '@' + githubRawMatch[3] + '/' + path;
             }
             return clean.replace(/\/Ns\.js$/i, '/Ns.user.js');
         }
@@ -663,50 +863,7 @@
         }
 
         async function checkScriptUpdate(statusEl) {
-            const meta = getScriptMeta();
-            const url = getPreferredScriptUrl(meta);
-            if (!url || /REPLACE_USER|REPLACE_REPO/.test(url)) {
-                statusEl.textContent = '请先把脚本头部 updateURL 改成 GitHub Raw 地址。';
-                alert('请先把脚本头部 @updateURL 和 @downloadURL 改成你的 GitHub Raw 地址。');
-                return;
-            }
-            statusEl.textContent = '正在检查更新...';
-            try {
-                const response = await gmRequestText('GET', url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now());
-                if (response.status < 200 || response.status >= 300) throw new Error('状态码 ' + response.status);
-                const latestVersion = parseVersionFromScript(response.responseText);
-                if (!latestVersion) throw new Error('远端脚本没有 @version');
-                const currentVersion = meta.version || '';
-                if (compareVersionText(latestVersion, currentVersion) > 0) {
-                    statusEl.textContent = '发现新版本：' + latestVersion;
-                    const latestName = parseMetaFieldFromScript(response.responseText, 'name') || meta.name || 'NodeseekLite';
-                    const latestDesc = parseMetaFieldFromScript(response.responseText, 'description') || '';
-                    const downloadUrl = normalizeUserscriptInstallUrl(parseMetaFieldFromScript(response.responseText, 'downloadURL') || url);
-                    const message = [
-                        '脚本：' + latestName,
-                        '当前版本：' + (currentVersion || '未知'),
-                        '最新版本：' + latestVersion,
-                        latestDesc ? '说明：' + latestDesc : '',
-                        '',
-                        '点击确定后会在当前标签页打开 Tampermonkey 更新页。',
-                        '如果仍显示脚本文本，请确认 Tampermonkey 已启用用户脚本链接识别。'
-                    ].filter(Boolean).join('\n');
-                    if (confirm(message)) {
-                        statusEl.textContent = '正在打开更新页面...';
-                        if (openScriptUpdatePage(downloadUrl)) {
-                            scheduleScriptRestart(statusEl);
-                        } else {
-                            throw new Error('无法打开更新页面');
-                        }
-                    }
-                } else {
-                    statusEl.textContent = '已是最新版本：' + currentVersion;
-                    alert('当前已是最新版本：' + currentVersion);
-                }
-            } catch (error) {
-                statusEl.textContent = '检查失败：' + error.message;
-                alert('检查更新失败：' + error.message);
-            }
+            checkScriptUpdateCore({ statusEl: statusEl, silent: false });
         }
 
         const dataRow = document.createElement('div');
@@ -1215,7 +1372,26 @@
             checkScriptUpdate(updateStatus);
         };
 
+        const autoUpdateLabel = document.createElement('label');
+        autoUpdateLabel.style.display = 'inline-flex';
+        autoUpdateLabel.style.alignItems = 'center';
+        autoUpdateLabel.style.gap = '3px';
+        autoUpdateLabel.style.fontSize = '12px';
+        autoUpdateLabel.style.color = '#666';
+        autoUpdateLabel.style.cursor = 'pointer';
+
+        const autoUpdateCheckbox = document.createElement('input');
+        autoUpdateCheckbox.type = 'checkbox';
+        autoUpdateCheckbox.checked = isScriptAutoUpdateEnabled();
+        autoUpdateCheckbox.onchange = function () {
+            setScriptAutoUpdateEnabled(autoUpdateCheckbox.checked);
+            updateStatus.textContent = autoUpdateCheckbox.checked ? '已开启自动检查' : '已关闭自动检查';
+        };
+        autoUpdateLabel.appendChild(autoUpdateCheckbox);
+        autoUpdateLabel.appendChild(document.createTextNode('自动'));
+
         updateRightContainer.appendChild(updateStatus);
+        updateRightContainer.appendChild(autoUpdateLabel);
         updateRightContainer.appendChild(updateBtn);
         updateRow.appendChild(updateLabel);
         updateRow.appendChild(updateRightContainer);
