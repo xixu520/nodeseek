@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.12.10
+// @version      2026.06.13.1
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://raw.githubusercontent.com/xixu520/nodeseek/main/Ns.user.js
@@ -158,20 +158,22 @@
         scheduleWebdavChangeSync();
     }
 
-    const originalLocalStorageSetItem = Storage.prototype.setItem;
-    const originalLocalStorageRemoveItem = Storage.prototype.removeItem;
+    if (typeof Storage !== 'undefined' && Storage.prototype) {
+        const originalLocalStorageSetItem = Storage.prototype.setItem;
+        const originalLocalStorageRemoveItem = Storage.prototype.removeItem;
 
-    Storage.prototype.setItem = function (key, value) {
-        const result = originalLocalStorageSetItem.apply(this, arguments);
-        if (this === localStorage) markWebdavLocalChanged(String(key));
-        return result;
-    };
+        Storage.prototype.setItem = function (key, value) {
+            const result = originalLocalStorageSetItem.apply(this, arguments);
+            if (this === localStorage) markWebdavLocalChanged(String(key));
+            return result;
+        };
 
-    Storage.prototype.removeItem = function (key) {
-        const result = originalLocalStorageRemoveItem.apply(this, arguments);
-        if (this === localStorage) markWebdavLocalChanged(String(key));
-        return result;
-    };
+        Storage.prototype.removeItem = function (key) {
+            const result = originalLocalStorageRemoveItem.apply(this, arguments);
+            if (this === localStorage) markWebdavLocalChanged(String(key));
+            return result;
+        };
+    }
 
     function getOpenPostNewTabEnabled() {
         const val = localStorage.getItem(OPEN_POST_NEW_TAB_KEY);
@@ -327,7 +329,12 @@
 
     function setCollapsedMoveLockState(isLocked) {
         localStorage.setItem(COLLAPSED_MOVE_LOCK_KEY, isLocked.toString());
-        document.dispatchEvent(new CustomEvent('nodeseek-collapsed-lock-change', { detail: { locked: !!isLocked } }));
+        try {
+            const event = typeof CustomEvent === 'function'
+                ? new CustomEvent('nodeseek-collapsed-lock-change', { detail: { locked: !!isLocked } })
+                : null;
+            if (event) document.dispatchEvent(event);
+        } catch (e) { }
     }
 
     function getPanelThemeMode() {

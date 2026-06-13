@@ -133,20 +133,22 @@
         scheduleWebdavChangeSync();
     }
 
-    const originalLocalStorageSetItem = Storage.prototype.setItem;
-    const originalLocalStorageRemoveItem = Storage.prototype.removeItem;
+    if (typeof Storage !== 'undefined' && Storage.prototype) {
+        const originalLocalStorageSetItem = Storage.prototype.setItem;
+        const originalLocalStorageRemoveItem = Storage.prototype.removeItem;
 
-    Storage.prototype.setItem = function (key, value) {
-        const result = originalLocalStorageSetItem.apply(this, arguments);
-        if (this === localStorage) markWebdavLocalChanged(String(key));
-        return result;
-    };
+        Storage.prototype.setItem = function (key, value) {
+            const result = originalLocalStorageSetItem.apply(this, arguments);
+            if (this === localStorage) markWebdavLocalChanged(String(key));
+            return result;
+        };
 
-    Storage.prototype.removeItem = function (key) {
-        const result = originalLocalStorageRemoveItem.apply(this, arguments);
-        if (this === localStorage) markWebdavLocalChanged(String(key));
-        return result;
-    };
+        Storage.prototype.removeItem = function (key) {
+            const result = originalLocalStorageRemoveItem.apply(this, arguments);
+            if (this === localStorage) markWebdavLocalChanged(String(key));
+            return result;
+        };
+    }
 
     function getOpenPostNewTabEnabled() {
         const val = localStorage.getItem(OPEN_POST_NEW_TAB_KEY);
@@ -302,7 +304,12 @@
 
     function setCollapsedMoveLockState(isLocked) {
         localStorage.setItem(COLLAPSED_MOVE_LOCK_KEY, isLocked.toString());
-        document.dispatchEvent(new CustomEvent('nodeseek-collapsed-lock-change', { detail: { locked: !!isLocked } }));
+        try {
+            const event = typeof CustomEvent === 'function'
+                ? new CustomEvent('nodeseek-collapsed-lock-change', { detail: { locked: !!isLocked } })
+                : null;
+            if (event) document.dispatchEvent(event);
+        } catch (e) { }
     }
 
     function getPanelThemeMode() {
