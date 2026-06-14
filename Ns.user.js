@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.13.7
+// @version      2026.06.14.1
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://cdn.jsdelivr.net/gh/xixu520/nodeseek@main/Ns.user.js
@@ -1129,6 +1129,23 @@
         touch-action: auto !important;
     }
 
+    #nodeseek-plugin-main-container:not(.nodeseek-plugin-main-collapsed) {
+        position: fixed !important;
+        top: 30px !important;
+        right: 4px !important;
+        bottom: auto !important;
+        left: auto !important;
+        max-height: calc(100vh - 56px) !important;
+        max-height: calc(100dvh - 56px) !important;
+    }
+
+    #nodeseek-plugin-main-container:not(.nodeseek-plugin-main-collapsed) #nodeseek-plugin-buttons-container {
+        max-height: calc(100vh - 56px) !important;
+        max-height: calc(100dvh - 56px) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
     #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
         position: static !important;
         width: 34px !important;
@@ -2234,12 +2251,19 @@
             }
 
             #nodeseek-plugin-main-container:not(.nodeseek-plugin-main-collapsed) {
+                position: fixed !important;
+                top: auto !important;
+                right: 12px !important;
+                bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+                left: auto !important;
                 max-width: calc(100vw - 54px) !important;
+                max-height: calc(100vh - 104px) !important;
+                max-height: calc(100dvh - 104px) !important;
             }
 
             #nodeseek-plugin-buttons-container {
                 width: min(300px, calc(100vw - 64px)) !important;
-                max-height: min(62vh, 500px) !important;
+                max-height: min(62vh, calc(100dvh - 104px), 500px) !important;
                 padding: 8px !important;
                 gap: 6px !important;
                 border-radius: 9px !important;
@@ -6664,7 +6688,6 @@
         mainContainer.appendChild(container);
 
         function applyCollapsedLayout(collapsed) {
-            const positionBeforeLayout = mainContainer.getBoundingClientRect();
             mainContainer.classList.toggle('nodeseek-plugin-main-collapsed', !!collapsed);
             if (collapsed) {
                 mainContainer.style.flexDirection = 'column';
@@ -6691,44 +6714,42 @@
                 collapsedRail.style.display = 'none';
                 collapsedDragHandle.style.display = 'none';
                 collapsedHighlightBtn.style.display = 'none';
-                mainContainer.style.removeProperty('left');
-                mainContainer.style.removeProperty('right');
-                mainContainer.style.removeProperty('top');
-                mainContainer.style.removeProperty('bottom');
-                mainContainer.style.top = expandedPosition.top;
-                mainContainer.style.right = expandedPosition.right;
-                mainContainer.style.bottom = expandedPosition.bottom;
-                nsRequestAnimationFrame(function () {
-                    setExpandedPanelPositionNear(positionBeforeLayout);
-                });
+                setExpandedPanelFixedPosition();
             }
         }
 
-        function setExpandedPanelPositionNear(anchorRect) {
-            if (!anchorRect) return;
-            const rect = mainContainer.getBoundingClientRect();
-            const isMobile = window.innerWidth <= 767;
-            const handleSpace = isMobile ? 42 : 0;
-            const edgeGap = isMobile ? 8 : 0;
-            const maxLeft = Math.max(handleSpace, window.innerWidth - rect.width - edgeGap);
-            const maxTop = Math.max(edgeGap, window.innerHeight - rect.height - edgeGap);
-            const openFromRight = anchorRect.left > window.innerWidth / 2;
-            const wantedLeft = openFromRight ? anchorRect.right - rect.width : anchorRect.left;
-            const wantedTop = isMobile && anchorRect.top > window.innerHeight / 2
-                ? anchorRect.bottom - rect.height
-                : anchorRect.top;
-            const left = Math.min(maxLeft, Math.max(handleSpace, wantedLeft));
-            const top = Math.min(maxTop, Math.max(edgeGap, wantedTop));
-            mainContainer.style.setProperty('left', left + 'px', 'important');
-            mainContainer.style.setProperty('top', top + 'px', 'important');
-            mainContainer.style.setProperty('right', 'auto', 'important');
-            mainContainer.style.setProperty('bottom', 'auto', 'important');
+        function getPanelViewportSize() {
+            const visualViewport = window.visualViewport;
+            return {
+                width: Math.round((visualViewport && visualViewport.width) || window.innerWidth || document.documentElement.clientWidth || 0),
+                height: Math.round((visualViewport && visualViewport.height) || window.innerHeight || document.documentElement.clientHeight || 0)
+            };
+        }
+
+        function setExpandedPanelFixedPosition() {
+            const viewport = getPanelViewportSize();
+            const isMobile = viewport.width <= 767;
+            mainContainer.style.removeProperty('left');
+            mainContainer.style.removeProperty('right');
+            mainContainer.style.removeProperty('top');
+            mainContainer.style.removeProperty('bottom');
+            mainContainer.style.setProperty('position', 'fixed', 'important');
+            mainContainer.style.setProperty('left', 'auto', 'important');
+            mainContainer.style.setProperty('right', isMobile ? '12px' : expandedPosition.right, 'important');
+            if (isMobile) {
+                mainContainer.style.setProperty('top', 'auto', 'important');
+                mainContainer.style.setProperty('bottom', 'calc(14px + env(safe-area-inset-bottom, 0px))', 'important');
+            } else {
+                mainContainer.style.setProperty('top', expandedPosition.top, 'important');
+                mainContainer.style.setProperty('bottom', expandedPosition.bottom, 'important');
+            }
         }
 
         function setCollapsedPanelPosition(position, save) {
             const rect = mainContainer.getBoundingClientRect();
-            const maxLeft = Math.max(0, window.innerWidth - rect.width);
-            const maxTop = Math.max(0, window.innerHeight - rect.height);
+            const viewport = getPanelViewportSize();
+            const maxLeft = Math.max(0, viewport.width - rect.width);
+            const maxTop = Math.max(0, viewport.height - rect.height);
             let left = Math.min(maxLeft, Math.max(0, position.left));
             let top = Math.min(maxTop, Math.max(0, position.top));
             const snap = 24;
@@ -6820,11 +6841,17 @@
                 collapsedDragHandle.style.display = getCollapsedMoveLockState() ? 'none' : 'inline-flex';
             }
         });
-        window.addEventListener('resize', function () {
-            if (!mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) return;
-            const rect = mainContainer.getBoundingClientRect();
-            setCollapsedPanelPosition({ left: rect.left, top: rect.top }, true);
-        });
+        function keepPanelInViewport() {
+            if (mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) {
+                const rect = mainContainer.getBoundingClientRect();
+                setCollapsedPanelPosition({ left: rect.left, top: rect.top }, true);
+                return;
+            }
+            setExpandedPanelFixedPosition();
+        }
+        window.addEventListener('resize', keepPanelInViewport);
+        window.addEventListener('orientationchange', keepPanelInViewport);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', keepPanelInViewport);
 
         // 处理折叠状态
         const isCollapsed = getCollapsedState();

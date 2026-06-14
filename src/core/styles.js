@@ -151,6 +151,23 @@
         touch-action: auto !important;
     }
 
+    #nodeseek-plugin-main-container:not(.nodeseek-plugin-main-collapsed) {
+        position: fixed !important;
+        top: 30px !important;
+        right: 4px !important;
+        bottom: auto !important;
+        left: auto !important;
+        max-height: calc(100vh - 56px) !important;
+        max-height: calc(100dvh - 56px) !important;
+    }
+
+    #nodeseek-plugin-main-container:not(.nodeseek-plugin-main-collapsed) #nodeseek-plugin-buttons-container {
+        max-height: calc(100vh - 56px) !important;
+        max-height: calc(100dvh - 56px) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
     #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
         position: static !important;
         width: 34px !important;
@@ -1256,12 +1273,19 @@
             }
 
             #nodeseek-plugin-main-container:not(.nodeseek-plugin-main-collapsed) {
+                position: fixed !important;
+                top: auto !important;
+                right: 12px !important;
+                bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+                left: auto !important;
                 max-width: calc(100vw - 54px) !important;
+                max-height: calc(100vh - 104px) !important;
+                max-height: calc(100dvh - 104px) !important;
             }
 
             #nodeseek-plugin-buttons-container {
                 width: min(300px, calc(100vw - 64px)) !important;
-                max-height: min(62vh, 500px) !important;
+                max-height: min(62vh, calc(100dvh - 104px), 500px) !important;
                 padding: 8px !important;
                 gap: 6px !important;
                 border-radius: 9px !important;
