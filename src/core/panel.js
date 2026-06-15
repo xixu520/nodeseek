@@ -609,18 +609,6 @@
         }
         renderCollapsedActions();
 
-        const collapsedDragHandle = document.createElement('button');
-        collapsedDragHandle.id = 'ns-collapsed-drag-handle';
-        collapsedDragHandle.className = 'ns-collapsed-drag-handle';
-        collapsedDragHandle.type = 'button';
-        collapsedDragHandle.textContent = '拖';
-        collapsedDragHandle.title = '拖动位置';
-        collapsedDragHandle.setAttribute('aria-label', '拖动最小化按钮');
-        collapsedDragHandle.onclick = function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-        };
-
         const themeToggleBtn = document.createElement('button');
         themeToggleBtn.id = 'theme-toggle-btn';
         themeToggleBtn.className = 'collapse-btn theme-toggle-btn';
@@ -636,7 +624,6 @@
 
         // 组装UI - 先添加折叠按钮，再添加内容容器
         mainContainer.appendChild(collapsedRail);
-        mainContainer.appendChild(collapsedDragHandle);
         mainContainer.appendChild(collapseBtn);
         mainContainer.appendChild(collapsedHighlightBtn);
         mainContainer.appendChild(themeToggleBtn);
@@ -648,26 +635,14 @@
                 mainContainer.style.flexDirection = 'column';
                 mainContainer.style.alignItems = 'flex-end';
                 collapsedRail.style.display = 'flex';
-                collapsedDragHandle.style.display = getCollapsedMoveLockState() ? 'none' : 'inline-flex';
                 renderCollapsedActions();
                 collapsedHighlightBtn.style.display = isHomePage() ? 'inline-flex' : 'none';
                 updateCollapsedHighlightCount();
-                mainContainer.classList.toggle('ns-collapsed-move-locked', getCollapsedMoveLockState());
-                nsRequestAnimationFrame(function () {
-                    const saved = getCollapsedPosition();
-                    const rect = mainContainer.getBoundingClientRect();
-                    const fallbackLeft = Math.max(0, window.innerWidth - rect.width);
-                    const fallbackTop = window.innerWidth <= 767
-                        ? Math.max(0, window.innerHeight - rect.height - 88)
-                        : Math.max(0, Math.round((window.innerHeight - rect.height) * 0.4));
-                    setCollapsedPanelPosition(saved || { left: fallbackLeft, top: fallbackTop }, false);
-                });
+                setCollapsedPanelFixedPosition();
             } else {
                 mainContainer.style.flexDirection = 'row';
                 mainContainer.style.alignItems = '';
-                mainContainer.classList.remove('ns-collapsed-move-locked');
                 collapsedRail.style.display = 'none';
-                collapsedDragHandle.style.display = 'none';
                 collapsedHighlightBtn.style.display = 'none';
                 setExpandedPanelFixedPosition();
             }
@@ -700,106 +675,23 @@
             }
         }
 
-        function setCollapsedPanelPosition(position, save) {
-            const rect = mainContainer.getBoundingClientRect();
+        function setCollapsedPanelFixedPosition() {
             const viewport = getPanelViewportSize();
-            const maxLeft = Math.max(0, viewport.width - rect.width);
-            const maxTop = Math.max(0, viewport.height - rect.height);
-            let left = Math.min(maxLeft, Math.max(0, position.left));
-            let top = Math.min(maxTop, Math.max(0, position.top));
-            const snap = 24;
-            if (left <= snap) left = 0;
-            if (maxLeft - left <= snap) left = maxLeft;
-            if (top <= snap) top = 0;
-            if (maxTop - top <= snap) top = maxTop;
-            mainContainer.style.setProperty('left', left + 'px', 'important');
-            mainContainer.style.setProperty('top', top + 'px', 'important');
-            mainContainer.style.setProperty('right', 'auto', 'important');
+            const isMobile = viewport.width <= 767;
+            mainContainer.style.removeProperty('left');
+            mainContainer.style.removeProperty('right');
+            mainContainer.style.removeProperty('top');
+            mainContainer.style.removeProperty('bottom');
+            mainContainer.style.setProperty('position', 'fixed', 'important');
+            mainContainer.style.setProperty('left', 'auto', 'important');
+            mainContainer.style.setProperty('right', isMobile ? '12px' : '4px', 'important');
+            mainContainer.style.setProperty('top', isMobile ? 'calc(50vh + 24px)' : '42vh', 'important');
             mainContainer.style.setProperty('bottom', 'auto', 'important');
-            if (save) setCollapsedPosition({ left, top });
         }
 
-        let collapsedDragState = null;
-        let suppressCollapsedClick = false;
-
-        function isCollapsedPanelDraggableTarget(target) {
-            if (!mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) return false;
-            if (getCollapsedMoveLockState()) return false;
-            if (window.innerWidth <= 767) return !!(target.closest && target.closest('#ns-collapsed-drag-handle'));
-            if (target.closest && target.closest('.ns-collapsed-action-btn, #ns-collapsed-highlight-count')) return false;
-            return true;
-        }
-
-        function startCollapsedPanelDrag(event) {
-            if (!isCollapsedPanelDraggableTarget(event.target)) return;
-            const point = event.touches ? event.touches[0] : event;
-            if (!point) return;
-            const rect = mainContainer.getBoundingClientRect();
-            collapsedDragState = {
-                startX: point.clientX,
-                startY: point.clientY,
-                left: rect.left,
-                top: rect.top,
-                moved: false
-            };
-            suppressCollapsedClick = false;
-            document.addEventListener('mousemove', moveCollapsedPanelDrag);
-            document.addEventListener('mouseup', endCollapsedPanelDrag);
-            document.addEventListener('touchmove', moveCollapsedPanelDrag, { passive: false });
-            document.addEventListener('touchend', endCollapsedPanelDrag);
-        }
-
-        function moveCollapsedPanelDrag(event) {
-            if (!collapsedDragState) return;
-            const point = event.touches ? event.touches[0] : event;
-            if (!point) return;
-            const dx = point.clientX - collapsedDragState.startX;
-            const dy = point.clientY - collapsedDragState.startY;
-            if (Math.abs(dx) + Math.abs(dy) > 4) {
-                collapsedDragState.moved = true;
-                suppressCollapsedClick = true;
-            }
-            if (event.cancelable) event.preventDefault();
-            setCollapsedPanelPosition({
-                left: collapsedDragState.left + dx,
-                top: collapsedDragState.top + dy
-            }, false);
-        }
-
-        function endCollapsedPanelDrag() {
-            const moved = collapsedDragState && collapsedDragState.moved;
-            if (collapsedDragState) {
-                const rect = mainContainer.getBoundingClientRect();
-                setCollapsedPanelPosition({ left: rect.left, top: rect.top }, true);
-            }
-            document.removeEventListener('mousemove', moveCollapsedPanelDrag);
-            document.removeEventListener('mouseup', endCollapsedPanelDrag);
-            document.removeEventListener('touchmove', moveCollapsedPanelDrag);
-            document.removeEventListener('touchend', endCollapsedPanelDrag);
-            setTimeout(function () {
-                collapsedDragState = null;
-                suppressCollapsedClick = !!moved;
-                setTimeout(function () { suppressCollapsedClick = false; }, 120);
-            }, 0);
-        }
-
-        mainContainer.addEventListener('mousedown', startCollapsedPanelDrag);
-        mainContainer.addEventListener('touchstart', startCollapsedPanelDrag, { passive: true });
-        mainContainer.addEventListener('click', function (event) {
-            if (!suppressCollapsedClick) return;
-            event.preventDefault();
-            event.stopPropagation();
-        }, true);
-        document.addEventListener('nodeseek-collapsed-lock-change', function () {
-            mainContainer.classList.toggle('ns-collapsed-move-locked', getCollapsedMoveLockState());
-            if (mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) {
-                collapsedDragHandle.style.display = getCollapsedMoveLockState() ? 'none' : 'inline-flex';
-            }
-        });
         function keepPanelInViewport() {
             if (mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) {
-                const rect = mainContainer.getBoundingClientRect();
-                setCollapsedPanelPosition({ left: rect.left, top: rect.top }, true);
+                setCollapsedPanelFixedPosition();
                 return;
             }
             setExpandedPanelFixedPosition();
@@ -984,7 +876,6 @@
 
         // 折叠按钮点击事件
         collapseBtn.onclick = function () {
-            if (collapsedDragState && collapsedDragState.moved) return;
             const isCurrentlyCollapsed = container.classList.contains('nodeseek-plugin-container-collapsed');
 
             if (isCurrentlyCollapsed) {

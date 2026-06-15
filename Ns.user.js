@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.14.1
+// @version      2026.06.15.1
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://cdn.jsdelivr.net/gh/xixu520/nodeseek@main/Ns.user.js
@@ -135,8 +135,6 @@
 
     // 新增：折叠状态的存储键
     const COLLAPSED_STATE_KEY = 'nodeseek_buttons_collapsed';
-    const COLLAPSED_POSITION_KEY = 'nodeseek_collapsed_position';
-    const COLLAPSED_MOVE_LOCK_KEY = 'nodeseek_collapsed_move_locked';
     const PANEL_THEME_MODE_KEY = 'nodeseek_panel_theme_mode';
 
     // 新增：用户数据缓存的存储键
@@ -348,36 +346,6 @@
     // 新增：保存折叠状态
     function setCollapsedState(isCollapsed) {
         nsLocalStorage.setItem(COLLAPSED_STATE_KEY, isCollapsed.toString());
-    }
-
-    function getCollapsedPosition() {
-        try {
-            const value = JSON.parse(nsLocalStorage.getItem(COLLAPSED_POSITION_KEY) || 'null');
-            if (value && Number.isFinite(value.left) && Number.isFinite(value.top)) return value;
-        } catch (e) { }
-        return null;
-    }
-
-    function setCollapsedPosition(position) {
-        if (!position || !Number.isFinite(position.left) || !Number.isFinite(position.top)) return;
-        nsLocalStorage.setItem(COLLAPSED_POSITION_KEY, JSON.stringify({
-            left: Math.round(position.left),
-            top: Math.round(position.top)
-        }));
-    }
-
-    function getCollapsedMoveLockState() {
-        return nsLocalStorage.getItem(COLLAPSED_MOVE_LOCK_KEY) === 'true';
-    }
-
-    function setCollapsedMoveLockState(isLocked) {
-        nsLocalStorage.setItem(COLLAPSED_MOVE_LOCK_KEY, isLocked.toString());
-        try {
-            const event = typeof CustomEvent === 'function'
-                ? new CustomEvent('nodeseek-collapsed-lock-change', { detail: { locked: !!isLocked } })
-                : null;
-            if (event) document.dispatchEvent(event);
-        } catch (e) { }
     }
 
     function getPanelThemeMode() {
@@ -1117,16 +1085,16 @@
     }
 
     #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
+        position: fixed !important;
+        top: 42vh !important;
+        right: 4px !important;
+        bottom: auto !important;
+        left: auto !important;
         align-items: flex-end !important;
         flex-direction: column !important;
-        cursor: move !important;
-        touch-action: none !important;
-        user-select: none !important;
-    }
-
-    #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed.ns-collapsed-move-locked {
         cursor: default !important;
         touch-action: auto !important;
+        user-select: auto !important;
     }
 
     #nodeseek-plugin-main-container:not(.nodeseek-plugin-main-collapsed) {
@@ -1732,8 +1700,7 @@
         }
 
         #collapse-btn,
-        #theme-toggle-btn,
-        #ns-collapsed-drag-handle {
+        #theme-toggle-btn {
             border-radius: 7px 0 0 7px !important;
             background: var(--ns-ui-bg-solid) !important;
             border: 1px solid var(--ns-ui-line) !important;
@@ -1748,24 +1715,6 @@
             padding: 0 !important;
             line-height: 1 !important;
             box-sizing: border-box !important;
-        }
-
-        #ns-collapsed-drag-handle {
-            display: none !important;
-            border-radius: 9px !important;
-            background: #f8fafc !important;
-            color: #475569 !important;
-            font-size: 13px !important;
-            font-weight: 800 !important;
-            cursor: move !important;
-            touch-action: none !important;
-            align-items: center !important;
-            justify-content: center !important;
-            -webkit-tap-highlight-color: transparent !important;
-        }
-
-        #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #ns-collapsed-drag-handle {
-            display: none !important;
         }
 
         .ns-collapsed-action-rail {
@@ -2300,25 +2249,11 @@
             }
 
             #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed {
+                top: calc(50vh + 24px) !important;
+                right: 12px !important;
+                bottom: auto !important;
+                left: auto !important;
                 max-width: calc(100vw - 24px) !important;
-            }
-
-            #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #ns-collapsed-drag-handle {
-                display: inline-flex !important;
-                width: 42px !important;
-                height: 42px !important;
-                min-width: 42px !important;
-                min-height: 42px !important;
-                max-width: 42px !important;
-                max-height: 42px !important;
-                margin-bottom: 6px !important;
-                border-radius: 12px !important;
-                box-shadow: 0 8px 18px rgba(15, 23, 42, .15) !important;
-                font-size: 14px !important;
-            }
-
-            #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed.ns-collapsed-move-locked #ns-collapsed-drag-handle {
-                display: none !important;
             }
 
             #nodeseek-plugin-main-container.nodeseek-plugin-main-collapsed #collapse-btn {
@@ -6654,18 +6589,6 @@
         }
         renderCollapsedActions();
 
-        const collapsedDragHandle = document.createElement('button');
-        collapsedDragHandle.id = 'ns-collapsed-drag-handle';
-        collapsedDragHandle.className = 'ns-collapsed-drag-handle';
-        collapsedDragHandle.type = 'button';
-        collapsedDragHandle.textContent = '拖';
-        collapsedDragHandle.title = '拖动位置';
-        collapsedDragHandle.setAttribute('aria-label', '拖动最小化按钮');
-        collapsedDragHandle.onclick = function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-        };
-
         const themeToggleBtn = document.createElement('button');
         themeToggleBtn.id = 'theme-toggle-btn';
         themeToggleBtn.className = 'collapse-btn theme-toggle-btn';
@@ -6681,7 +6604,6 @@
 
         // 组装UI - 先添加折叠按钮，再添加内容容器
         mainContainer.appendChild(collapsedRail);
-        mainContainer.appendChild(collapsedDragHandle);
         mainContainer.appendChild(collapseBtn);
         mainContainer.appendChild(collapsedHighlightBtn);
         mainContainer.appendChild(themeToggleBtn);
@@ -6693,26 +6615,14 @@
                 mainContainer.style.flexDirection = 'column';
                 mainContainer.style.alignItems = 'flex-end';
                 collapsedRail.style.display = 'flex';
-                collapsedDragHandle.style.display = getCollapsedMoveLockState() ? 'none' : 'inline-flex';
                 renderCollapsedActions();
                 collapsedHighlightBtn.style.display = isHomePage() ? 'inline-flex' : 'none';
                 updateCollapsedHighlightCount();
-                mainContainer.classList.toggle('ns-collapsed-move-locked', getCollapsedMoveLockState());
-                nsRequestAnimationFrame(function () {
-                    const saved = getCollapsedPosition();
-                    const rect = mainContainer.getBoundingClientRect();
-                    const fallbackLeft = Math.max(0, window.innerWidth - rect.width);
-                    const fallbackTop = window.innerWidth <= 767
-                        ? Math.max(0, window.innerHeight - rect.height - 88)
-                        : Math.max(0, Math.round((window.innerHeight - rect.height) * 0.4));
-                    setCollapsedPanelPosition(saved || { left: fallbackLeft, top: fallbackTop }, false);
-                });
+                setCollapsedPanelFixedPosition();
             } else {
                 mainContainer.style.flexDirection = 'row';
                 mainContainer.style.alignItems = '';
-                mainContainer.classList.remove('ns-collapsed-move-locked');
                 collapsedRail.style.display = 'none';
-                collapsedDragHandle.style.display = 'none';
                 collapsedHighlightBtn.style.display = 'none';
                 setExpandedPanelFixedPosition();
             }
@@ -6745,106 +6655,23 @@
             }
         }
 
-        function setCollapsedPanelPosition(position, save) {
-            const rect = mainContainer.getBoundingClientRect();
+        function setCollapsedPanelFixedPosition() {
             const viewport = getPanelViewportSize();
-            const maxLeft = Math.max(0, viewport.width - rect.width);
-            const maxTop = Math.max(0, viewport.height - rect.height);
-            let left = Math.min(maxLeft, Math.max(0, position.left));
-            let top = Math.min(maxTop, Math.max(0, position.top));
-            const snap = 24;
-            if (left <= snap) left = 0;
-            if (maxLeft - left <= snap) left = maxLeft;
-            if (top <= snap) top = 0;
-            if (maxTop - top <= snap) top = maxTop;
-            mainContainer.style.setProperty('left', left + 'px', 'important');
-            mainContainer.style.setProperty('top', top + 'px', 'important');
-            mainContainer.style.setProperty('right', 'auto', 'important');
+            const isMobile = viewport.width <= 767;
+            mainContainer.style.removeProperty('left');
+            mainContainer.style.removeProperty('right');
+            mainContainer.style.removeProperty('top');
+            mainContainer.style.removeProperty('bottom');
+            mainContainer.style.setProperty('position', 'fixed', 'important');
+            mainContainer.style.setProperty('left', 'auto', 'important');
+            mainContainer.style.setProperty('right', isMobile ? '12px' : '4px', 'important');
+            mainContainer.style.setProperty('top', isMobile ? 'calc(50vh + 24px)' : '42vh', 'important');
             mainContainer.style.setProperty('bottom', 'auto', 'important');
-            if (save) setCollapsedPosition({ left, top });
         }
 
-        let collapsedDragState = null;
-        let suppressCollapsedClick = false;
-
-        function isCollapsedPanelDraggableTarget(target) {
-            if (!mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) return false;
-            if (getCollapsedMoveLockState()) return false;
-            if (window.innerWidth <= 767) return !!(target.closest && target.closest('#ns-collapsed-drag-handle'));
-            if (target.closest && target.closest('.ns-collapsed-action-btn, #ns-collapsed-highlight-count')) return false;
-            return true;
-        }
-
-        function startCollapsedPanelDrag(event) {
-            if (!isCollapsedPanelDraggableTarget(event.target)) return;
-            const point = event.touches ? event.touches[0] : event;
-            if (!point) return;
-            const rect = mainContainer.getBoundingClientRect();
-            collapsedDragState = {
-                startX: point.clientX,
-                startY: point.clientY,
-                left: rect.left,
-                top: rect.top,
-                moved: false
-            };
-            suppressCollapsedClick = false;
-            document.addEventListener('mousemove', moveCollapsedPanelDrag);
-            document.addEventListener('mouseup', endCollapsedPanelDrag);
-            document.addEventListener('touchmove', moveCollapsedPanelDrag, { passive: false });
-            document.addEventListener('touchend', endCollapsedPanelDrag);
-        }
-
-        function moveCollapsedPanelDrag(event) {
-            if (!collapsedDragState) return;
-            const point = event.touches ? event.touches[0] : event;
-            if (!point) return;
-            const dx = point.clientX - collapsedDragState.startX;
-            const dy = point.clientY - collapsedDragState.startY;
-            if (Math.abs(dx) + Math.abs(dy) > 4) {
-                collapsedDragState.moved = true;
-                suppressCollapsedClick = true;
-            }
-            if (event.cancelable) event.preventDefault();
-            setCollapsedPanelPosition({
-                left: collapsedDragState.left + dx,
-                top: collapsedDragState.top + dy
-            }, false);
-        }
-
-        function endCollapsedPanelDrag() {
-            const moved = collapsedDragState && collapsedDragState.moved;
-            if (collapsedDragState) {
-                const rect = mainContainer.getBoundingClientRect();
-                setCollapsedPanelPosition({ left: rect.left, top: rect.top }, true);
-            }
-            document.removeEventListener('mousemove', moveCollapsedPanelDrag);
-            document.removeEventListener('mouseup', endCollapsedPanelDrag);
-            document.removeEventListener('touchmove', moveCollapsedPanelDrag);
-            document.removeEventListener('touchend', endCollapsedPanelDrag);
-            setTimeout(function () {
-                collapsedDragState = null;
-                suppressCollapsedClick = !!moved;
-                setTimeout(function () { suppressCollapsedClick = false; }, 120);
-            }, 0);
-        }
-
-        mainContainer.addEventListener('mousedown', startCollapsedPanelDrag);
-        mainContainer.addEventListener('touchstart', startCollapsedPanelDrag, { passive: true });
-        mainContainer.addEventListener('click', function (event) {
-            if (!suppressCollapsedClick) return;
-            event.preventDefault();
-            event.stopPropagation();
-        }, true);
-        document.addEventListener('nodeseek-collapsed-lock-change', function () {
-            mainContainer.classList.toggle('ns-collapsed-move-locked', getCollapsedMoveLockState());
-            if (mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) {
-                collapsedDragHandle.style.display = getCollapsedMoveLockState() ? 'none' : 'inline-flex';
-            }
-        });
         function keepPanelInViewport() {
             if (mainContainer.classList.contains('nodeseek-plugin-main-collapsed')) {
-                const rect = mainContainer.getBoundingClientRect();
-                setCollapsedPanelPosition({ left: rect.left, top: rect.top }, true);
+                setCollapsedPanelFixedPosition();
                 return;
             }
             setExpandedPanelFixedPosition();
@@ -7029,7 +6856,6 @@
 
         // 折叠按钮点击事件
         collapseBtn.onclick = function () {
-            if (collapsedDragState && collapsedDragState.moved) return;
             const isCurrentlyCollapsed = container.classList.contains('nodeseek-plugin-container-collapsed');
 
             if (isCurrentlyCollapsed) {
@@ -9972,30 +9798,6 @@
         dataRow.appendChild(createSettingsActionButton('导入', '#2563eb', importBlacklist));
         dataRow.appendChild(createSettingsActionButton('同步设置', '#475569', showWebdavSyncDialog));
         content.appendChild(dataRow);
-
-        const collapsedMoveLockRow = document.createElement('div');
-        collapsedMoveLockRow.style.display = 'flex';
-        collapsedMoveLockRow.style.justifyContent = 'space-between';
-        collapsedMoveLockRow.style.alignItems = 'center';
-        if (isMobile) collapsedMoveLockRow.style.flexWrap = 'wrap';
-
-        const collapsedMoveLockLabel = document.createElement('label');
-        collapsedMoveLockLabel.textContent = '最小化移动锁定';
-        collapsedMoveLockLabel.style.fontWeight = '500';
-        collapsedMoveLockLabel.style.color = '#555';
-
-        const collapsedMoveLockSwitch = document.createElement('input');
-        collapsedMoveLockSwitch.type = 'checkbox';
-        collapsedMoveLockSwitch.checked = getCollapsedMoveLockState();
-        collapsedMoveLockSwitch.style.transform = 'scale(1.2)';
-        collapsedMoveLockSwitch.onchange = function () {
-            setCollapsedMoveLockState(this.checked);
-            addLog('最小化移动锁定：' + (this.checked ? '开启' : '关闭'));
-        };
-
-        collapsedMoveLockRow.appendChild(collapsedMoveLockLabel);
-        collapsedMoveLockRow.appendChild(collapsedMoveLockSwitch);
-        content.appendChild(collapsedMoveLockRow);
 
         // 1. 阅读记忆开关（含颜色选择）
         const historyRow = document.createElement('div');

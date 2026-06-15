@@ -888,30 +888,6 @@
         dataRow.appendChild(createSettingsActionButton('同步设置', '#475569', showWebdavSyncDialog));
         content.appendChild(dataRow);
 
-        const collapsedMoveLockRow = document.createElement('div');
-        collapsedMoveLockRow.style.display = 'flex';
-        collapsedMoveLockRow.style.justifyContent = 'space-between';
-        collapsedMoveLockRow.style.alignItems = 'center';
-        if (isMobile) collapsedMoveLockRow.style.flexWrap = 'wrap';
-
-        const collapsedMoveLockLabel = document.createElement('label');
-        collapsedMoveLockLabel.textContent = '最小化移动锁定';
-        collapsedMoveLockLabel.style.fontWeight = '500';
-        collapsedMoveLockLabel.style.color = '#555';
-
-        const collapsedMoveLockSwitch = document.createElement('input');
-        collapsedMoveLockSwitch.type = 'checkbox';
-        collapsedMoveLockSwitch.checked = getCollapsedMoveLockState();
-        collapsedMoveLockSwitch.style.transform = 'scale(1.2)';
-        collapsedMoveLockSwitch.onchange = function () {
-            setCollapsedMoveLockState(this.checked);
-            addLog('最小化移动锁定：' + (this.checked ? '开启' : '关闭'));
-        };
-
-        collapsedMoveLockRow.appendChild(collapsedMoveLockLabel);
-        collapsedMoveLockRow.appendChild(collapsedMoveLockSwitch);
-        content.appendChild(collapsedMoveLockRow);
-
         // 1. 阅读记忆开关（含颜色选择）
         const historyRow = document.createElement('div');
         historyRow.style.display = 'flex';
