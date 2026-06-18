@@ -639,7 +639,7 @@
 
         #settings-btn { background: #64748b !important; }
         #keyword-filter-btn { background: var(--ns-ui-primary) !important; }
-        #webdav-sync-btn, #ns-nodeimage-btn { background: var(--ns-ui-teal) !important; }
+        #webdav-sync-btn, #ns-nodeimage-btn, #ns-nodeimage-paste-btn { background: var(--ns-ui-teal) !important; }
         #blacklist-view-btn, #friends-view-btn { background: var(--ns-ui-green) !important; }
         #quick-reply-btn { background: var(--ns-ui-purple) !important; }
         #sign-log-btn { background: var(--ns-ui-brown) !important; }

@@ -386,6 +386,35 @@
         }
     }
 
+    function getNodeImageClipboardFileName(type, index) {
+        const extMap = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/gif': 'gif',
+            'image/webp': 'webp'
+        };
+        const ext = extMap[String(type || '').toLowerCase()] || 'png';
+        return 'clipboard-' + Date.now() + '-' + (index + 1) + '.' + ext;
+    }
+
+    async function readNodeImageClipboardFiles() {
+        if (!navigator.clipboard || typeof navigator.clipboard.read !== 'function') {
+            throw new Error('当前浏览器不支持直接读取剪贴板，请在面板内粘贴图片');
+        }
+        const items = await navigator.clipboard.read();
+        const files = [];
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const imageTypes = Array.from(item.types || []).filter(type => /^image\/(jpeg|png|gif|webp)$/i.test(type));
+            for (let j = 0; j < imageTypes.length; j++) {
+                const type = imageTypes[j];
+                const blob = await item.getType(type);
+                files.push(new File([blob], getNodeImageClipboardFileName(type, files.length), { type: blob.type || type }));
+            }
+        }
+        return files;
+    }
+
     async function uploadNodeImageFileByFetch(file, apiKey) {
         const form = new FormData();
         form.append('image', file, file.name || 'image');
@@ -450,11 +479,12 @@
         });
     }
 
-    function showSafariNodeImageDialog() {
+    function showSafariNodeImageDialog(options) {
+        const shouldUploadClipboard = !!(options && options.uploadClipboard);
         const existing = document.getElementById('ns-nodeimage-safari-dialog');
         if (existing) {
             existing.remove();
-            return;
+            if (!shouldUploadClipboard) return;
         }
 
         const dialog = document.createElement('div');
@@ -578,6 +608,20 @@
         uploadBox.appendChild(fileInput);
         body.appendChild(uploadBox);
 
+        const pasteBtn = document.createElement('button');
+        pasteBtn.type = 'button';
+        pasteBtn.textContent = '从剪贴板上传图片';
+        pasteBtn.style.width = '100%';
+        pasteBtn.style.marginBottom = '10px';
+        pasteBtn.style.padding = '8px 10px';
+        pasteBtn.style.background = '#14b8a6';
+        pasteBtn.style.color = '#fff';
+        pasteBtn.style.border = 'none';
+        pasteBtn.style.borderRadius = '5px';
+        pasteBtn.style.cursor = 'pointer';
+        pasteBtn.style.fontWeight = '700';
+        body.appendChild(pasteBtn);
+
         const resultBox = document.createElement('div');
         resultBox.style.display = 'flex';
         resultBox.style.flexDirection = 'column';
@@ -671,6 +715,28 @@
             }
         }
 
+        async function uploadClipboardFiles() {
+            const oldText = pasteBtn.textContent;
+            pasteBtn.disabled = true;
+            pasteBtn.textContent = '读取中';
+            pasteBtn.style.opacity = '0.7';
+            setStatus('正在读取剪贴板图片');
+            try {
+                const files = await readNodeImageClipboardFiles();
+                if (!files.length) {
+                    setStatus('剪贴板中没有可上传的图片', true);
+                    return;
+                }
+                await uploadFiles(files);
+            } catch (error) {
+                setStatus('读取剪贴板失败：' + (error && error.message ? error.message : String(error)), true);
+            } finally {
+                pasteBtn.disabled = false;
+                pasteBtn.textContent = oldText;
+                pasteBtn.style.opacity = '1';
+            }
+        }
+
         saveKeyBtn.onclick = function () {
             setSafariNodeImageApiKey(keyInput.value);
             setStatus(getSafariNodeImageApiKey() ? 'API Key 已保存' : 'API Key 已清除');
@@ -701,6 +767,8 @@
             fileInput.value = '';
         };
 
+        pasteBtn.onclick = uploadClipboardFiles;
+
         dialog.addEventListener('paste', function (event) {
             const items = event.clipboardData && event.clipboardData.items;
             if (!items) return;
@@ -717,6 +785,11 @@
         }, true);
 
         document.body.appendChild(dialog);
+        if (shouldUploadClipboard) uploadClipboardFiles();
+    }
+
+    function uploadNodeImageFromClipboard() {
+        showSafariNodeImageDialog({ uploadClipboard: true });
     }
 
     function openNodeImagePanel() {

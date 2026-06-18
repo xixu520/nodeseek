@@ -851,6 +851,16 @@
         nodeImageBtn.onclick = function () {
             openNodeImagePanel();
         };
+        const nodeImagePasteBtn = document.createElement('button');
+        nodeImagePasteBtn.id = 'ns-nodeimage-paste-btn';
+        nodeImagePasteBtn.className = 'blacklist-btn ns-tw-btn';
+        nodeImagePasteBtn.style.background = '#14b8a6';
+        nodeImagePasteBtn.textContent = '粘贴上传';
+        nodeImagePasteBtn.style.width = '100%';
+        nodeImagePasteBtn.style.marginTop = '1px';
+        nodeImagePasteBtn.onclick = function () {
+            uploadNodeImageFromClipboard();
+        };
         const nodeImageBtnContainer = document.createElement('div');
         nodeImageBtnContainer.className = 'ns-tw-row';
         nodeImageBtnContainer.style.display = 'flex';
@@ -858,6 +868,7 @@
         nodeImageBtnContainer.style.gap = '10px';
         nodeImageBtnContainer.style.width = '100%';
         nodeImageBtnContainer.appendChild(nodeImageBtn);
+        nodeImageBtnContainer.appendChild(nodeImagePasteBtn);
 
         // 新增：高亮统计显示区域
         const statsContainer = document.createElement('div');
