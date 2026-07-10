@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.07.10.1
+// @version      2026.07.10.2
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://cdn.jsdelivr.net/gh/xixu520/nodeseek@main/Ns.user.js
@@ -8243,20 +8243,24 @@
                     : editor;
                 if (!editorElement || !editorElement.closest) return;
                 const host = editorElement.closest('form, .editor, .reply, .comment, .post-editor, .vditor, .mde, .markdown-editor, .w-e-text-container, .ql-container, .tox-tinymce, [class*="editor"], [class*="reply"], [class*="comment"]') || editorElement.parentElement;
-                if (!host || host.querySelector('.ns-quick-reply-entry')) return;
-                let toolbar = host.querySelector('.toolbar, .editor-toolbar, .vditor-toolbar, .mde-toolbar, .bytemd-toolbar, .w-e-toolbar, .ql-toolbar, .tox-toolbar, [class*="toolbar"]');
-                if (!toolbar && host.previousElementSibling && /toolbar|w-e-toolbar|ql-toolbar/i.test(host.previousElementSibling.className || '')) {
-                    toolbar = host.previousElementSibling;
-                }
-                if (!toolbar && host.parentElement) {
-                    toolbar = host.parentElement.querySelector('.toolbar, .editor-toolbar, .vditor-toolbar, .mde-toolbar, .bytemd-toolbar, .w-e-toolbar, .ql-toolbar, .tox-toolbar, [class*="toolbar"]');
-                }
-                const mount = toolbar || host;
+                if (!host) return;
+                document.querySelectorAll('.ns-quick-reply-entry-wrap').forEach(function (wrap) {
+                    if (!host.contains(wrap)) wrap.remove();
+                });
+                if (host.querySelector('.ns-quick-reply-entry-wrap, .ns-quick-reply-entry')) return;
+                const wrap = document.createElement('div');
+                wrap.className = 'ns-quick-reply-entry-wrap';
+                wrap.style.display = 'flex';
+                wrap.style.justifyContent = 'flex-end';
+                wrap.style.alignItems = 'center';
+                wrap.style.width = '100%';
+                wrap.style.margin = '6px 0';
+                wrap.style.boxSizing = 'border-box';
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'ns-quick-reply-entry';
                 btn.textContent = '快捷回复';
-                btn.style.margin = '6px 6px 6px 0';
+                btn.style.margin = '0';
                 btn.style.padding = '4px 10px';
                 btn.style.border = '1px solid rgba(15,23,42,.12)';
                 btn.style.borderRadius = '6px';
@@ -8267,8 +8271,12 @@
                 btn.onclick = function () {
                     showQuickReplyDialog();
                 };
-                if (toolbar) mount.appendChild(btn);
-                else host.insertBefore(btn, host.firstChild);
+                wrap.appendChild(btn);
+                if (editorElement.parentElement && host.contains(editorElement)) {
+                    editorElement.parentElement.insertBefore(wrap, editorElement);
+                } else {
+                    host.insertBefore(wrap, host.firstChild);
+                }
             }
 
             function showQuickReplyDialog() {
