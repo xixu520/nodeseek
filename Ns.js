@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.06.18.1
+// @version      2026.07.10.1
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://cdn.jsdelivr.net/gh/xixu520/nodeseek@main/Ns.user.js
@@ -8129,21 +8129,78 @@
                 }
             }
 
+            function isPostDetailPage() {
+                const path = window.location.pathname || '';
+                return path.includes('/topic/') || path.includes('/article/') || /\/post-\d+/i.test(path);
+            }
+
+            function isQuickReplyEditorTarget(target) {
+                if (!target) return false;
+                if (target.type === 'codemirror' && target.cm) return isPostDetailPage();
+                if (!isPostDetailPage()) return false;
+                const el = target.nodeType === 1 || target.tagName ? target : null;
+                if (!el) return false;
+                if (el.tagName === 'INPUT') return false;
+                if (el.tagName === 'TEXTAREA') {
+                    const mark = [
+                        el.name,
+                        el.id,
+                        el.className,
+                        el.getAttribute && el.getAttribute('placeholder')
+                    ].join(' ').toLowerCase();
+                    return /(content|message|body|reply|comment|editor|回复|评论|发表|内容)/i.test(mark);
+                }
+                if (el.matches && el.matches('[contenteditable="true"], [contenteditable="plaintext-only"], [data-slate-editor="true"], .ProseMirror, .cm-content, .ql-editor, .w-e-text, .vditor-ir, .vditor-wysiwyg')) {
+                    return true;
+                }
+                return !!(el.closest && el.closest('.CodeMirror, .post-editor, .reply, .comment, .editor, .vditor, .mde, .markdown-editor, .w-e-text-container, .ql-container, .tox-tinymce'));
+            }
+
+            function findQuickReplyEditor() {
+                const found = typeof findNodeSeekEditor === 'function' ? findNodeSeekEditor() : null;
+                if (isQuickReplyEditorTarget(found)) return found;
+                const selectors = [
+                    '.CodeMirror',
+                    '.editor-textarea textarea',
+                    'textarea[name="content"]',
+                    'textarea[name="message"]',
+                    'textarea[name="body"]',
+                    'textarea[placeholder*="回复"]',
+                    'textarea[placeholder*="评论"]',
+                    'textarea[placeholder*="发表"]',
+                    'textarea[placeholder*="内容"]',
+                    '[role="textbox"][contenteditable="true"]',
+                    '[data-slate-editor="true"]',
+                    '.ProseMirror',
+                    '.cm-content[contenteditable="true"]',
+                    '.vditor-ir',
+                    '.vditor-wysiwyg',
+                    '.w-e-text-container [contenteditable="true"]',
+                    '.ql-editor'
+                ];
+                for (const selector of selectors) {
+                    const target = Array.from(document.querySelectorAll(selector)).find(el => {
+                        if (typeof isVisibleElement === 'function' && !isVisibleElement(el)) return false;
+                        return isQuickReplyEditorTarget(el);
+                    });
+                    if (target) return target;
+                }
+                return null;
+            }
+
             function insertReply(text) {
                 if (!text) return false;
                 let inserted = false;
-                if (typeof insertTextToNodeSeekEditor === 'function') {
-                    inserted = insertTextToNodeSeekEditor(text);
-                }
+                const target = findQuickReplyEditor();
                 if (!inserted) {
-                    const target = typeof findNodeSeekEditor === 'function'
-                        ? findNodeSeekEditor()
-                        : document.querySelector('textarea, [contenteditable="true"], .ProseMirror');
-                    if (!target) {
+                    if (!isQuickReplyEditorTarget(target)) {
                         alert('未找到输入框');
                         return false;
                     }
-                    if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') {
+                    if (target.type === 'codemirror' && target.cm) {
+                        target.cm.focus();
+                        target.cm.replaceSelection(text);
+                    } else if (target.tagName === 'TEXTAREA') {
                         const start = target.selectionStart || 0;
                         const end = target.selectionEnd || 0;
                         const value = target.value || '';
@@ -8178,11 +8235,14 @@
             }
 
             function bindEditorButton() {
-                const editor = typeof findNodeSeekEditor === 'function'
-                    ? findNodeSeekEditor()
-                    : document.querySelector('.editor-textarea, .ProseMirror, textarea[name="content"], textarea');
-                if (!editor) return;
-                const host = editor.closest('form, .editor, .reply, .comment, .post-editor, .vditor, .mde, .markdown-editor, .w-e-text-container, .ql-container, .tox-tinymce, [class*="editor"], [class*="reply"], [class*="comment"]') || editor.parentElement;
+                if (!isPostDetailPage()) return;
+                const editor = findQuickReplyEditor();
+                if (!isQuickReplyEditorTarget(editor)) return;
+                const editorElement = editor && editor.type === 'codemirror'
+                    ? document.querySelector('.CodeMirror')
+                    : editor;
+                if (!editorElement || !editorElement.closest) return;
+                const host = editorElement.closest('form, .editor, .reply, .comment, .post-editor, .vditor, .mde, .markdown-editor, .w-e-text-container, .ql-container, .tox-tinymce, [class*="editor"], [class*="reply"], [class*="comment"]') || editorElement.parentElement;
                 if (!host || host.querySelector('.ns-quick-reply-entry')) return;
                 let toolbar = host.querySelector('.toolbar, .editor-toolbar, .vditor-toolbar, .mde-toolbar, .bytemd-toolbar, .w-e-toolbar, .ql-toolbar, .tox-toolbar, [class*="toolbar"]');
                 if (!toolbar && host.previousElementSibling && /toolbar|w-e-toolbar|ql-toolbar/i.test(host.previousElementSibling.className || '')) {
