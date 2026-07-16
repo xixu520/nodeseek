@@ -219,48 +219,40 @@
             }
 
             function bindEditorButton() {
-                if (!isPostDetailPage()) return;
+                if (!isPostDetailPage()) {
+                    document.querySelectorAll('.ns-quick-reply-entry-wrap, .ns-quick-reply-entry').forEach(function (el) { el.remove(); });
+                    return;
+                }
                 const editor = findQuickReplyEditor();
-                if (!isQuickReplyEditorTarget(editor)) return;
-                const editorElement = editor && editor.type === 'codemirror'
-                    ? document.querySelector('.CodeMirror')
-                    : editor;
-                if (!editorElement || !editorElement.closest) return;
-                const host = editorElement.closest('form, .editor, .reply, .comment, .post-editor, .vditor, .mde, .markdown-editor, .w-e-text-container, .ql-container, .tox-tinymce, [class*="editor"], [class*="reply"], [class*="comment"]') || editorElement.parentElement;
-                if (!host) return;
+                if (!isQuickReplyEditorTarget(editor)) {
+                    document.querySelectorAll('.ns-quick-reply-entry-wrap, .ns-quick-reply-entry').forEach(function (el) { el.remove(); });
+                    return;
+                }
                 document.querySelectorAll('.ns-quick-reply-entry-wrap').forEach(function (wrap) {
-                    if (!host.contains(wrap)) wrap.remove();
+                    wrap.remove();
                 });
-                if (host.querySelector('.ns-quick-reply-entry-wrap, .ns-quick-reply-entry')) return;
-                const wrap = document.createElement('div');
-                wrap.className = 'ns-quick-reply-entry-wrap';
-                wrap.style.display = 'flex';
-                wrap.style.justifyContent = 'flex-end';
-                wrap.style.alignItems = 'center';
-                wrap.style.width = '100%';
-                wrap.style.margin = '6px 0';
-                wrap.style.boxSizing = 'border-box';
+                if (document.querySelector('.ns-quick-reply-entry')) return;
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'ns-quick-reply-entry';
                 btn.textContent = '快捷回复';
+                btn.style.position = 'fixed';
+                btn.style.right = window.innerWidth <= 767 ? '14px' : '58px';
+                btn.style.bottom = 'calc(82px + env(safe-area-inset-bottom, 0px))';
+                btn.style.zIndex = '9998';
                 btn.style.margin = '0';
-                btn.style.padding = '4px 10px';
+                btn.style.padding = '7px 12px';
                 btn.style.border = '1px solid rgba(15,23,42,.12)';
-                btn.style.borderRadius = '6px';
+                btn.style.borderRadius = '8px';
                 btn.style.background = '#2563eb';
                 btn.style.color = '#fff';
                 btn.style.cursor = 'pointer';
                 btn.style.fontSize = '12px';
+                btn.style.boxShadow = '0 6px 16px rgba(15,23,42,.18)';
                 btn.onclick = function () {
                     showQuickReplyDialog();
                 };
-                wrap.appendChild(btn);
-                if (editorElement.parentElement && host.contains(editorElement)) {
-                    editorElement.parentElement.insertBefore(wrap, editorElement);
-                } else {
-                    host.insertBefore(wrap, host.firstChild);
-                }
+                document.body.appendChild(btn);
             }
 
             function showQuickReplyDialog() {
