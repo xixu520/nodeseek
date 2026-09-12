@@ -2,6 +2,8 @@
   "src/core/bootstrap.js",
   "src/core/styles.js",
   "src/modules/blacklist-users.js",
+  "src/modules/user-labels-rules.js",
+  "src/modules/user-labels.js",
   "src/core/backup-webdav.js",
   "src/modules/nodeimage.js",
   "src/core/panel.js",

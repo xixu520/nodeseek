@@ -888,6 +888,40 @@
         dataRow.appendChild(createSettingsActionButton('同步设置', '#475569', showWebdavSyncDialog));
         content.appendChild(dataRow);
 
+        function createUserLabelSettingRow(labelText, checked, onChange) {
+            const row = document.createElement('label');
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.alignItems = 'center';
+            row.style.gap = '12px';
+            row.style.color = '#555';
+            row.style.fontWeight = '500';
+            const text = document.createElement('span');
+            text.textContent = labelText;
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = checked;
+            input.style.transform = 'scale(1.2)';
+            input.onchange = function () { onChange(input.checked); };
+            row.appendChild(text);
+            row.appendChild(input);
+            return row;
+        }
+
+        const userLabelSettings = window.NodeSeekUserLabels?.getSettings?.() || { enabled: true, autoScan: true };
+        let userLabelsEnabled = userLabelSettings.enabled !== false;
+        let userLabelsAutoScan = userLabelSettings.autoScan !== false;
+        content.appendChild(createUserLabelSettingRow('显示个人用户标签', userLabelsEnabled, function (checked) {
+            userLabelsEnabled = checked;
+            window.NodeSeekUserLabels?.setSettings?.({ enabled: userLabelsEnabled, autoScan: userLabelsAutoScan });
+            addLog('个人用户标签：' + (checked ? '开启' : '关闭'));
+        }));
+        content.appendChild(createUserLabelSettingRow('自动低频检查用户', userLabelsAutoScan, function (checked) {
+            userLabelsAutoScan = checked;
+            window.NodeSeekUserLabels?.setSettings?.({ enabled: userLabelsEnabled, autoScan: userLabelsAutoScan });
+            addLog('用户标签自动检查：' + (checked ? '开启' : '关闭'));
+        }));
+
         // 1. 阅读记忆开关（含颜色选择）
         const historyRow = document.createElement('div');
         historyRow.style.display = 'flex';

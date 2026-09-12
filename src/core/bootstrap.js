@@ -154,6 +154,7 @@
         { key: 'filterData', label: '关键词过滤', dataKeys: ['filterData'] },
         { key: 'notesData', label: '笔记', dataKeys: ['notesData'] },
         { key: 'viewedTitles', label: '阅读记忆', dataKeys: ['viewedTitles'] },
+        { key: 'userLabels', label: '个人用户标签', dataKeys: ['userLabels'], defaultSelected: false },
         { key: 'backupLimit', label: '备份设置', dataKeys: ['backupLimit'] }
     ];
     let webdavSyncTimer = null;
@@ -179,6 +180,7 @@
         if (key === WEBDAV_SYNC_CONFIG_KEY || key === WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY || key === WEBDAV_SYNC_LAST_SYNC_AT_KEY || key === WEBDAV_SYNC_LAST_REMOTE_UPDATED_AT_KEY || key === WEBDAV_SYNC_LOCK_KEY || key === WEBDAV_SYNC_DEVICE_ID_KEY) return false;
         if (key === PANEL_THEME_MODE_KEY || key === COLLAPSED_STATE_KEY || key === USER_DATA_CACHE_KEY) return false;
         if (key === 'nodeseek_sign_logs') return false;
+        if (key === 'nodeseek_user_label_scan_cache' || key === 'nodeseek_user_label_scan_state' || key === 'nodeseek_user_label_observations' || key === 'nodeseek_user_label_settings') return false;
         return key.startsWith('nodeseek_') || key.startsWith('ns-filter-') || key.startsWith('ns_');
     }
 

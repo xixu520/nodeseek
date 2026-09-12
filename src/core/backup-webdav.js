@@ -165,6 +165,13 @@
             console.error('导出评论自动加载设置失败:', error);
         }
 
+        let userLabels = {};
+        try {
+            userLabels = window.NodeSeekUserLabels?.exportData?.() || {};
+        } catch (error) {
+            console.error('导出个人用户标签失败:', error);
+        }
+
         const data = JSON.stringify({
             blacklist: blacklist,
             friends: friends,
@@ -180,6 +187,7 @@
             filterData: filterData, // 添加关键词过滤数据
             notesData: notesData, // 添加笔记数据
             viewedTitles: viewedTitles, // 添加阅读记忆数据
+            userLabels: userLabels,
 
             backupLimit: backupLimit // 添加备份设置
         }, null, 2);
@@ -200,6 +208,7 @@
         const hasFilterData = Object.keys(filterData).length > 0;
         const hasNotesData = Object.keys(notesData).length > 0;
         const hasViewedTitles = Object.keys(viewedTitles).length > 0;
+        const hasUserLabels = Object.keys(userLabels).length > 0;
         let exportDesc = '导出数据备份 (黑名单、好友、操作日志、浏览历史';
         if (hasQuickReplies) {
             exportDesc += '、快捷回复';
@@ -216,6 +225,7 @@
         if (hasViewedTitles) {
             exportDesc += '、阅读记忆';
         }
+        if (hasUserLabels) exportDesc += '、个人用户标签';
         // 不在导出日志中包含“自动同步设置”
         // 始终包含备份设置
         exportDesc += '、设置';
@@ -604,6 +614,18 @@
                         }
                     }
 
+                    if (json.userLabels && typeof json.userLabels === 'object' && !Array.isArray(json.userLabels)) {
+                        try {
+                            const success = window.NodeSeekUserLabels && typeof window.NodeSeekUserLabels.importData === 'function'
+                                ? window.NodeSeekUserLabels.importData(json.userLabels)
+                                : (nsLocalStorage.setItem('nodeseek_user_labels', JSON.stringify(json.userLabels)), true);
+                            importInfo.push(success ? `个人用户标签(${Object.keys(json.userLabels).length}人)` : '个人用户标签(失败)');
+                        } catch (error) {
+                            console.error('导入个人用户标签失败:', error);
+                            importInfo.push('个人用户标签(失败)');
+                        }
+                    }
+
 
 
                     // 导入备份设置
@@ -616,7 +638,7 @@
                         }
                     }
 
-                    if (!json.blacklist && !json.friends && !json.logs && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData) {
+                    if (!json.blacklist && !json.friends && !json.logs && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData && !json.userLabels) {
                         // 旧格式，直接作为黑名单
                         setBlacklist(json);
                         importInfo.push("旧格式黑名单");
@@ -649,11 +671,11 @@
     }
 
     function getDefaultWebdavSyncFields() {
-        return WEBDAV_SYNC_FIELD_OPTIONS.map(item => item.key);
+        return WEBDAV_SYNC_FIELD_OPTIONS.filter(item => item.defaultSelected !== false).map(item => item.key);
     }
 
     function normalizeWebdavSyncFields(fields) {
-        const allowed = new Set(getDefaultWebdavSyncFields());
+        const allowed = new Set(WEBDAV_SYNC_FIELD_OPTIONS.map(item => item.key));
         if (!Array.isArray(fields)) return getDefaultWebdavSyncFields();
         const list = fields.filter(key => allowed.has(key));
         return Array.from(new Set(list));
@@ -814,6 +836,13 @@
             console.error('读取评论自动加载设置失败:', error);
         }
 
+        let userLabels = {};
+        try {
+            userLabels = window.NodeSeekUserLabels?.exportData?.() || JSON.parse(nsLocalStorage.getItem('nodeseek_user_labels') || '{}');
+        } catch (error) {
+            console.error('读取个人用户标签失败:', error);
+        }
+
         const data = {
             blacklist: blacklist,
             friends: friends,
@@ -829,6 +858,7 @@
             filterData: filterData,
             notesData: notesData,
             viewedTitles: viewedTitles,
+            userLabels: userLabels,
             backupLimit: backupLimit
         };
 
@@ -918,6 +948,14 @@
                 if (json.viewedTitles.color) nsLocalStorage.setItem('nodeseek_viewed_color', json.viewedTitles.color);
                 if (Array.isArray(json.viewedTitles.data)) nsLocalStorage.setItem('nodeseek_viewed_titles_data', JSON.stringify(json.viewedTitles.data));
                 if (window.NodeSeekViewedTitles && typeof window.NodeSeekViewedTitles.refresh === 'function') window.NodeSeekViewedTitles.refresh();
+            }
+
+            if (json.userLabels && typeof json.userLabels === 'object' && !Array.isArray(json.userLabels)) {
+                if (window.NodeSeekUserLabels && typeof window.NodeSeekUserLabels.importData === 'function') {
+                    window.NodeSeekUserLabels.importData(json.userLabels);
+                } else {
+                    nsLocalStorage.setItem('nodeseek_user_labels', JSON.stringify(json.userLabels));
+                }
             }
 
             if (json.backupLimit) nsLocalStorage.setItem('nodeseek_backup_limit', json.backupLimit.toString());

@@ -796,6 +796,25 @@
         filterBtnContainer.style.width = '100%';
         filterBtnContainer.appendChild(filterBtn);
 
+        const userLabelsBtn = document.createElement('button');
+        userLabelsBtn.id = 'user-labels-btn';
+        userLabelsBtn.className = 'blacklist-btn ns-tw-btn';
+        userLabelsBtn.style.background = '#d97706';
+        userLabelsBtn.textContent = '用户标签';
+        userLabelsBtn.style.width = '100%';
+        userLabelsBtn.onclick = function () {
+            if (window.NodeSeekUserLabels && typeof window.NodeSeekUserLabels.showManagerDialog === 'function') {
+                window.NodeSeekUserLabels.showManagerDialog();
+            } else {
+                alert('用户标签功能未加载');
+            }
+        };
+        const userLabelsContainer = document.createElement('div');
+        userLabelsContainer.className = 'ns-tw-row';
+        userLabelsContainer.style.display = 'flex';
+        userLabelsContainer.style.width = '100%';
+        userLabelsContainer.appendChild(userLabelsBtn);
+
         // 新增：设置按钮
         const settingsBtn = document.createElement('button');
         settingsBtn.id = 'settings-btn';
@@ -912,6 +931,7 @@
         container.appendChild(logBtn);        // 日志
         container.appendChild(viewBtn);       // 查看黑名单
         container.appendChild(viewFriendsBtn); // 查看好友
+        container.appendChild(userLabelsContainer); // 个人用户标签
         container.appendChild(filterBtnContainer); // 关键词过滤按钮行
         container.appendChild(quickReplyContainer); // 快捷回复按钮行
         container.appendChild(nodeImageBtnContainer); // NS 图床

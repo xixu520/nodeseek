@@ -1226,6 +1226,7 @@
         ensureCommentAutoLoadMore();
         highlightBlacklisted();
         highlightFriends(); // 新增调用
+        if (window.NodeSeekUserLabels && typeof window.NodeSeekUserLabels.refresh === 'function') window.NodeSeekUserLabels.refresh();
         replaceRelativeTimeWithAbsolute(); // 新增：替换相对时间为完整时间
         if (getViewedHistoryEnabled()) markViewedTitles();
         if (getOpenPostNewTabEnabled()) applyNewTabLinks(); // 新增：应用新标签页打开帖子逻辑

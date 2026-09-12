@@ -1409,3 +1409,44 @@
     }
 
     injectNsModernUiStyle();
+
+    const userLabelStyle = document.createElement('style');
+    userLabelStyle.textContent = `
+        .ns-user-label-badges { display: inline-flex; gap: 3px; margin-left: 4px; vertical-align: middle; }
+        .ns-user-label-badge { border: 0; border-radius: 999px; color: #fff; cursor: pointer; font-size: 10px; line-height: 1.45; padding: 1px 6px; }
+        .ns-user-label-trader { background: #d97706; }
+        .ns-user-label-spammer { background: #7c3aed; }
+        .ns-user-label-risk { background: #dc2626; }
+        .ns-user-label-custom { background: #475569; }
+        .ns-user-label-dialog {
+            position: fixed; top: 60px; right: 16px; z-index: 10020; max-width: calc(100vw - 32px);
+            max-height: calc(100vh - 90px); overflow-y: auto; box-sizing: border-box; padding: 16px;
+            color: var(--ns-ui-text, #111); background: var(--ns-ui-bg, #fff); border: 1px solid var(--ns-ui-line, #ddd);
+            border-radius: 12px; box-shadow: 0 12px 36px rgba(0,0,0,.22);
+        }
+        .ns-user-label-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--ns-ui-line, #ddd); }
+        .ns-user-label-close { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 24px; }
+        .ns-user-label-notice { margin: 10px 0; padding: 8px 10px; border-radius: 8px; color: #92400e; background: #fffbeb; font-size: 12px; }
+        .ns-user-label-card { margin-top: 10px; padding: 12px; border: 1px solid var(--ns-ui-line, #ddd); border-radius: 10px; }
+        .ns-user-label-card h4 { margin: 0 0 4px; }
+        .ns-user-label-muted, .ns-user-label-empty { color: var(--ns-ui-muted, #64748b); font-size: 12px; }
+        .ns-user-label-note { margin-top: 7px; white-space: pre-wrap; }
+        .ns-user-label-evidence { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .ns-user-label-evidence a { color: #2563eb; font-size: 12px; }
+        .ns-user-label-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .ns-user-label-actions button, .ns-user-label-toolbar button, .ns-user-label-manager-row button, #ns-risk-evidence-prompt button {
+            border: 0; border-radius: 6px; padding: 5px 9px; color: #fff; background: #475569; cursor: pointer;
+        }
+        .ns-user-label-toolbar { display: flex; gap: 8px; margin: 10px 0; }
+        .ns-user-label-toolbar input { flex: 1; min-width: 0; padding: 7px 9px; border: 1px solid var(--ns-ui-line, #ddd); border-radius: 7px; color: inherit; background: transparent; }
+        .ns-user-label-manager-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--ns-ui-line, #eee); }
+        .ns-user-label-manager-row > div:last-child { display: flex; gap: 6px; flex-shrink: 0; }
+        #ns-risk-evidence-prompt { position: fixed; left: 50%; bottom: 18px; z-index: 10015; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 24px); padding: 10px 12px; border-radius: 10px; color: #7f1d1d; background: #fef2f2; border: 1px solid #fecaca; box-shadow: 0 8px 24px rgba(0,0,0,.18); font-size: 12px; }
+        #ns-risk-evidence-prompt button:first-of-type { background: #dc2626; }
+        @media (max-width: 767px) {
+            .ns-user-label-dialog { left: 10px; right: 10px; top: auto; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 20px) !important; max-width: calc(100vw - 20px); max-height: 82vh; }
+            .ns-user-label-toolbar, .ns-user-label-manager-row, #ns-risk-evidence-prompt { align-items: stretch; flex-direction: column; }
+            #ns-risk-evidence-prompt { left: 12px; right: 12px; transform: none; max-width: none; }
+        }
+    `;
+    document.head.appendChild(userLabelStyle);

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NodeseekLite
 // @namespace    http://tampermonkey.net/
-// @version      2026.07.16.1
+// @version      2026.09.12.1
 // @description  NodeSeek 论坛综合插件，源码按模块维护，发布为单文件脚本
 // @match        https://www.nodeseek.com/*
 // @updateURL    https://cdn.jsdelivr.net/gh/xixu520/nodeseek@main/Ns.user.js
@@ -179,6 +179,7 @@
         { key: 'filterData', label: '关键词过滤', dataKeys: ['filterData'] },
         { key: 'notesData', label: '笔记', dataKeys: ['notesData'] },
         { key: 'viewedTitles', label: '阅读记忆', dataKeys: ['viewedTitles'] },
+        { key: 'userLabels', label: '个人用户标签', dataKeys: ['userLabels'], defaultSelected: false },
         { key: 'backupLimit', label: '备份设置', dataKeys: ['backupLimit'] }
     ];
     let webdavSyncTimer = null;
@@ -204,6 +205,7 @@
         if (key === WEBDAV_SYNC_CONFIG_KEY || key === WEBDAV_SYNC_LOCAL_CHANGED_AT_KEY || key === WEBDAV_SYNC_LAST_SYNC_AT_KEY || key === WEBDAV_SYNC_LAST_REMOTE_UPDATED_AT_KEY || key === WEBDAV_SYNC_LOCK_KEY || key === WEBDAV_SYNC_DEVICE_ID_KEY) return false;
         if (key === PANEL_THEME_MODE_KEY || key === COLLAPSED_STATE_KEY || key === USER_DATA_CACHE_KEY) return false;
         if (key === 'nodeseek_sign_logs') return false;
+        if (key === 'nodeseek_user_label_scan_cache' || key === 'nodeseek_user_label_scan_state' || key === 'nodeseek_user_label_observations' || key === 'nodeseek_user_label_settings') return false;
         return key.startsWith('nodeseek_') || key.startsWith('ns-filter-') || key.startsWith('ns_');
     }
 
@@ -2356,6 +2358,47 @@
 
     injectNsModernUiStyle();
 
+    const userLabelStyle = document.createElement('style');
+    userLabelStyle.textContent = `
+        .ns-user-label-badges { display: inline-flex; gap: 3px; margin-left: 4px; vertical-align: middle; }
+        .ns-user-label-badge { border: 0; border-radius: 999px; color: #fff; cursor: pointer; font-size: 10px; line-height: 1.45; padding: 1px 6px; }
+        .ns-user-label-trader { background: #d97706; }
+        .ns-user-label-spammer { background: #7c3aed; }
+        .ns-user-label-risk { background: #dc2626; }
+        .ns-user-label-custom { background: #475569; }
+        .ns-user-label-dialog {
+            position: fixed; top: 60px; right: 16px; z-index: 10020; max-width: calc(100vw - 32px);
+            max-height: calc(100vh - 90px); overflow-y: auto; box-sizing: border-box; padding: 16px;
+            color: var(--ns-ui-text, #111); background: var(--ns-ui-bg, #fff); border: 1px solid var(--ns-ui-line, #ddd);
+            border-radius: 12px; box-shadow: 0 12px 36px rgba(0,0,0,.22);
+        }
+        .ns-user-label-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--ns-ui-line, #ddd); }
+        .ns-user-label-close { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 24px; }
+        .ns-user-label-notice { margin: 10px 0; padding: 8px 10px; border-radius: 8px; color: #92400e; background: #fffbeb; font-size: 12px; }
+        .ns-user-label-card { margin-top: 10px; padding: 12px; border: 1px solid var(--ns-ui-line, #ddd); border-radius: 10px; }
+        .ns-user-label-card h4 { margin: 0 0 4px; }
+        .ns-user-label-muted, .ns-user-label-empty { color: var(--ns-ui-muted, #64748b); font-size: 12px; }
+        .ns-user-label-note { margin-top: 7px; white-space: pre-wrap; }
+        .ns-user-label-evidence { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .ns-user-label-evidence a { color: #2563eb; font-size: 12px; }
+        .ns-user-label-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .ns-user-label-actions button, .ns-user-label-toolbar button, .ns-user-label-manager-row button, #ns-risk-evidence-prompt button {
+            border: 0; border-radius: 6px; padding: 5px 9px; color: #fff; background: #475569; cursor: pointer;
+        }
+        .ns-user-label-toolbar { display: flex; gap: 8px; margin: 10px 0; }
+        .ns-user-label-toolbar input { flex: 1; min-width: 0; padding: 7px 9px; border: 1px solid var(--ns-ui-line, #ddd); border-radius: 7px; color: inherit; background: transparent; }
+        .ns-user-label-manager-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--ns-ui-line, #eee); }
+        .ns-user-label-manager-row > div:last-child { display: flex; gap: 6px; flex-shrink: 0; }
+        #ns-risk-evidence-prompt { position: fixed; left: 50%; bottom: 18px; z-index: 10015; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 24px); padding: 10px 12px; border-radius: 10px; color: #7f1d1d; background: #fef2f2; border: 1px solid #fecaca; box-shadow: 0 8px 24px rgba(0,0,0,.18); font-size: 12px; }
+        #ns-risk-evidence-prompt button:first-of-type { background: #dc2626; }
+        @media (max-width: 767px) {
+            .ns-user-label-dialog { left: 10px; right: 10px; top: auto; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 20px) !important; max-width: calc(100vw - 20px); max-height: 82vh; }
+            .ns-user-label-toolbar, .ns-user-label-manager-row, #ns-risk-evidence-prompt { align-items: stretch; flex-direction: column; }
+            #ns-risk-evidence-prompt { left: 12px; right: 12px; transform: none; max-width: none; }
+        }
+    `;
+    document.head.appendChild(userLabelStyle);
+
     // 初始化已读标题颜色变量
     try {
         const initialViewedColor = getViewedColor();
@@ -3584,6 +3627,7 @@
         ensureCommentAutoLoadMore();
         highlightBlacklisted();
         highlightFriends(); // 新增调用
+        if (window.NodeSeekUserLabels && typeof window.NodeSeekUserLabels.refresh === 'function') window.NodeSeekUserLabels.refresh();
         replaceRelativeTimeWithAbsolute(); // 新增：替换相对时间为完整时间
         if (getViewedHistoryEnabled()) markViewedTitles();
         if (getOpenPostNewTabEnabled()) applyNewTabLinks(); // 新增：应用新标签页打开帖子逻辑
@@ -3596,6 +3640,1025 @@
     setInterval(ensurePluginControlPanel, 10000);
 
     // ====== 导出/导入黑名单功能 ======
+
+    const NodeSeekUserLabelRules = (function () {
+        const SERVER_WORDS = /(?:vps|server|独服|杜甫|服务器|云主机|云服务器|小鸡|鸡鸡|线路|宽带|家宽|nat|iplc|iepl|bgp|cn2|gia|cmi|4837|9929|9929|9929|甲骨文|搬瓦工|瓦工|netcup|ovh|hetzner|racknerd|cloudcone|hostdare|vultr|linode|digitalocean|oracle|aws|lightsail|绿云|狗云|腾讯云|阿里云|华为云)/i;
+        const NON_SERVER_WORDS = /(?:账号|账户|会员|充值|代充|资格|认证|礼品卡|手机号|邮箱|邀请码|软件|订阅|chatgpt|gpt|plus|team|api|key|域名)/i;
+        const BUY_WORDS = /(?:^|[\s【\[（(0-9.￥¥元])(?:收|求购|蹲|接盘|收购|想收|高价收|溢价收)(?=$|[\s】\]）)]|[a-z0-9\u4e00-\u9fff])/i;
+        const SELL_WORDS = /(?:^|[\s【\[（(0-9.￥¥元])(?:出|出售|转让|转手|已出|降价出|明盘出)(?=$|[\s】\]）)]|[a-z0-9\u4e00-\u9fff])/i;
+        const BUY_NEGATIVE = /(?:不收|暂停收|停止收|收到了|已收到|收款|回收站|丰收)/i;
+        const SELL_NEGATIVE = /(?:不出|别出|出问题|出错|出租|发出|推出|出现|出发|出处)/i;
+        const PROVIDER_WORDS = [
+            '甲骨文', '搬瓦工', '绿云', '狗云', '腾讯云', '阿里云', '华为云', 'netcup', 'ovh',
+            'hetzner', 'racknerd', 'cloudcone', 'hostdare', 'vultr', 'linode', 'digitalocean',
+            'oracle', 'lightsail', 'aws', 'cn2', 'gia', 'cmi', '4837', '9929', 'iplc', 'iepl', 'bgp'
+        ];
+        const TOKEN_STOP = new Set([
+            'vps', 'server', 'nat', 'hk', 'jp', 'us', 'sg', 'de', 'uk', 'cn', 'la', 'ny', '月', '年',
+            '收', '出', '出售', '求购', '转让', '已出', '降价', '明盘', '小鸡', '服务器', '云主机', '线路'
+        ]);
+
+        function normalizeText(value) {
+            return String(value || '')
+                .toLowerCase()
+                .replace(/https?:\/\/\S+/g, ' ')
+                .replace(/@[\w\-\u4e00-\u9fff]+/g, ' ')
+                .replace(/#\s*\d+/g, ' ')
+                .replace(/[\p{P}\p{S}\s]+/gu, '')
+                .trim();
+        }
+
+        function isServerTradeTitle(title) {
+            const text = String(title || '');
+            return SERVER_WORDS.test(text) && !(NON_SERVER_WORDS.test(text) && !/(?:vps|server|服务器|云主机|小鸡|独服|杜甫)/i.test(text));
+        }
+
+        function tradeDirection(title) {
+            const text = String(title || '');
+            if (!isServerTradeTitle(text)) return '';
+            if (BUY_WORDS.test(text) && !BUY_NEGATIVE.test(text)) return 'buy';
+            if (SELL_WORDS.test(text) && !SELL_NEGATIVE.test(text)) return 'sell';
+            return '';
+        }
+
+        function productTokens(title) {
+            const text = String(title || '').toLowerCase();
+            const result = new Set();
+            PROVIDER_WORDS.forEach(word => {
+                if (text.includes(word.toLowerCase())) result.add(word.toLowerCase());
+            });
+            const ascii = text.match(/[a-z][a-z0-9._-]{2,}|\d{3,5}/g) || [];
+            ascii.forEach(token => {
+                const clean = token.replace(/^[._-]+|[._-]+$/g, '');
+                if (clean.length >= 3 && !TOKEN_STOP.has(clean) && !/^\d+(?:\.\d+)?$/.test(clean)) result.add(clean);
+            });
+            return Array.from(result);
+        }
+
+        function evidenceForDiscussion(item) {
+            const postId = item && item.post_id;
+            return postId ? {
+                url: 'https://www.nodeseek.com/post-' + postId + '-1',
+                kind: '主题'
+            } : null;
+        }
+
+        function analyzeTrading(discussions) {
+            const sample = Array.isArray(discussions) ? discussions.slice(0, 45) : [];
+            const trades = sample.map((item, index) => ({
+                item,
+                index,
+                direction: tradeDirection(item && item.title),
+                tokens: productTokens(item && item.title)
+            })).filter(item => item.direction);
+            const buys = trades.filter(item => item.direction === 'buy');
+            const sells = trades.filter(item => item.direction === 'sell');
+            const pairKeys = new Set();
+            sells.forEach(sell => {
+                buys.forEach(buy => {
+                    if (buy.index <= sell.index) return;
+                    const common = sell.tokens.filter(token => buy.tokens.includes(token));
+                    common.forEach(token => pairKeys.add(token));
+                });
+            });
+            const matched = buys.length >= 4 && sells.length >= 4 && trades.length >= 10 && pairKeys.size >= 2;
+            const evidence = trades.map(entry => evidenceForDiscussion(entry.item)).filter(Boolean).slice(0, 12);
+            return {
+                matched,
+                sampleCount: sample.length,
+                buyCount: buys.length,
+                sellCount: sells.length,
+                tradeCount: trades.length,
+                pairCount: pairKeys.size,
+                pairKeys: Array.from(pairKeys).slice(0, 8),
+                evidence
+            };
+        }
+
+        function bigrams(text) {
+            const value = normalizeText(text);
+            if (value.length < 2) return new Set(value ? [value] : []);
+            const result = new Set();
+            for (let i = 0; i < value.length - 1; i += 1) result.add(value.slice(i, i + 2));
+            return result;
+        }
+
+        function textSimilarity(left, right) {
+            const a = normalizeText(left);
+            const b = normalizeText(right);
+            if (!a || !b) return 0;
+            if (a === b) return 1;
+            const aa = bigrams(a);
+            const bb = bigrams(b);
+            let same = 0;
+            aa.forEach(item => { if (bb.has(item)) same += 1; });
+            const total = aa.size + bb.size - same;
+            return total ? same / total : 0;
+        }
+
+        function joinDaysFromProfile(profile, now) {
+            const raw = profile && (profile.created_at || profile.created_at_str);
+            const date = new Date(raw || '');
+            if (!Number.isNaN(date.getTime())) return Math.max(1, Math.floor(((now || Date.now()) - date.getTime()) / 86400000));
+            const match = String(raw || '').match(/(\d+)\s*days?/i);
+            return match ? Math.max(1, Number(match[1])) : 0;
+        }
+
+        function analyzeComments(comments, profile, now) {
+            const sample = Array.isArray(comments) ? comments.slice(0, 45) : [];
+            const normalized = sample.map(item => normalizeText(item && item.text));
+            const duplicateIndexes = new Set();
+            const parent = sample.map((_, index) => index);
+            function find(value) {
+                while (parent[value] !== value) {
+                    parent[value] = parent[parent[value]];
+                    value = parent[value];
+                }
+                return value;
+            }
+            function unite(a, b) {
+                const aa = find(a);
+                const bb = find(b);
+                if (aa !== bb) parent[bb] = aa;
+            }
+            for (let i = 0; i < normalized.length; i += 1) {
+                if (!normalized[i]) continue;
+                for (let j = i + 1; j < normalized.length; j += 1) {
+                    if (!normalized[j]) continue;
+                    if (textSimilarity(normalized[i], normalized[j]) >= 0.85) {
+                        duplicateIndexes.add(i);
+                        duplicateIndexes.add(j);
+                        unite(i, j);
+                    }
+                }
+            }
+            const clusters = new Map();
+            sample.forEach((item, index) => {
+                const root = find(index);
+                if (!clusters.has(root)) clusters.set(root, { count: 0, posts: new Set(), indexes: [] });
+                const cluster = clusters.get(root);
+                cluster.count += 1;
+                cluster.indexes.push(index);
+                if (item && item.post_id) cluster.posts.add(String(item.post_id));
+            });
+            const largest = Array.from(clusters.values()).sort((a, b) => b.count - a.count)[0] || { count: 0, posts: new Set(), indexes: [] };
+            const duplicateRatio = sample.length ? duplicateIndexes.size / sample.length : 0;
+            const shortCount = normalized.filter(text => text && text.length <= 8).length;
+            const shortRatio = sample.length ? shortCount / sample.length : 0;
+            const repeatedAcrossPosts = largest.count >= 8 && largest.posts.size >= 5;
+            const conditions = [duplicateRatio >= 0.4, shortRatio >= 0.6, repeatedAcrossPosts].filter(Boolean).length;
+            const totalComments = Number(profile && (profile.nComment ?? profile.n_comment)) || 0;
+            const joinDays = joinDaysFromProfile(profile, now);
+            const dailyAverage = joinDays ? totalComments / joinDays : 0;
+            const matched = sample.length >= 30 && totalComments >= 100 && dailyAverage >= 5 && conditions >= 2;
+            const evidenceIndexes = new Set(Array.from(duplicateIndexes).concat(largest.indexes || []));
+            const evidence = Array.from(evidenceIndexes).map(index => {
+                const item = sample[index];
+                if (!item || !item.post_id) return null;
+                return {
+                    url: 'https://www.nodeseek.com/post-' + item.post_id + '-1#' + (item.floor_id || 0),
+                    kind: '评论'
+                };
+            }).filter(Boolean).slice(0, 12);
+            return {
+                matched,
+                sampleCount: sample.length,
+                totalComments,
+                joinDays,
+                dailyAverage,
+                duplicateRatio,
+                shortRatio,
+                largestRepeatCount: largest.count,
+                largestRepeatPostCount: largest.posts.size,
+                conditionCount: conditions,
+                evidence
+            };
+        }
+
+        function shouldSkipScan(record, cached, now, noMatchTtl, failedTtl) {
+            if (record && (Object.keys(record.labels || {}).length || Object.keys(record.ignored || {}).length)) return true;
+            if (!cached) return false;
+            const checkedAt = Number(cached.checkedAt || cached.failedAt || 0);
+            const age = Math.max(0, Number(now || Date.now()) - checkedAt);
+            if (cached.status === 'failed') return age < failedTtl;
+            return age < noMatchTtl;
+        }
+
+        function canScanToday(state, today, limit) {
+            if (!state || state.date !== today) return true;
+            return state.halted !== true && (Number(state.count) || 0) < limit;
+        }
+
+        function nextRequestDelay(lastRequestAt, now, gap) {
+            return Math.max(0, Number(gap) - (Number(now) - Number(lastRequestAt || 0)));
+        }
+
+        return {
+            analyzeTrading,
+            analyzeComments,
+            isServerTradeTitle,
+            tradeDirection,
+            normalizeText,
+            textSimilarity,
+            shouldSkipScan,
+            canScanToday,
+            nextRequestDelay
+        };
+    })();
+
+    if (typeof module !== 'undefined' && module.exports) module.exports = NodeSeekUserLabelRules;
+
+    if (!window.NodeSeekUserLabels) {
+        window.NodeSeekUserLabels = (function () {
+            const LABELS_KEY = 'nodeseek_user_labels';
+            const SETTINGS_KEY = 'nodeseek_user_label_settings';
+            const SCAN_CACHE_KEY = 'nodeseek_user_label_scan_cache';
+            const SCAN_STATE_KEY = 'nodeseek_user_label_scan_state';
+            const OBSERVATIONS_KEY = 'nodeseek_user_label_observations';
+            const NO_MATCH_TTL = 30 * 86400000;
+            const FAILED_TTL = 86400000;
+            const REQUEST_GAP = 3000;
+            const DAILY_LIMIT = 20;
+            const HISTORY_PAGES = 3;
+            const EVIDENCE_LIMIT = 12;
+            const pageScanKeys = new Set();
+            let lastHistoryRequestAt = 0;
+            let scanRunning = false;
+            let scanTimer = null;
+            let riskPromptUrl = '';
+            let activeScanPageKey = '';
+
+            function currentPageKey() {
+                return location.pathname + location.search + location.hash;
+            }
+
+            function readJson(key, fallback) {
+                try {
+                    const value = JSON.parse(nsLocalStorage.getItem(key) || 'null');
+                    return value && typeof value === 'object' ? value : fallback;
+                } catch (e) {
+                    return fallback;
+                }
+            }
+
+            function writeJson(key, value) {
+                nsLocalStorage.setItem(key, JSON.stringify(value));
+            }
+
+            function getSettings() {
+                const saved = readJson(SETTINGS_KEY, {});
+                return {
+                    enabled: saved.enabled !== false,
+                    autoScan: saved.autoScan !== false
+                };
+            }
+
+            function setSettings(next) {
+                const settings = {
+                    enabled: next && next.enabled !== false,
+                    autoScan: next && next.autoScan !== false
+                };
+                writeJson(SETTINGS_KEY, settings);
+                refreshBadges();
+                if (settings.autoScan) scheduleAutoScan(500);
+                return settings;
+            }
+
+            function getLabelsData() {
+                return readJson(LABELS_KEY, {});
+            }
+
+            function setLabelsData(data) {
+                writeJson(LABELS_KEY, data && typeof data === 'object' ? data : {});
+                refreshBadges();
+            }
+
+            function getScanCache() {
+                return readJson(SCAN_CACHE_KEY, {});
+            }
+
+            function setScanCache(data) {
+                writeJson(SCAN_CACHE_KEY, data && typeof data === 'object' ? data : {});
+            }
+
+            function dateKey() {
+                const now = new Date();
+                return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+            }
+
+            function getScanState() {
+                const saved = readJson(SCAN_STATE_KEY, {});
+                if (saved.date !== dateKey()) return { date: dateKey(), count: 0, halted: false, consecutiveFailures: 0 };
+                return {
+                    date: saved.date,
+                    count: Number(saved.count) || 0,
+                    halted: saved.halted === true,
+                    consecutiveFailures: Number(saved.consecutiveFailures) || 0
+                };
+            }
+
+            function setScanState(state) {
+                writeJson(SCAN_STATE_KEY, state);
+            }
+
+            function userIdFromLink(link) {
+                const href = link && (link.getAttribute('href') || link.href) || '';
+                const match = String(href).match(/\/space\/(\d+)/);
+                return match ? match[1] : '';
+            }
+
+            function normalizedUsername(value) {
+                return String(value || '').trim().toLowerCase();
+            }
+
+            function mergeTemporaryRecord(data, userId, username) {
+                const temporaryKey = 'name:' + normalizedUsername(username);
+                if (!userId || !data[temporaryKey]) return data[userId] || null;
+                const old = data[temporaryKey];
+                data[userId] = {
+                    ...old,
+                    ...(data[userId] || {}),
+                    userId,
+                    username: username || old.username
+                };
+                delete data[temporaryKey];
+                writeJson(LABELS_KEY, data);
+                return data[userId];
+            }
+
+            function findRecord(userId, username) {
+                const data = getLabelsData();
+                if (userId) {
+                    const merged = mergeTemporaryRecord(data, userId, username);
+                    if (merged) return { key: userId, record: merged };
+                }
+                const name = normalizedUsername(username);
+                const entry = Object.entries(data).find(([, record]) => normalizedUsername(record && record.username) === name);
+                return entry ? { key: entry[0], record: entry[1] } : null;
+            }
+
+            function saveRecord(key, record) {
+                const data = getLabelsData();
+                data[key] = record;
+                setLabelsData(data);
+            }
+
+            function compactEvidence(list) {
+                const seen = new Set();
+                return (Array.isArray(list) ? list : []).filter(item => {
+                    const url = String(item && item.url || '');
+                    if (!url || seen.has(url)) return false;
+                    seen.add(url);
+                    return true;
+                }).slice(0, EVIDENCE_LIMIT).map(item => ({ url: item.url, kind: item.kind || '页面' }));
+            }
+
+            function labelTitle(type) {
+                if (type === 'trader') return '炒鸡';
+                if (type === 'spammer') return '灌水';
+                if (type === 'risk') return '风险';
+                return '标签';
+            }
+
+            function labelClass(type) {
+                if (type === 'trader') return 'ns-user-label-trader';
+                if (type === 'spammer') return 'ns-user-label-spammer';
+                if (type === 'risk') return 'ns-user-label-risk';
+                return 'ns-user-label-custom';
+            }
+
+            function formatDate(value) {
+                const date = new Date(value || '');
+                if (Number.isNaN(date.getTime())) return '未知';
+                return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0') + ' ' + String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+            }
+
+            function refreshBadges(root) {
+                const settings = getSettings();
+                const scope = root && root.querySelectorAll ? root : document;
+                scope.querySelectorAll('.ns-user-label-badges').forEach(box => box.remove());
+                if (!settings.enabled) return;
+                const selector = 'a.author-name[href*="/space/"], .info-author a[href*="/space/"], .nsk-content-meta-info a[href*="/space/"], .post-list-item a[href*="/space/"]';
+                const links = Array.from(scope.querySelectorAll(selector));
+                links.forEach(link => {
+                    if (!link || link.closest('#nodeseek-plugin-main-container, #ns-user-label-dialog, #ns-user-label-detail-dialog')) return;
+                    const userId = userIdFromLink(link);
+                    const username = String(link.textContent || '').trim();
+                    if (!username) return;
+                    const found = findRecord(userId, username);
+                    const labels = found && found.record && found.record.labels ? found.record.labels : {};
+                    const entries = Object.entries(labels).filter(([, label]) => label && label.name);
+                    if (!entries.length || link.parentNode.querySelector('.ns-user-label-badges')) return;
+                    const box = document.createElement('span');
+                    box.className = 'ns-user-label-badges';
+                    box.dataset.userId = userId || found.key;
+                    entries.forEach(([type, label]) => {
+                        const badge = document.createElement('button');
+                        badge.type = 'button';
+                        badge.className = 'ns-user-label-badge ' + labelClass(type);
+                        badge.textContent = label.name || labelTitle(type);
+                        badge.title = '个人规则判断，点击查看依据';
+                        badge.onclick = function (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            showDetailDialog(found.key, username);
+                        };
+                        box.appendChild(badge);
+                    });
+                    link.insertAdjacentElement('afterend', box);
+                });
+            }
+
+            function createDialog(id, titleText, width) {
+                const existing = document.getElementById(id);
+                if (existing) existing.remove();
+                const dialog = document.createElement('div');
+                dialog.id = id;
+                dialog.className = 'ns-user-label-dialog';
+                dialog.style.width = width || '620px';
+                const header = document.createElement('div');
+                header.className = 'ns-user-label-dialog-header';
+                const title = document.createElement('strong');
+                title.textContent = titleText;
+                const close = document.createElement('button');
+                close.type = 'button';
+                close.className = 'ns-user-label-close';
+                close.textContent = '×';
+                close.onclick = () => dialog.remove();
+                header.appendChild(title);
+                header.appendChild(close);
+                dialog.appendChild(header);
+                document.body.appendChild(dialog);
+                return dialog;
+            }
+
+            function metricLines(type, metrics) {
+                const data = metrics || {};
+                if (type === 'trader') {
+                    return [
+                        '最近主题样本：' + (data.sampleCount || 0) + ' 条',
+                        '服务器收购：' + (data.buyCount || 0) + ' 条',
+                        '服务器出售：' + (data.sellCount || 0) + ' 条',
+                        '同类先收后出：' + (data.pairCount || 0) + ' 组'
+                    ];
+                }
+                if (type === 'spammer') {
+                    return [
+                        '最近评论样本：' + (data.sampleCount || 0) + ' 条',
+                        '相同或近似回复：' + Math.round((data.duplicateRatio || 0) * 100) + '%',
+                        '短回复：' + Math.round((data.shortRatio || 0) * 100) + '%',
+                        '账户平均评论：' + Number(data.dailyAverage || 0).toFixed(1) + ' 条/天'
+                    ];
+                }
+                return [];
+            }
+
+            function showDetailDialog(key, username) {
+                const data = getLabelsData();
+                const record = data[key];
+                if (!record) return;
+                const dialog = createDialog('ns-user-label-detail-dialog', (record.username || username || '用户') + ' 的个人标签', '560px');
+                const notice = document.createElement('div');
+                notice.className = 'ns-user-label-notice';
+                notice.textContent = '这些标签来自本机保存的规则判断或手工记录，仅供个人参考。';
+                dialog.appendChild(notice);
+                const labels = record.labels || {};
+                Object.entries(labels).forEach(([type, label]) => {
+                    const card = document.createElement('section');
+                    card.className = 'ns-user-label-card';
+                    const heading = document.createElement('h4');
+                    heading.textContent = label.name || labelTitle(type);
+                    card.appendChild(heading);
+                    const meta = document.createElement('div');
+                    meta.className = 'ns-user-label-muted';
+                    meta.textContent = (label.source === 'manual' ? '手工记录' : '固定规则判断') + ' · ' + formatDate(label.createdAt);
+                    card.appendChild(meta);
+                    metricLines(type, label.metrics).forEach(text => {
+                        const line = document.createElement('div');
+                        line.textContent = text;
+                        card.appendChild(line);
+                    });
+                    if (record.note) {
+                        const note = document.createElement('div');
+                        note.className = 'ns-user-label-note';
+                        note.textContent = '备注：' + record.note;
+                        card.appendChild(note);
+                    }
+                    const evidence = compactEvidence(label.evidence);
+                    if (evidence.length) {
+                        const list = document.createElement('div');
+                        list.className = 'ns-user-label-evidence';
+                        evidence.forEach((item, index) => {
+                            const link = document.createElement('a');
+                            link.href = item.url;
+                            link.target = '_blank';
+                            link.rel = 'noopener noreferrer';
+                            link.textContent = item.kind + '依据 ' + (index + 1);
+                            list.appendChild(link);
+                        });
+                        card.appendChild(list);
+                    }
+                    const actions = document.createElement('div');
+                    actions.className = 'ns-user-label-actions';
+                    function action(text, handler) {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.textContent = text;
+                        button.onclick = handler;
+                        actions.appendChild(button);
+                    }
+                    action('确认保留', function () {
+                        label.confirmedAt = Date.now();
+                        saveRecord(key, record);
+                        showDetailDialog(key, username);
+                    });
+                    action('改名', function () {
+                        const value = prompt('请输入标签名称：', label.name || labelTitle(type));
+                        if (value === null || !value.trim()) return;
+                        label.name = value.trim().slice(0, 12);
+                        saveRecord(key, record);
+                        showDetailDialog(key, username);
+                    });
+                    action('备注', function () {
+                        const value = prompt('请输入个人备注：', record.note || '');
+                        if (value === null) return;
+                        record.note = value.trim().slice(0, 500);
+                        saveRecord(key, record);
+                        showDetailDialog(key, username);
+                    });
+                    if (label.source === 'auto' && (type === 'trader' || type === 'spammer')) {
+                        action('永久忽略', function () {
+                            if (!confirm('确定忽略此类自动标签？以后不会再次自动生成。')) return;
+                            record.ignored = record.ignored || {};
+                            record.ignored[type] = true;
+                            delete record.labels[type];
+                            saveRecord(key, record);
+                            dialog.remove();
+                        });
+                    }
+                    action('删除', function () {
+                        if (!confirm('确定删除这个标签？')) return;
+                        delete record.labels[type];
+                        if (!Object.keys(record.labels).length && !Object.keys(record.ignored || {}).length && !record.note) {
+                            const all = getLabelsData();
+                            delete all[key];
+                            setLabelsData(all);
+                        } else {
+                            saveRecord(key, record);
+                        }
+                        dialog.remove();
+                    });
+                    card.appendChild(actions);
+                    dialog.appendChild(card);
+                });
+                if (!Object.keys(labels).length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'ns-user-label-empty';
+                    empty.textContent = '当前没有显示中的标签。';
+                    dialog.appendChild(empty);
+                }
+            }
+
+            function addManualLabel(key, username, type, name, evidenceUrl, note) {
+                const data = getLabelsData();
+                const record = data[key] || { userId: /^\d+$/.test(key) ? key : '', username: username || '', labels: {}, ignored: {} };
+                record.username = username || record.username;
+                record.labels = record.labels || {};
+                record.labels[type] = {
+                    name: String(name || labelTitle(type)).trim().slice(0, 12),
+                    source: 'manual',
+                    createdAt: Date.now(),
+                    metrics: {},
+                    evidence: evidenceUrl ? [{ url: evidenceUrl, kind: type === 'risk' ? '风险记录' : '页面' }] : []
+                };
+                if (note) record.note = String(note).trim().slice(0, 500);
+                data[key] = record;
+                setLabelsData(data);
+                return record;
+            }
+
+            function showManagerDialog() {
+                const dialog = createDialog('ns-user-label-dialog', '个人用户标签', '720px');
+                const toolbar = document.createElement('div');
+                toolbar.className = 'ns-user-label-toolbar';
+                const search = document.createElement('input');
+                search.type = 'search';
+                search.placeholder = '查找用户名或标签';
+                const add = document.createElement('button');
+                add.type = 'button';
+                add.textContent = '添加手工标签';
+                toolbar.appendChild(search);
+                toolbar.appendChild(add);
+                dialog.appendChild(toolbar);
+                const list = document.createElement('div');
+                dialog.appendChild(list);
+
+                function render() {
+                    list.innerHTML = '';
+                    const query = normalizedUsername(search.value);
+                    const labelsData = getLabelsData();
+                    const scanCache = getScanCache();
+                    const keys = Array.from(new Set(Object.keys(labelsData).concat(Object.keys(scanCache))));
+                    const rows = keys.map(key => ({ key, record: labelsData[key], scan: scanCache[key] })).filter(row => {
+                        const username = row.record?.username || row.scan?.username || row.key;
+                        const names = Object.values(row.record?.labels || {}).map(item => item.name).join(' ');
+                        return !query || normalizedUsername(username + ' ' + names).includes(query);
+                    }).sort((a, b) => String(a.record?.username || a.scan?.username || a.key).localeCompare(String(b.record?.username || b.scan?.username || b.key), 'zh-CN'));
+                    if (!rows.length) {
+                        const empty = document.createElement('div');
+                        empty.className = 'ns-user-label-empty';
+                        empty.textContent = '暂无个人标签或检查结果';
+                        list.appendChild(empty);
+                        return;
+                    }
+                    rows.forEach(row => {
+                        const item = document.createElement('div');
+                        item.className = 'ns-user-label-manager-row';
+                        const text = document.createElement('div');
+                        const username = row.record?.username || row.scan?.username || row.key;
+                        const names = Object.values(row.record?.labels || {}).map(label => label.name).filter(Boolean);
+                        text.textContent = username + ' · ' + (names.length ? names.join('、') : '无标签检查结果');
+                        const actions = document.createElement('div');
+                        if (row.record) {
+                            const detail = document.createElement('button');
+                            detail.type = 'button';
+                            detail.textContent = '查看';
+                            detail.onclick = () => showDetailDialog(row.key, username);
+                            actions.appendChild(detail);
+                        }
+                        const clear = document.createElement('button');
+                        clear.type = 'button';
+                        clear.textContent = '清除结果';
+                        clear.onclick = function () {
+                            if (!confirm('确定清除该用户的标签和检查结果？')) return;
+                            const allLabels = getLabelsData();
+                            const allScans = getScanCache();
+                            delete allLabels[row.key];
+                            delete allScans[row.key];
+                            setLabelsData(allLabels);
+                            setScanCache(allScans);
+                            render();
+                        };
+                        actions.appendChild(clear);
+                        item.appendChild(text);
+                        item.appendChild(actions);
+                        list.appendChild(item);
+                    });
+                }
+                search.oninput = render;
+                add.onclick = function () {
+                    const identity = prompt('请输入用户主页编号或用户名：', '');
+                    if (identity === null || !identity.trim()) return;
+                    const username = prompt('请输入显示用户名：', /^\d+$/.test(identity.trim()) ? '' : identity.trim());
+                    if (username === null || !username.trim()) return;
+                    const name = prompt('请输入标签名称：', '自定义');
+                    if (name === null || !name.trim()) return;
+                    const key = /^\d+$/.test(identity.trim()) ? identity.trim() : 'name:' + normalizedUsername(username);
+                    addManualLabel(key, username.trim(), 'custom-' + Date.now(), name.trim(), '', '');
+                    render();
+                };
+                render();
+            }
+
+            function waitForHistoryGap() {
+                const delay = NodeSeekUserLabelRules.nextRequestDelay(lastHistoryRequestAt, Date.now(), REQUEST_GAP);
+                return delay ? new Promise(resolve => setTimeout(resolve, delay)) : Promise.resolve();
+            }
+
+            function isRateLimited(data) {
+                const text = String(data && data.message || '');
+                return /请求频率过高|too many requests|rate limit/i.test(text);
+            }
+
+            async function fetchHistory(kind, userId, page) {
+                if ((document.visibilityState && document.visibilityState !== 'visible') || (activeScanPageKey && activeScanPageKey !== currentPageKey())) {
+                    const error = new Error('页面状态已经变化');
+                    error.cancelled = true;
+                    throw error;
+                }
+                await waitForHistoryGap();
+                if ((document.visibilityState && document.visibilityState !== 'visible') || (activeScanPageKey && activeScanPageKey !== currentPageKey())) {
+                    const error = new Error('页面状态已经变化');
+                    error.cancelled = true;
+                    throw error;
+                }
+                lastHistoryRequestAt = Date.now();
+                const endpoint = kind === 'discussion' ? 'list-discussions' : 'list-comments';
+                const response = await fetch('/api/content/' + endpoint + '?uid=' + encodeURIComponent(userId) + '&page=' + page, { credentials: 'include' });
+                if (response.status === 429) {
+                    const error = new Error('访问过于频繁');
+                    error.rateLimited = true;
+                    throw error;
+                }
+                if (!response.ok) throw new Error('读取用户活动失败：' + response.status);
+                const data = await response.json();
+                if (isRateLimited(data)) {
+                    const error = new Error('访问过于频繁');
+                    error.rateLimited = true;
+                    throw error;
+                }
+                const field = kind === 'discussion' ? 'discussions' : 'comments';
+                if (!data || data.success !== true || !Array.isArray(data[field])) {
+                    const error = new Error('用户活动资料格式已经变化');
+                    error.schemaChanged = true;
+                    throw error;
+                }
+                return data[field];
+            }
+
+            async function scanUser(userId, username) {
+                const discussions = [];
+                const comments = [];
+                const profile = typeof fetchUserData === 'function' ? await fetchUserData(userId) : null;
+                for (let page = 1; page <= HISTORY_PAGES; page += 1) {
+                    discussions.push(...await fetchHistory('discussion', userId, page));
+                }
+                for (let page = 1; page <= HISTORY_PAGES; page += 1) {
+                    comments.push(...await fetchHistory('comment', userId, page));
+                }
+                const trading = NodeSeekUserLabelRules.analyzeTrading(discussions);
+                const spammer = NodeSeekUserLabelRules.analyzeComments(comments, profile || {});
+                const labelsData = getLabelsData();
+                const record = labelsData[userId] || { userId, username, labels: {}, ignored: {} };
+                record.username = username || profile?.member_name || record.username;
+                record.labels = record.labels || {};
+                record.ignored = record.ignored || {};
+                if (trading.matched && !record.ignored.trader) {
+                    record.labels.trader = {
+                        name: '炒鸡', source: 'auto', createdAt: Date.now(), metrics: trading,
+                        evidence: compactEvidence(trading.evidence)
+                    };
+                }
+                if (spammer.matched && !record.ignored.spammer) {
+                    record.labels.spammer = {
+                        name: '灌水', source: 'auto', createdAt: Date.now(), metrics: spammer,
+                        evidence: compactEvidence(spammer.evidence)
+                    };
+                }
+                if (Object.keys(record.labels).length || Object.keys(record.ignored).length) {
+                    labelsData[userId] = record;
+                    setLabelsData(labelsData);
+                }
+                const cache = getScanCache();
+                cache[userId] = {
+                    username: record.username || username,
+                    checkedAt: Date.now(),
+                    status: 'complete',
+                    matched: Object.keys(record.labels).filter(type => type === 'trader' || type === 'spammer'),
+                    metrics: {
+                        trading: { buyCount: trading.buyCount, sellCount: trading.sellCount, pairCount: trading.pairCount },
+                        spammer: { duplicateRatio: spammer.duplicateRatio, shortRatio: spammer.shortRatio, dailyAverage: spammer.dailyAverage }
+                    }
+                };
+                setScanCache(cache);
+                if (typeof addLog === 'function') addLog('用户标签：已检查 ' + (record.username || username));
+                return record;
+            }
+
+            function visibleUserCandidates() {
+                const links = Array.from(document.querySelectorAll('.post-list-item a[href*="/space/"], a.author-name[href*="/space/"]'));
+                const seen = new Set();
+                return links.map(link => ({
+                    link,
+                    userId: userIdFromLink(link),
+                    username: String(link.textContent || '').trim()
+                })).filter(item => {
+                    if (!item.userId || !item.username || seen.has(item.userId)) return false;
+                    if (item.link.getClientRects && item.link.getClientRects().length === 0) return false;
+                    seen.add(item.userId);
+                    return true;
+                });
+            }
+
+            function shouldSkipCandidate(candidate) {
+                const record = getLabelsData()[candidate.userId];
+                const cached = getScanCache()[candidate.userId];
+                return NodeSeekUserLabelRules.shouldSkipScan(record, cached, Date.now(), NO_MATCH_TTL, FAILED_TTL);
+            }
+
+            function canAutoScan() {
+                const settings = getSettings();
+                if (!settings.enabled || !settings.autoScan || scanRunning) return false;
+                if (document.visibilityState && document.visibilityState !== 'visible') return false;
+                if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+                const state = getScanState();
+                return NodeSeekUserLabelRules.canScanToday(state, dateKey(), DAILY_LIMIT);
+            }
+
+            function runAutoScanForPage(pageKey) {
+                if (!canAutoScan() || pageScanKeys.has(pageKey)) return;
+                const candidate = visibleUserCandidates().find(item => !shouldSkipCandidate(item));
+                if (!candidate) return;
+                pageScanKeys.add(pageKey);
+                scanRunning = true;
+                activeScanPageKey = pageKey;
+                const state = getScanState();
+                state.count += 1;
+                setScanState(state);
+                scanUser(candidate.userId, candidate.username).then(function () {
+                    const next = getScanState();
+                    next.consecutiveFailures = 0;
+                    setScanState(next);
+                    refreshBadges();
+                }).catch(function (error) {
+                    if (error && error.cancelled) {
+                        const cancelledState = getScanState();
+                        cancelledState.count = Math.max(0, cancelledState.count - 1);
+                        setScanState(cancelledState);
+                        return;
+                    }
+                    const cache = getScanCache();
+                    cache[candidate.userId] = { username: candidate.username, status: 'failed', failedAt: Date.now() };
+                    setScanCache(cache);
+                    const next = getScanState();
+                    next.consecutiveFailures += 1;
+                    if (error && (error.rateLimited || error.schemaChanged || next.consecutiveFailures >= 2)) next.halted = true;
+                    setScanState(next);
+                    console.warn('用户标签检查已暂停或稍后重试:', error);
+                }).finally(function () {
+                    scanRunning = false;
+                    activeScanPageKey = '';
+                });
+            }
+
+            function scheduleAutoScan(delay) {
+                if (scanTimer) clearTimeout(scanTimer);
+                const pageKey = currentPageKey();
+                scanTimer = setTimeout(function () {
+                    scanTimer = null;
+                    const run = () => runAutoScanForPage(pageKey);
+                    if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 2500 });
+                    else run();
+                }, typeof delay === 'number' ? delay : 2200);
+            }
+
+            function simpleHash(value) {
+                let hash = 2166136261;
+                const text = String(value || '');
+                for (let i = 0; i < text.length; i += 1) {
+                    hash ^= text.charCodeAt(i);
+                    hash = Math.imul(hash, 16777619);
+                }
+                return (hash >>> 0).toString(36);
+            }
+
+            function collectPassiveObservations() {
+                const observations = readJson(OBSERVATIONS_KEY, {});
+                let changed = false;
+                document.querySelectorAll('.post-list-item').forEach(item => {
+                    const author = item.querySelector('.info-author a[href*="/space/"], a.author-name[href*="/space/"]');
+                    const titleLink = item.querySelector('a.post-title, .post-title a, a[href*="/post-"]');
+                    const userId = userIdFromLink(author);
+                    const title = titleLink && String(titleLink.textContent || '').trim();
+                    const direction = NodeSeekUserLabelRules.tradeDirection(title);
+                    if (!userId || !direction || !titleLink.href) return;
+                    const list = Array.isArray(observations[userId]) ? observations[userId] : [];
+                    if (list.some(entry => entry.url === titleLink.href)) return;
+                    list.unshift({ kind: 'trade', direction, url: titleLink.href, seenAt: Date.now() });
+                    observations[userId] = list.slice(0, 60);
+                    changed = true;
+                });
+                document.querySelectorAll('a.author-name[href*="/space/"]').forEach(author => {
+                    const userId = userIdFromLink(author);
+                    const container = author.closest('article, .nsk-content, .reply, .comment');
+                    if (!userId || !container) return;
+                    const normalized = NodeSeekUserLabelRules.normalizeText(container.textContent || '');
+                    if (!normalized) return;
+                    const url = location.href;
+                    const fingerprint = simpleHash(normalized);
+                    const list = Array.isArray(observations[userId]) ? observations[userId] : [];
+                    if (list.some(entry => entry.kind === 'comment' && entry.fingerprint === fingerprint && entry.url === url)) return;
+                    list.unshift({ kind: 'comment', fingerprint, short: normalized.length <= 8, url, seenAt: Date.now() });
+                    observations[userId] = list.slice(0, 60);
+                    changed = true;
+                });
+                if (changed) writeJson(OBSERVATIONS_KEY, observations);
+            }
+
+            function riskContextDetected() {
+                if (!/(?:\/post-\d+|\/topic\/|\/article\/)/i.test(location.pathname)) return false;
+                const category = Array.from(document.querySelectorAll('a[href*="/categories/"], a[href*="/category/"]')).some(link => /曝光/.test(link.textContent || ''));
+                const bodyText = String(document.body && document.body.innerText || '').slice(0, 30000);
+                return category || /诈骗|骗子|跑路|未交付|拒不退款|交易纠纷|骗款/.test(bodyText);
+            }
+
+            function riskCandidates() {
+                const bodyText = String(document.body && document.body.innerText || '');
+                const mentioned = new Set(Array.from(bodyText.matchAll(/@([\w\-\u4e00-\u9fff]{2,32})/g)).map(match => normalizedUsername(match[1])));
+                const result = [];
+                const seen = new Set();
+                document.querySelectorAll('a[href*="/space/"]').forEach(link => {
+                    const username = String(link.textContent || '').trim();
+                    const userId = userIdFromLink(link);
+                    if (!username || !userId || !mentioned.has(normalizedUsername(username)) || seen.has(userId)) return;
+                    seen.add(userId);
+                    result.push({ username, userId });
+                });
+                return result;
+            }
+
+            function recordRiskEvidence() {
+                const candidates = riskCandidates();
+                const hint = candidates.length ? '\n页面明确提及：' + candidates.map(item => item.username).join('、') : '';
+                const identity = prompt('请输入需要记录的用户名或用户主页编号。不会自动把发帖人标为风险用户。' + hint, candidates[0]?.username || '');
+                if (identity === null || !identity.trim()) return;
+                const value = identity.trim();
+                const matched = candidates.find(item => item.userId === value || normalizedUsername(item.username) === normalizedUsername(value));
+                let userId = matched?.userId || (/^\d+$/.test(value) ? value : '');
+                let username = matched?.username || (/^\d+$/.test(value) ? '' : value);
+                if (!username && userId) {
+                    const link = Array.from(document.querySelectorAll('a[href*="/space/' + userId + '"]')).find(Boolean);
+                    username = link ? String(link.textContent || '').trim() : '用户 ' + userId;
+                }
+                const note = prompt('请输入风险说明或个人备注：', '交易争议，需自行核对原帖');
+                if (note === null) return;
+                if (!confirm('确定为“' + username + '”保存个人风险标签和当前页面链接？')) return;
+                const key = userId || 'name:' + normalizedUsername(username);
+                addManualLabel(key, username, 'risk', '风险', location.href, note);
+                const banner = document.getElementById('ns-risk-evidence-prompt');
+                if (banner) banner.remove();
+            }
+
+            function showRiskPrompt() {
+                if (!getSettings().enabled || !riskContextDetected() || riskPromptUrl === location.href) return;
+                riskPromptUrl = location.href;
+                const old = document.getElementById('ns-risk-evidence-prompt');
+                if (old) old.remove();
+                const banner = document.createElement('div');
+                banner.id = 'ns-risk-evidence-prompt';
+                const text = document.createElement('span');
+                text.textContent = '检测到曝光或交易争议内容，是否记录个人风险证据？';
+                const record = document.createElement('button');
+                record.type = 'button';
+                record.textContent = '记录证据';
+                record.onclick = recordRiskEvidence;
+                const dismiss = document.createElement('button');
+                dismiss.type = 'button';
+                dismiss.textContent = '忽略本页';
+                dismiss.onclick = () => banner.remove();
+                banner.appendChild(text);
+                banner.appendChild(record);
+                banner.appendChild(dismiss);
+                document.body.appendChild(banner);
+            }
+
+            function refresh(root) {
+                refreshBadges(root);
+                collectPassiveObservations();
+                showRiskPrompt();
+                scheduleAutoScan();
+            }
+
+            function exportData() {
+                return getLabelsData();
+            }
+
+            function importData(data) {
+                if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+                const clean = {};
+                Object.entries(data).forEach(([key, record]) => {
+                    if (!record || typeof record !== 'object') return;
+                    const labels = {};
+                    Object.entries(record.labels || {}).forEach(([type, label]) => {
+                        if (!label || typeof label !== 'object' || !label.name) return;
+                        labels[type] = {
+                            ...label,
+                            name: String(label.name).slice(0, 12),
+                            evidence: compactEvidence(label.evidence)
+                        };
+                    });
+                    clean[key] = {
+                        userId: record.userId ? String(record.userId) : '',
+                        username: String(record.username || '').slice(0, 64),
+                        labels,
+                        ignored: record.ignored && typeof record.ignored === 'object' ? record.ignored : {},
+                        note: String(record.note || '').slice(0, 500)
+                    };
+                });
+                setLabelsData(clean);
+                return true;
+            }
+
+            setTimeout(function () { refresh(); }, 1800);
+            window.addEventListener('hashchange', function () { setTimeout(refresh, 500); });
+
+            return {
+                getSettings,
+                setSettings,
+                exportData,
+                importData,
+                refresh,
+                refreshBadges,
+                showManagerDialog,
+                showDetailDialog,
+                addManualLabel,
+                recordRiskEvidence,
+                scanUser,
+                getLabelsData,
+                getScanCache
+            };
+        })();
+    }
 
     function exportBlacklist() {
         // 同时导出所有用户数据：黑名单、好友、操作日志、浏览历史、热点统计等
@@ -3764,6 +4827,13 @@
             console.error('导出评论自动加载设置失败:', error);
         }
 
+        let userLabels = {};
+        try {
+            userLabels = window.NodeSeekUserLabels?.exportData?.() || {};
+        } catch (error) {
+            console.error('导出个人用户标签失败:', error);
+        }
+
         const data = JSON.stringify({
             blacklist: blacklist,
             friends: friends,
@@ -3779,6 +4849,7 @@
             filterData: filterData, // 添加关键词过滤数据
             notesData: notesData, // 添加笔记数据
             viewedTitles: viewedTitles, // 添加阅读记忆数据
+            userLabels: userLabels,
 
             backupLimit: backupLimit // 添加备份设置
         }, null, 2);
@@ -3799,6 +4870,7 @@
         const hasFilterData = Object.keys(filterData).length > 0;
         const hasNotesData = Object.keys(notesData).length > 0;
         const hasViewedTitles = Object.keys(viewedTitles).length > 0;
+        const hasUserLabels = Object.keys(userLabels).length > 0;
         let exportDesc = '导出数据备份 (黑名单、好友、操作日志、浏览历史';
         if (hasQuickReplies) {
             exportDesc += '、快捷回复';
@@ -3815,6 +4887,7 @@
         if (hasViewedTitles) {
             exportDesc += '、阅读记忆';
         }
+        if (hasUserLabels) exportDesc += '、个人用户标签';
         // 不在导出日志中包含“自动同步设置”
         // 始终包含备份设置
         exportDesc += '、设置';
@@ -4203,6 +5276,18 @@
                         }
                     }
 
+                    if (json.userLabels && typeof json.userLabels === 'object' && !Array.isArray(json.userLabels)) {
+                        try {
+                            const success = window.NodeSeekUserLabels && typeof window.NodeSeekUserLabels.importData === 'function'
+                                ? window.NodeSeekUserLabels.importData(json.userLabels)
+                                : (nsLocalStorage.setItem('nodeseek_user_labels', JSON.stringify(json.userLabels)), true);
+                            importInfo.push(success ? `个人用户标签(${Object.keys(json.userLabels).length}人)` : '个人用户标签(失败)');
+                        } catch (error) {
+                            console.error('导入个人用户标签失败:', error);
+                            importInfo.push('个人用户标签(失败)');
+                        }
+                    }
+
 
 
                     // 导入备份设置
@@ -4215,7 +5300,7 @@
                         }
                     }
 
-                    if (!json.blacklist && !json.friends && !json.logs && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData) {
+                    if (!json.blacklist && !json.friends && !json.logs && !json.hotTopicsData && !json.quickReplies && !json.chickenLegStats && !json.filterData && !json.notesData && !json.userLabels) {
                         // 旧格式，直接作为黑名单
                         setBlacklist(json);
                         importInfo.push("旧格式黑名单");
@@ -4248,11 +5333,11 @@
     }
 
     function getDefaultWebdavSyncFields() {
-        return WEBDAV_SYNC_FIELD_OPTIONS.map(item => item.key);
+        return WEBDAV_SYNC_FIELD_OPTIONS.filter(item => item.defaultSelected !== false).map(item => item.key);
     }
 
     function normalizeWebdavSyncFields(fields) {
-        const allowed = new Set(getDefaultWebdavSyncFields());
+        const allowed = new Set(WEBDAV_SYNC_FIELD_OPTIONS.map(item => item.key));
         if (!Array.isArray(fields)) return getDefaultWebdavSyncFields();
         const list = fields.filter(key => allowed.has(key));
         return Array.from(new Set(list));
@@ -4413,6 +5498,13 @@
             console.error('读取评论自动加载设置失败:', error);
         }
 
+        let userLabels = {};
+        try {
+            userLabels = window.NodeSeekUserLabels?.exportData?.() || JSON.parse(nsLocalStorage.getItem('nodeseek_user_labels') || '{}');
+        } catch (error) {
+            console.error('读取个人用户标签失败:', error);
+        }
+
         const data = {
             blacklist: blacklist,
             friends: friends,
@@ -4428,6 +5520,7 @@
             filterData: filterData,
             notesData: notesData,
             viewedTitles: viewedTitles,
+            userLabels: userLabels,
             backupLimit: backupLimit
         };
 
@@ -4517,6 +5610,14 @@
                 if (json.viewedTitles.color) nsLocalStorage.setItem('nodeseek_viewed_color', json.viewedTitles.color);
                 if (Array.isArray(json.viewedTitles.data)) nsLocalStorage.setItem('nodeseek_viewed_titles_data', JSON.stringify(json.viewedTitles.data));
                 if (window.NodeSeekViewedTitles && typeof window.NodeSeekViewedTitles.refresh === 'function') window.NodeSeekViewedTitles.refresh();
+            }
+
+            if (json.userLabels && typeof json.userLabels === 'object' && !Array.isArray(json.userLabels)) {
+                if (window.NodeSeekUserLabels && typeof window.NodeSeekUserLabels.importData === 'function') {
+                    window.NodeSeekUserLabels.importData(json.userLabels);
+                } else {
+                    nsLocalStorage.setItem('nodeseek_user_labels', JSON.stringify(json.userLabels));
+                }
             }
 
             if (json.backupLimit) nsLocalStorage.setItem('nodeseek_backup_limit', json.backupLimit.toString());
@@ -6849,6 +7950,25 @@
         filterBtnContainer.style.width = '100%';
         filterBtnContainer.appendChild(filterBtn);
 
+        const userLabelsBtn = document.createElement('button');
+        userLabelsBtn.id = 'user-labels-btn';
+        userLabelsBtn.className = 'blacklist-btn ns-tw-btn';
+        userLabelsBtn.style.background = '#d97706';
+        userLabelsBtn.textContent = '用户标签';
+        userLabelsBtn.style.width = '100%';
+        userLabelsBtn.onclick = function () {
+            if (window.NodeSeekUserLabels && typeof window.NodeSeekUserLabels.showManagerDialog === 'function') {
+                window.NodeSeekUserLabels.showManagerDialog();
+            } else {
+                alert('用户标签功能未加载');
+            }
+        };
+        const userLabelsContainer = document.createElement('div');
+        userLabelsContainer.className = 'ns-tw-row';
+        userLabelsContainer.style.display = 'flex';
+        userLabelsContainer.style.width = '100%';
+        userLabelsContainer.appendChild(userLabelsBtn);
+
         // 新增：设置按钮
         const settingsBtn = document.createElement('button');
         settingsBtn.id = 'settings-btn';
@@ -6965,6 +8085,7 @@
         container.appendChild(logBtn);        // 日志
         container.appendChild(viewBtn);       // 查看黑名单
         container.appendChild(viewFriendsBtn); // 查看好友
+        container.appendChild(userLabelsContainer); // 个人用户标签
         container.appendChild(filterBtnContainer); // 关键词过滤按钮行
         container.appendChild(quickReplyContainer); // 快捷回复按钮行
         container.appendChild(nodeImageBtnContainer); // NS 图床
@@ -9942,6 +11063,40 @@
         dataRow.appendChild(createSettingsActionButton('导入', '#2563eb', importBlacklist));
         dataRow.appendChild(createSettingsActionButton('同步设置', '#475569', showWebdavSyncDialog));
         content.appendChild(dataRow);
+
+        function createUserLabelSettingRow(labelText, checked, onChange) {
+            const row = document.createElement('label');
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.alignItems = 'center';
+            row.style.gap = '12px';
+            row.style.color = '#555';
+            row.style.fontWeight = '500';
+            const text = document.createElement('span');
+            text.textContent = labelText;
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = checked;
+            input.style.transform = 'scale(1.2)';
+            input.onchange = function () { onChange(input.checked); };
+            row.appendChild(text);
+            row.appendChild(input);
+            return row;
+        }
+
+        const userLabelSettings = window.NodeSeekUserLabels?.getSettings?.() || { enabled: true, autoScan: true };
+        let userLabelsEnabled = userLabelSettings.enabled !== false;
+        let userLabelsAutoScan = userLabelSettings.autoScan !== false;
+        content.appendChild(createUserLabelSettingRow('显示个人用户标签', userLabelsEnabled, function (checked) {
+            userLabelsEnabled = checked;
+            window.NodeSeekUserLabels?.setSettings?.({ enabled: userLabelsEnabled, autoScan: userLabelsAutoScan });
+            addLog('个人用户标签：' + (checked ? '开启' : '关闭'));
+        }));
+        content.appendChild(createUserLabelSettingRow('自动低频检查用户', userLabelsAutoScan, function (checked) {
+            userLabelsAutoScan = checked;
+            window.NodeSeekUserLabels?.setSettings?.({ enabled: userLabelsEnabled, autoScan: userLabelsAutoScan });
+            addLog('用户标签自动检查：' + (checked ? '开启' : '关闭'));
+        }));
 
         // 1. 阅读记忆开关（含颜色选择）
         const historyRow = document.createElement('div');
