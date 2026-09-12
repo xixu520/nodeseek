@@ -14,6 +14,7 @@
             'vps', 'server', 'nat', 'hk', 'jp', 'us', 'sg', 'de', 'uk', 'cn', 'la', 'ny', '月', '年',
             '收', '出', '出售', '求购', '转让', '已出', '降价', '明盘', '小鸡', '服务器', '云主机', '线路'
         ]);
+        const RISK_TERMS = /(?:诈骗|骗子|骗款|骗钱|骗走|被骗|跑路|卷款|未交付|拒不退款|拒绝退款|交易纠纷|交易争议|收款不发货|付款不发货)/i;
 
         function normalizeText(value) {
             return String(value || '')
@@ -210,6 +211,40 @@
             return Math.max(0, Number(gap) - (Number(now) - Number(lastRequestAt || 0)));
         }
 
+        function hasRiskContext(title, body, exposureCategory) {
+            if (exposureCategory === true) return true;
+            const heading = String(title || '').slice(0, 300);
+            const content = String(body || '').slice(0, 30000);
+            return RISK_TERMS.test(heading) || RISK_TERMS.test(content);
+        }
+
+        function riskMentionNames(text) {
+            const content = String(text || '');
+            const names = [];
+            const seen = new Set();
+            Array.from(content.matchAll(/@([\w\-\u4e00-\u9fff]{2,32})/g)).forEach(match => {
+                const name = match[1];
+                const mentionAt = Number(match.index);
+                const before = content.slice(0, mentionAt);
+                const previousBreak = Math.max(
+                    before.lastIndexOf('。'), before.lastIndexOf('！'), before.lastIndexOf('？'),
+                    before.lastIndexOf('!'), before.lastIndexOf('?'), before.lastIndexOf('\n')
+                );
+                const after = content.slice(mentionAt + match[0].length);
+                const breakIndexes = ['。', '！', '？', '!', '?', '\n']
+                    .map(mark => after.indexOf(mark))
+                    .filter(index => index >= 0);
+                const nextBreak = breakIndexes.length ? Math.min(...breakIndexes) : after.length;
+                const nearby = content.slice(previousBreak + 1, mentionAt + match[0].length + nextBreak);
+                if (!RISK_TERMS.test(nearby)) return;
+                const key = name.toLowerCase();
+                if (seen.has(key)) return;
+                seen.add(key);
+                names.push(name);
+            });
+            return names;
+        }
+
         return {
             analyzeTrading,
             analyzeComments,
@@ -219,7 +254,9 @@
             textSimilarity,
             shouldSkipScan,
             canScanToday,
-            nextRequestDelay
+            nextRequestDelay,
+            hasRiskContext,
+            riskMentionNames
         };
     })();
 

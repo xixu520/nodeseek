@@ -87,3 +87,19 @@ test('每日上限和三秒间隔按保守档执行', () => {
     assert.equal(rules.nextRequestDelay(1000, 2500, 3000), 1500);
     assert.equal(rules.nextRequestDelay(1000, 4500, 3000), 0);
 });
+
+test('普通艾特不会被当作风险对象', () => {
+    assert.deepEqual(rules.riskMentionNames('感谢 @张三 的帮助，顺便讨论一下服务器。'), []);
+    assert.equal(rules.hasRiskContext('普通交流', '感谢 @张三 的帮助', false), false);
+});
+
+test('只有风险表述附近的艾特才列为候选', () => {
+    const text = '提醒大家，我向 @争议卖家 付款后一直未交付。感谢 @热心网友 帮忙整理资料。';
+    assert.deepEqual(rules.riskMentionNames(text), ['争议卖家']);
+    assert.equal(rules.hasRiskContext('交易争议记录', text, false), true);
+});
+
+test('曝光分类可以提示但不会凭普通艾特确定对象', () => {
+    assert.equal(rules.hasRiskContext('情况说明', '正文没有风险关键词', true), true);
+    assert.deepEqual(rules.riskMentionNames('请 @版主 看一下'), []);
+});

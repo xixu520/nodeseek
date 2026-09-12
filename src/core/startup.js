@@ -908,18 +908,31 @@
             return row;
         }
 
-        const userLabelSettings = window.NodeSeekUserLabels?.getSettings?.() || { enabled: true, autoScan: true };
+        const userLabelSettings = window.NodeSeekUserLabels?.getSettings?.() || { enabled: true, autoScan: true, riskPrompt: true };
         let userLabelsEnabled = userLabelSettings.enabled !== false;
         let userLabelsAutoScan = userLabelSettings.autoScan !== false;
+        let userLabelsRiskPrompt = userLabelSettings.riskPrompt !== false;
+        function saveUserLabelSettings() {
+            window.NodeSeekUserLabels?.setSettings?.({
+                enabled: userLabelsEnabled,
+                autoScan: userLabelsAutoScan,
+                riskPrompt: userLabelsRiskPrompt
+            });
+        }
         content.appendChild(createUserLabelSettingRow('显示个人用户标签', userLabelsEnabled, function (checked) {
             userLabelsEnabled = checked;
-            window.NodeSeekUserLabels?.setSettings?.({ enabled: userLabelsEnabled, autoScan: userLabelsAutoScan });
+            saveUserLabelSettings();
             addLog('个人用户标签：' + (checked ? '开启' : '关闭'));
         }));
         content.appendChild(createUserLabelSettingRow('自动低频检查用户', userLabelsAutoScan, function (checked) {
             userLabelsAutoScan = checked;
-            window.NodeSeekUserLabels?.setSettings?.({ enabled: userLabelsEnabled, autoScan: userLabelsAutoScan });
+            saveUserLabelSettings();
             addLog('用户标签自动检查：' + (checked ? '开启' : '关闭'));
+        }));
+        content.appendChild(createUserLabelSettingRow('提示记录风险证据', userLabelsRiskPrompt, function (checked) {
+            userLabelsRiskPrompt = checked;
+            saveUserLabelSettings();
+            addLog('风险证据提示：' + (checked ? '开启' : '关闭'));
         }));
 
         // 1. 阅读记忆开关（含颜色选择）

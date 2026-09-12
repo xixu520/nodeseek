@@ -5,6 +5,7 @@
             const SCAN_CACHE_KEY = 'nodeseek_user_label_scan_cache';
             const SCAN_STATE_KEY = 'nodeseek_user_label_scan_state';
             const OBSERVATIONS_KEY = 'nodeseek_user_label_observations';
+            const RISK_PROMPT_STATE_KEY = 'nodeseek_user_label_risk_prompt_state';
             const NO_MATCH_TTL = 30 * 86400000;
             const FAILED_TTL = 86400000;
             const REQUEST_GAP = 3000;
@@ -39,14 +40,16 @@
                 const saved = readJson(SETTINGS_KEY, {});
                 return {
                     enabled: saved.enabled !== false,
-                    autoScan: saved.autoScan !== false
+                    autoScan: saved.autoScan !== false,
+                    riskPrompt: saved.riskPrompt !== false
                 };
             }
 
             function setSettings(next) {
                 const settings = {
                     enabled: next && next.enabled !== false,
-                    autoScan: next && next.autoScan !== false
+                    autoScan: next && next.autoScan !== false,
+                    riskPrompt: next && next.riskPrompt !== false
                 };
                 writeJson(SETTINGS_KEY, settings);
                 refreshBadges();
@@ -148,6 +151,10 @@
                 if (type === 'spammer') return '灌水';
                 if (type === 'risk') return '风险';
                 return '标签';
+            }
+
+            function isSupportedLabelType(type) {
+                return type === 'trader' || type === 'spammer' || type === 'risk';
             }
 
             function labelClass(type) {
@@ -302,13 +309,6 @@
                         saveRecord(key, record);
                         showDetailDialog(key, username);
                     });
-                    action('改名', function () {
-                        const value = prompt('请输入标签名称：', label.name || labelTitle(type));
-                        if (value === null || !value.trim()) return;
-                        label.name = value.trim().slice(0, 12);
-                        saveRecord(key, record);
-                        showDetailDialog(key, username);
-                    });
                     action('备注', function () {
                         const value = prompt('请输入个人备注：', record.note || '');
                         if (value === null) return;
@@ -350,12 +350,13 @@
             }
 
             function addManualLabel(key, username, type, name, evidenceUrl, note) {
+                if (!isSupportedLabelType(type)) return null;
                 const data = getLabelsData();
                 const record = data[key] || { userId: /^\d+$/.test(key) ? key : '', username: username || '', labels: {}, ignored: {} };
                 record.username = username || record.username;
                 record.labels = record.labels || {};
                 record.labels[type] = {
-                    name: String(name || labelTitle(type)).trim().slice(0, 12),
+                    name: labelTitle(type),
                     source: 'manual',
                     createdAt: Date.now(),
                     metrics: {},
@@ -376,7 +377,7 @@
                 search.placeholder = '查找用户名或标签';
                 const add = document.createElement('button');
                 add.type = 'button';
-                add.textContent = '添加手工标签';
+                add.textContent = '手工记录风险';
                 toolbar.appendChild(search);
                 toolbar.appendChild(add);
                 dialog.appendChild(toolbar);
@@ -441,10 +442,10 @@
                     if (identity === null || !identity.trim()) return;
                     const username = prompt('请输入显示用户名：', /^\d+$/.test(identity.trim()) ? '' : identity.trim());
                     if (username === null || !username.trim()) return;
-                    const name = prompt('请输入标签名称：', '自定义');
-                    if (name === null || !name.trim()) return;
+                    const note = prompt('请输入风险说明或个人备注：', '交易争议，需自行核对依据');
+                    if (note === null) return;
                     const key = /^\d+$/.test(identity.trim()) ? identity.trim() : 'name:' + normalizedUsername(username);
-                    addManualLabel(key, username.trim(), 'custom-' + Date.now(), name.trim(), '', '');
+                    addManualLabel(key, username.trim(), 'risk', '风险', '', note);
                     render();
                 };
                 render();
@@ -461,13 +462,13 @@
             }
 
             async function fetchHistory(kind, userId, page) {
-                if ((document.visibilityState && document.visibilityState !== 'visible') || (activeScanPageKey && activeScanPageKey !== currentPageKey())) {
+                if ((document.visibilityState && document.visibilityState !== 'visible') || (activeScanPageKey && activeScanPageKey !== topicPageKey())) {
                     const error = new Error('页面状态已经变化');
                     error.cancelled = true;
                     throw error;
                 }
                 await waitForHistoryGap();
-                if ((document.visibilityState && document.visibilityState !== 'visible') || (activeScanPageKey && activeScanPageKey !== currentPageKey())) {
+                if ((document.visibilityState && document.visibilityState !== 'visible') || (activeScanPageKey && activeScanPageKey !== topicPageKey())) {
                     const error = new Error('页面状态已经变化');
                     error.cancelled = true;
                     throw error;
@@ -545,19 +546,26 @@
                 return record;
             }
 
-            function visibleUserCandidates() {
-                const links = Array.from(document.querySelectorAll('.post-list-item a[href*="/space/"], a.author-name[href*="/space/"]'));
-                const seen = new Set();
-                return links.map(link => ({
+            function topicIdFromPath() {
+                const match = location.pathname.match(/(?:\/post-|\/topic\/|\/article\/)(\d+)/i);
+                return match ? match[1] : '';
+            }
+
+            function topicPageKey() {
+                const topicId = topicIdFromPath();
+                return topicId ? 'topic:' + topicId : currentPageKey();
+            }
+
+            function topicAuthorCandidate() {
+                if (!topicIdFromPath()) return null;
+                const link = document.querySelector('.nsk-content .nsk-content-meta-info a.author-name[href*="/space/"], .nsk-content-meta-info a.author-name[href*="/space/"], article a.author-name[href*="/space/"], a.author-name[href*="/space/"]');
+                if (!link) return null;
+                const candidate = {
                     link,
                     userId: userIdFromLink(link),
                     username: String(link.textContent || '').trim()
-                })).filter(item => {
-                    if (!item.userId || !item.username || seen.has(item.userId)) return false;
-                    if (item.link.getClientRects && item.link.getClientRects().length === 0) return false;
-                    seen.add(item.userId);
-                    return true;
-                });
+                };
+                return candidate.userId && candidate.username ? candidate : null;
             }
 
             function shouldSkipCandidate(candidate) {
@@ -577,8 +585,11 @@
 
             function runAutoScanForPage(pageKey) {
                 if (!canAutoScan() || pageScanKeys.has(pageKey)) return;
-                const candidate = visibleUserCandidates().find(item => !shouldSkipCandidate(item));
-                if (!candidate) return;
+                const candidate = topicAuthorCandidate();
+                if (!candidate || shouldSkipCandidate(candidate)) {
+                    pageScanKeys.add(pageKey);
+                    return;
+                }
                 pageScanKeys.add(pageKey);
                 scanRunning = true;
                 activeScanPageKey = pageKey;
@@ -613,7 +624,7 @@
 
             function scheduleAutoScan(delay) {
                 if (scanTimer) clearTimeout(scanTimer);
-                const pageKey = currentPageKey();
+                const pageKey = topicPageKey();
                 scanTimer = setTimeout(function () {
                     scanTimer = null;
                     const run = () => runAutoScanForPage(pageKey);
@@ -665,16 +676,29 @@
                 if (changed) writeJson(OBSERVATIONS_KEY, observations);
             }
 
+            function topicPrimaryText() {
+                const author = topicAuthorCandidate()?.link;
+                const container = author && author.closest('article, .nsk-content, .post, .topic');
+                const source = container || document.querySelector('article, .nsk-content, .post-content, .topic-content');
+                if (!source) return '';
+                const copy = source.cloneNode(true);
+                copy.querySelectorAll('.reply, .comment, .comments, .post-comments, .nsk-reply, #ns-risk-evidence-prompt, .ns-user-label-badges').forEach(node => node.remove());
+                return String(copy.innerText || copy.textContent || '').slice(0, 30000);
+            }
+
+            function topicTitleText() {
+                const title = document.querySelector('.topic-title, .article-title, .thread-title, .post-title, .content-title, h1');
+                return String(title && title.textContent || document.title || '').replace(/\s*-\s*NodeSeek\s*$/i, '').trim();
+            }
+
             function riskContextDetected() {
-                if (!/(?:\/post-\d+|\/topic\/|\/article\/)/i.test(location.pathname)) return false;
+                if (!topicIdFromPath()) return false;
                 const category = Array.from(document.querySelectorAll('a[href*="/categories/"], a[href*="/category/"]')).some(link => /曝光/.test(link.textContent || ''));
-                const bodyText = String(document.body && document.body.innerText || '').slice(0, 30000);
-                return category || /诈骗|骗子|跑路|未交付|拒不退款|交易纠纷|骗款/.test(bodyText);
+                return NodeSeekUserLabelRules.hasRiskContext(topicTitleText(), topicPrimaryText(), category);
             }
 
             function riskCandidates() {
-                const bodyText = String(document.body && document.body.innerText || '');
-                const mentioned = new Set(Array.from(bodyText.matchAll(/@([\w\-\u4e00-\u9fff]{2,32})/g)).map(match => normalizedUsername(match[1])));
+                const mentioned = new Set(NodeSeekUserLabelRules.riskMentionNames(topicTitleText() + '\n' + topicPrimaryText()).map(normalizedUsername));
                 const result = [];
                 const seen = new Set();
                 document.querySelectorAll('a[href*="/space/"]').forEach(link => {
@@ -685,6 +709,19 @@
                     result.push({ username, userId });
                 });
                 return result;
+            }
+
+            function markRiskPromptHandled(status) {
+                const states = readJson(RISK_PROMPT_STATE_KEY, {});
+                states[topicPageKey()] = { status: status || 'ignored', handledAt: Date.now() };
+                const entries = Object.entries(states)
+                    .sort((a, b) => Number(b[1]?.handledAt || 0) - Number(a[1]?.handledAt || 0))
+                    .slice(0, 500);
+                writeJson(RISK_PROMPT_STATE_KEY, Object.fromEntries(entries));
+            }
+
+            function isRiskPromptHandled() {
+                return Boolean(readJson(RISK_PROMPT_STATE_KEY, {})[topicPageKey()]);
             }
 
             function recordRiskEvidence() {
@@ -705,13 +742,16 @@
                 if (!confirm('确定为“' + username + '”保存个人风险标签和当前页面链接？')) return;
                 const key = userId || 'name:' + normalizedUsername(username);
                 addManualLabel(key, username, 'risk', '风险', location.href, note);
+                markRiskPromptHandled('recorded');
                 const banner = document.getElementById('ns-risk-evidence-prompt');
                 if (banner) banner.remove();
             }
 
             function showRiskPrompt() {
-                if (!getSettings().enabled || !riskContextDetected() || riskPromptUrl === location.href) return;
-                riskPromptUrl = location.href;
+                const settings = getSettings();
+                const pageKey = topicPageKey();
+                if (!settings.enabled || !settings.riskPrompt || !riskContextDetected() || isRiskPromptHandled() || riskPromptUrl === pageKey) return;
+                riskPromptUrl = pageKey;
                 const old = document.getElementById('ns-risk-evidence-prompt');
                 if (old) old.remove();
                 const banner = document.createElement('div');
@@ -725,7 +765,10 @@
                 const dismiss = document.createElement('button');
                 dismiss.type = 'button';
                 dismiss.textContent = '忽略本页';
-                dismiss.onclick = () => banner.remove();
+                dismiss.onclick = function () {
+                    markRiskPromptHandled('ignored');
+                    banner.remove();
+                };
                 banner.appendChild(text);
                 banner.appendChild(record);
                 banner.appendChild(dismiss);
@@ -750,10 +793,10 @@
                     if (!record || typeof record !== 'object') return;
                     const labels = {};
                     Object.entries(record.labels || {}).forEach(([type, label]) => {
-                        if (!label || typeof label !== 'object' || !label.name) return;
+                        if (!isSupportedLabelType(type) || !label || typeof label !== 'object') return;
                         labels[type] = {
                             ...label,
-                            name: String(label.name).slice(0, 12),
+                            name: labelTitle(type),
                             evidence: compactEvidence(label.evidence)
                         };
                     });
